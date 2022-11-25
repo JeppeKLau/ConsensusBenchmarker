@@ -9,7 +9,7 @@ class Program
     static async Task Main(string[] args)
     {
         CommunicationModule communicationModule = new(1);
-        await CommunicationModule.AnnounceOwnIP();
+        await communicationModule.AnnounceOwnIP();
         // ask for blockchain
         await communicationModule.WaitInstruction();
 
