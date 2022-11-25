@@ -48,9 +48,9 @@ namespace ConsensusBenchmarker.Communication
 
                 await HandleMessage(message, handler, cancellationToken);
 
-                var echoBytes = Encoding.UTF8.GetBytes(Messages.CreateTag(OperationType.ACK));
-                await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-                Console.WriteLine($"Socket server sent back acknowledgement: \"{Messages.OperationTypes["ACK"]}\"\n\n");
+                //var echoBytes = Encoding.UTF8.GetBytes(Messages.CreateTag(OperationType.ACK));
+                //await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+                //Console.WriteLine($"Socket server sent back acknowledgement: \"{Messages.OperationTypes["ACK"]}\"\n\n");
             }
         }
 
