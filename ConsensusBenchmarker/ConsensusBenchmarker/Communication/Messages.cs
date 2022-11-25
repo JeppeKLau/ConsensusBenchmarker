@@ -2,31 +2,51 @@
 
 namespace ConsensusBenchmarker.Communication
 {
-    public enum OperationType { Default = 0, Discover, EOM, ACK };
+    public enum OperationType { DEF = 0, DIS, ACK, EOM };
 
     public static class Messages
     {
-        public static readonly string EOM = "<|EOM|>";
-        public static readonly string Discover = "<|DIS|>";
-        public static readonly string ACK = "<|ACK|>";
+        public static Dictionary<string, OperationType> OperationTypes { get; set; } = PopulateOperationTypes();
 
-        public static string GiveMeYourKnownNodesMessage(IPAddress ipAddress)
+        private static Dictionary<string, OperationType> PopulateOperationTypes()
         {
-            return $"{Discover}, {ipAddress} {EOM}";
+            Dictionary<string, OperationType> OperationTypes = new Dictionary<string, OperationType>();
+            foreach (OperationType operation in (OperationType[])Enum.GetValues(typeof(OperationType)))
+            {
+                OperationTypes.Add(CreateTag(operation), operation);
+            }
+            return OperationTypes;
         }
 
-        public static bool IsMessageValid(string response)
+        public static string CreateTag(OperationType operation)
         {
-            if (response.Contains(EOM))
+            return $"<|{operation}|>";
+        }
+
+        public static bool DoesMessageContainOperationTag(string input, OperationType operationType)
+        {
+            if (input.Contains(CreateTag(operationType)))
             {
                 return true;
             }
             return false;
         }
 
-        public static OperationType GetMessageType(string response)
+        public static string RemoveOperationTypeTag(string input, OperationType operationType)
         {
-            return OperationType.Default;
+            string tag = CreateTag(operationType);
+            return input.Remove(input.IndexOf(tag), tag.Length);
+        }
+
+        public static OperationType GetOperationTypeEnum(string input)
+        {
+            OperationTypes.TryGetValue(input.Substring(0, 6), out var value);
+            return value;
+        }
+
+        public static string GiveMeYourKnownNodesMessage(IPAddress ipAddress) // remake
+        {
+            return $"{CreateTag(OperationType.DIS)}, {ipAddress} {CreateTag(OperationType.EOM)}";
         }
 
         public static IPAddress ParseIpAddress(string IPMessage)

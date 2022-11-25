@@ -9,9 +9,9 @@ namespace NetworkManager;
 
 static class Program
 {
-    private static IPAddress ipAddress;
-    private static IPEndPoint rxEndpoint;
-    private static Socket server;
+    private static IPAddress? ipAddress;
+    private static IPEndPoint? rxEndpoint;
+    private static Socket? server;
     private static uint receivableByteSize = 4096;
     private static readonly int portNumber = 11_000;
 
@@ -29,21 +29,21 @@ static class Program
 
     private static void Initialize()
     {
-        ipAddress = IPAddress.Loopback;
-        rxEndpoint = new(ipAddress, portNumber);
-        server = new Socket(rxEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+        ipAddress = new IPAddress(new byte[] { 192, 168, 100, 100 });
+        rxEndpoint = new(ipAddress!, portNumber);
+        server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
         //knownNodes.Add(ipAddress);
     }
 
     private static async Task WaitInstruction(CancellationToken cancellationToken = default)
     {
-        Console.WriteLine($"Listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
-        server.Bind(rxEndpoint);
-        server.Listen(1000);
+        Console.WriteLine($"Listening on {rxEndpoint!.Address}:{rxEndpoint!.Port}");
+        server!.Bind(rxEndpoint!);
+        server!.Listen(1000);
 
         while (true)
         {
-            Socket handler = await server.AcceptAsync(cancellationToken);
+            Socket handler = await server!.AcceptAsync(cancellationToken);
             var rxBuffer = new byte[receivableByteSize];
             var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
             string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
@@ -58,7 +58,7 @@ static class Program
         // Message = "<|DIS|>IP:[ip of node]<|EOM|>"
         if (message.Contains(eom) && message.Contains(discover))
         {
-            AddNewKnownNode(message.Remove(0,discover.Length));
+            AddNewKnownNode(message.Remove(0, discover.Length));
             await SendBackListOfKnownNodes(handler, cancellationToken);
             await BroadcastNewNodeToAllPreviousNodes(handler, cancellationToken);
         }
@@ -101,9 +101,9 @@ static class Program
         IPAddress newNode = knownNodes.Last();
         foreach (IPAddress address in knownNodes)
         {
-            if(address != newNode)
+            if (address != newNode)
             {
-                var echoBytes = Encoding.UTF8.GetBytes(discover + newNode.ToString() + eom); 
+                var echoBytes = Encoding.UTF8.GetBytes(discover + newNode.ToString() + eom);
                 var networkManagerEndpoint = new IPEndPoint(address, portNumber);
                 var networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 await networkManager.ConnectAsync(networkManagerEndpoint);

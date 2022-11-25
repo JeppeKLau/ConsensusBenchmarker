@@ -4,26 +4,24 @@ using System.Text;
 
 namespace ConsensusBenchmarker.Communication
 {
-    public class CommunicationModule : ICommunicationModule
+    public class CommunicationModule
     {
-        private readonly IPAddress ipAddress;
-        private readonly IPEndPoint rxEndpoint;
-        private readonly Socket server;
-        private readonly int Id;
+        private readonly IPAddress? ipAddress;
+        private readonly IPEndPoint? rxEndpoint;
+        private readonly Socket? server;
         private readonly uint receivableByteSize = 4096;
 
-        private List<IPAddress> knownNodes = new List<IPAddress>();
+        private List<IPAddress> knownNodes = new();
 
-        public CommunicationModule(int id)
+        public CommunicationModule()
         {
-            Id = id;
-            ipAddress = IPAddress.Loopback;
-            rxEndpoint = new(ipAddress, 11_000 + Id);
-            server = new Socket(rxEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            knownNodes.Add(ipAddress);
+            ipAddress = GetLocalIPAddress();
+            rxEndpoint = new(ipAddress!, 11_000);
+            server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            knownNodes.Add(ipAddress!);
         }
 
-        private static IPAddress GetLocalIPAddress()
+        private IPAddress GetLocalIPAddress()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (var ip in host.AddressList)
@@ -36,110 +34,119 @@ namespace ConsensusBenchmarker.Communication
             throw new ApplicationException("Node has no ip address setup. Try restarting client");
         }
 
-        public async Task WaitInstruction(CancellationToken cancellationToken = default)
+        public async Task WaitForMessage(CancellationToken cancellationToken = default)
         {
-            server.Bind(rxEndpoint);
-            server.Listen(1000);
+            server!.Bind(rxEndpoint!);
+            server!.Listen(1000);
 
             while (true)
             {
-                Socket handler = await server.AcceptAsync(cancellationToken);
+                var handler = await server!.AcceptAsync(cancellationToken);
                 var rxBuffer = new byte[receivableByteSize];
                 var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
                 string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
 
                 await HandleMessage(message, handler, cancellationToken);
 
-                var echoBytes = Encoding.UTF8.GetBytes(Messages.ACK);
+                var echoBytes = Encoding.UTF8.GetBytes(Messages.CreateTag(OperationType.ACK));
                 await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-                Console.WriteLine($"Socket server sent back acknowledgement: \"{Messages.ACK}\"\n\n");
+                Console.WriteLine($"Socket server sent back acknowledgement: \"{Messages.OperationTypes["ACK"]}\"\n\n");
             }
         }
 
+        #region HandleMessage
+
         private async Task HandleMessage(string message, Socket handler, CancellationToken cancellationToken = default)
         {
-            if (Messages.IsMessageValid(message))
+            if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
             {
                 Console.WriteLine("Valid message recieved.");
-                Console.WriteLine($"Socket server {Id} received message: \"{message.Replace(Messages.EOM, "")}\"");
+                string messageWithoutEOM = Messages.RemoveOperationTypeTag(message, OperationType.EOM);
 
-                switch (Messages.GetMessageType(message))
+                switch (Messages.GetOperationTypeEnum(messageWithoutEOM))
                 {
-                    case OperationType.Discover:
-                        HandleDiscoverMessage(message.Remove(0, Messages.Discover.Length));
+                    case OperationType.DIS:
+                        SaveNewIPAddresses(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.DIS));
                         break;
-                    case OperationType.Default:
+                    case OperationType.DEF:
                         break;
                 }
             }
         }
 
         /// <summary>
-        /// Another node has discovered this node and wants this nodes known nodes.
+        /// Finds a list of nodes from the message input which are then added to this node's list of known nodes.
         /// </summary>
         /// <param name="message"></param>
-        private void HandleDiscoverMessage(string message)
+        private void SaveNewIPAddresses(string message)
         {
-            // Add new node to known node
-            AddNewKnownNode(message.Remove(message.IndexOf(Messages.EOM), Messages.EOM.Length));
-
-            // Tell them your known nodes
-            //handler.SendAsync();
-        }
-
-        public void AddNewKnownNode(string DiscoverMessage)
-        {
-            IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
-
-            if (!knownNodes.Contains(newIP))
+            var ipAddresses = message.Split(',');
+            foreach (var ipAddress in ipAddresses)
             {
-                knownNodes.Add(newIP);
+                AddNewNode(ipAddress);
             }
         }
 
-        public Task ReceiveBlock()
+        private void AddNewNode(string DiscoverMessage)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task SendBlock()
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task AnnounceOwnIP(CancellationToken cancellationToken = default)
-        {
-            var networkManagerIP = new IPAddress(new byte[] { 127, 0, 0, 1 });
-            var networkManagerEndpoint = new IPEndPoint(networkManagerIP, 11_000);
-            var networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-            var ownIPAddressMessage = Encoding.UTF8.GetBytes($"{Messages.Discover}IP:{ipAddress}{Messages.EOM}");
-
-            await networkManager.ConnectAsync(networkManagerEndpoint);
-
-            _ = await networkManager.SendAsync(ownIPAddressMessage, SocketFlags.None, cancellationToken);
-
-            var responseBuffer = new byte[4096];
-            var responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
-            var response = Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
-
-            if (response.Contains(Messages.ACK))
+            if (DiscoverMessage.Contains('.'))
             {
-                response = response.Remove(0, Messages.ACK.Length);
-                response = response.Remove(response.IndexOf(Messages.EOM), Messages.EOM.Length);
-                var ipAddresses = response.Split(",");
-                foreach (var address in ipAddresses)
+                IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
+                if (!knownNodes.Contains(newIP))
                 {
-                    AddNewKnownNode(address);
+                    knownNodes.Add(newIP);
                 }
+            }
+        }
+
+        private Task ReceiveBlock()
+        {
+            throw new NotImplementedException();
+        }
+
+        private Task SendBlock()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        public async Task AnnounceOwnIP()
+        {
+            var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 });
+            string messageToSend = $"{Messages.CreateTag(OperationType.DIS)}IP:{ipAddress!}{Messages.CreateTag(OperationType.EOM)}";
+            string response = await SendMessage(networkManagerIP, 11_000, messageToSend);
+
+            if (Messages.DoesMessageContainOperationTag(response, OperationType.ACK))
+            {
+                response = Messages.RemoveOperationTypeTag(response, OperationType.ACK);
+                response = Messages.RemoveOperationTypeTag(response, OperationType.EOM);
+
+                SaveNewIPAddresses(response);
             }
             else
             {
                 Console.WriteLine("No ACK from Network Manager. Retrying");
-                await AnnounceOwnIP(cancellationToken);
+                await AnnounceOwnIP();
+            }
+        }
+
+        private async Task<string> SendMessage(IPAddress receiver, int portNumber, string message, CancellationToken cancellationToken = default)
+        {
+            IPEndPoint networkManagerEndpoint = new IPEndPoint(receiver, portNumber);
+            Socket networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
+
+            while (!networkManager.Connected)
+            {
+                await networkManager.ConnectAsync(networkManagerEndpoint);
             }
 
+            _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+            byte[] responseBuffer = new byte[receivableByteSize];
+            int responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
             networkManager.Shutdown(SocketShutdown.Both);
+            return Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
         }
     }
 
