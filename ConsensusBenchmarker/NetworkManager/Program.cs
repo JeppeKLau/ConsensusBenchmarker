@@ -1,7 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -32,7 +29,6 @@ static class Program
         ipAddress = new IPAddress(new byte[] { 192, 168, 100, 100 });
         rxEndpoint = new(ipAddress!, portNumber);
         server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-        //knownNodes.Add(ipAddress);
     }
 
     private static async Task WaitInstruction(CancellationToken cancellationToken = default)
@@ -55,12 +51,11 @@ static class Program
 
     private static async Task HandleMessage(string message, Socket handler, CancellationToken cancellationToken = default)
     {
-        // Message = "<|DIS|>IP:[ip of node]<|EOM|>"
         if (message.Contains(eom) && message.Contains(discover))
         {
             AddNewKnownNode(message.Remove(0, discover.Length));
             await SendBackListOfKnownNodes(handler, cancellationToken);
-            await BroadcastNewNodeToAllPreviousNodes(handler, cancellationToken);
+            await BroadcastNewNodeToAllPreviousNodes(cancellationToken);
         }
     }
 
@@ -96,7 +91,7 @@ static class Program
         return string.Join(",", knownNodes.Select(x => x.ToString()));
     }
 
-    private static async Task BroadcastNewNodeToAllPreviousNodes(Socket handler, CancellationToken cancellationToken = default)
+    private static async Task BroadcastNewNodeToAllPreviousNodes(CancellationToken cancellationToken = default)
     {
         IPAddress newNode = knownNodes.Last();
         foreach (IPAddress address in knownNodes)
@@ -104,11 +99,11 @@ static class Program
             if (address != newNode)
             {
                 var echoBytes = Encoding.UTF8.GetBytes(discover + newNode.ToString() + eom);
-                var networkManagerEndpoint = new IPEndPoint(address, portNumber);
-                var networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                await networkManager.ConnectAsync(networkManagerEndpoint);
-                _ = await networkManager.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-                await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+                var nodeEndpoint = new IPEndPoint(address, portNumber);
+                var node = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                await node.ConnectAsync(nodeEndpoint);
+                _ = await node.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+                node.Shutdown(SocketShutdown.Both);
             }
         }
     }
