@@ -38,7 +38,6 @@ namespace ConsensusBenchmarker.Communication
 
         public async Task WaitInstruction(CancellationToken cancellationToken = default)
         {
-            Console.WriteLine($"Listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
             server.Bind(rxEndpoint);
             server.Listen(1000);
 
@@ -61,13 +60,13 @@ namespace ConsensusBenchmarker.Communication
         {
             if (Messages.IsMessageValid(message))
             {
-                Console.WriteLine("Valid message recieved.\n");
+                Console.WriteLine("Valid message recieved.");
                 Console.WriteLine($"Socket server {Id} received message: \"{message.Replace(Messages.EOM, "")}\"");
 
                 switch (Messages.GetMessageType(message))
                 {
                     case OperationType.Discover:
-                        HandleDiscoverMessage(message);
+                        HandleDiscoverMessage(message.Remove(0, Messages.Discover.Length));
                         break;
                     case OperationType.Default:
                         break;
@@ -82,7 +81,8 @@ namespace ConsensusBenchmarker.Communication
         private void HandleDiscoverMessage(string message)
         {
             // Add new node to known node
-            AddNewKnownNode(message);
+            AddNewKnownNode(message.Remove(message.IndexOf(Messages.EOM), Messages.EOM.Length));
+
             // Tell them your known nodes
             //handler.SendAsync();
         }
@@ -105,6 +105,41 @@ namespace ConsensusBenchmarker.Communication
         public Task SendBlock()
         {
             throw new NotImplementedException();
+        }
+
+        public async Task AnnounceOwnIP(CancellationToken cancellationToken = default)
+        {
+            var networkManagerIP = new IPAddress(new byte[] { 127, 0, 0, 1 });
+            var networkManagerEndpoint = new IPEndPoint(networkManagerIP, 11_000);
+            var networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            var ownIPAddressMessage = Encoding.UTF8.GetBytes($"{Messages.Discover}IP:{ipAddress}{Messages.EOM}");
+
+            await networkManager.ConnectAsync(networkManagerEndpoint);
+
+            _ = await networkManager.SendAsync(ownIPAddressMessage, SocketFlags.None, cancellationToken);
+
+            var responseBuffer = new byte[4096];
+            var responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
+            var response = Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
+
+            if (response.Contains(Messages.ACK))
+            {
+                response = response.Remove(0, Messages.ACK.Length);
+                response = response.Remove(response.IndexOf(Messages.EOM), Messages.EOM.Length);
+                var ipAddresses = response.Split(",");
+                foreach (var address in ipAddresses)
+                {
+                    AddNewKnownNode(address);
+                }
+            }
+            else
+            {
+                Console.WriteLine("No ACK from Network Manager. Retrying");
+                await AnnounceOwnIP(cancellationToken);
+            }
+
+            networkManager.Shutdown(SocketShutdown.Both);
         }
     }
 

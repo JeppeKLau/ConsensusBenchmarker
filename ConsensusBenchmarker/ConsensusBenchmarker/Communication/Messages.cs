@@ -17,6 +17,10 @@ namespace ConsensusBenchmarker.Communication
 
         public static bool IsMessageValid(string response)
         {
+            if (response.Contains(EOM))
+            {
+                return true;
+            }
             return false;
         }
 
@@ -27,7 +31,7 @@ namespace ConsensusBenchmarker.Communication
 
         public static IPAddress ParseIpAddress(string IPMessage)
         {
-            var ipString = IPMessage[3..];
+            var ipString = IPMessage.Contains("IP:") ? IPMessage[3..] : IPMessage;
             var ipArray = ipString.Split('.');
             _ = byte.TryParse(ipArray[0], out var ip0);
             _ = byte.TryParse(ipArray[1], out var ip1);

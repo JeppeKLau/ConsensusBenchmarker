@@ -8,8 +8,11 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        CommunicationModule communicationModule = new CommunicationModule(1);
+        CommunicationModule communicationModule = new(1);
+        await CommunicationModule.AnnounceOwnIP();
+        // ask for blockchain
         await communicationModule.WaitInstruction();
+
 
         //var communicationTask = new Task(async () =>
         //{
