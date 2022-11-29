@@ -54,7 +54,7 @@ static class Program
     {
         if (message.Contains(discover) && message.Contains(eom))
         {
-            string cleanMessage = message.Remove(0, discover.Length).Remove(message.IndexOf(eom), eom.Length);
+            string cleanMessage = message.Remove(message.IndexOf(eom), eom.Length).Remove(0, discover.Length);
             Console.WriteLine(cleanMessage); // TEMP
 
             await SendBackListOfKnownNodes(handler, cancellationToken);
