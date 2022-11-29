@@ -91,6 +91,11 @@ static class Program
             await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
             Console.WriteLine($"Socket server sent back list of known nodes.\n\n"); // TEMP
         }
+        else
+        {
+            var echoBytes = Encoding.UTF8.GetBytes(ack + eom);
+            await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+        }
     }
 
     private static string CreateStringOfKnownNodes()
