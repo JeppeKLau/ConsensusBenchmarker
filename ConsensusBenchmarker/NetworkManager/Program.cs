@@ -9,12 +9,12 @@ static class Program
     private static IPAddress? ipAddress;
     private static IPEndPoint? rxEndpoint;
     private static Socket? server;
-    private static uint receivableByteSize = 4096;
-    private static readonly int portNumber = 11_000;
 
     private static List<IPAddress> knownNodes = new List<IPAddress>();
 
-    public static readonly string eom = "<|EOM|>";
+    private static readonly int receivableByteSize = 4096;
+    private static readonly int portNumber = 11_000;
+    private static readonly string eom = "<|EOM|>";
     private static readonly string ack = "<|ACK|>";
     private static readonly string discover = "<|DIS|>";
 
@@ -44,17 +44,21 @@ static class Program
             var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
             string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
 
-            Console.WriteLine(message);
+            Console.WriteLine("Recieved message: " + message); // TEMP
             await HandleMessage(message, handler, cancellationToken);
+            Console.WriteLine("Status: Number of known nodes is currently: " + knownNodes.Count.ToString());
         }
     }
 
     private static async Task HandleMessage(string message, Socket handler, CancellationToken cancellationToken = default)
     {
-        if (message.Contains(eom) && message.Contains(discover))
+        if (message.Contains(discover) && message.Contains(eom))
         {
-            AddNewKnownNode(message.Remove(0, discover.Length));
+            string cleanMessage = message.Remove(0, discover.Length).Remove(message.IndexOf(eom), eom.Length);
+            Console.WriteLine(cleanMessage); // TEMP
+
             await SendBackListOfKnownNodes(handler, cancellationToken);
+            AddNewKnownNode(cleanMessage);
             await BroadcastNewNodeToAllPreviousNodes(cancellationToken);
         }
     }
@@ -70,7 +74,7 @@ static class Program
 
     private static IPAddress ParseIpAddress(string message)
     {
-        var ipString = message[3..message.IndexOf(eom)];
+        var ipString = message.Contains("IP:") ? message[3..] : message;
         var ipArray = ipString.Split('.');
         _ = byte.TryParse(ipArray[0], out var ip0);
         _ = byte.TryParse(ipArray[1], out var ip1);
@@ -81,14 +85,17 @@ static class Program
 
     private static async Task SendBackListOfKnownNodes(Socket handler, CancellationToken cancellationToken = default)
     {
-        var echoBytes = Encoding.UTF8.GetBytes(ack + CreateStringOfKnownNodes() + eom);
-        await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-        Console.WriteLine($"Socket server sent back list of known nodes.\n\n");
+        if(knownNodes.Count > 0)
+        {
+            var echoBytes = Encoding.UTF8.GetBytes(ack + CreateStringOfKnownNodes() + eom);
+            await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+            Console.WriteLine($"Socket server sent back list of known nodes.\n\n"); // TEMP
+        }
     }
 
     private static string CreateStringOfKnownNodes()
     {
-        return string.Join(",", knownNodes.Select(x => x.ToString()));
+        return string.Join(",", knownNodes.Select(x => "IP:" + x.ToString()));
     }
 
     private static async Task BroadcastNewNodeToAllPreviousNodes(CancellationToken cancellationToken = default)
@@ -98,12 +105,12 @@ static class Program
         {
             if (address != newNode)
             {
-                var echoBytes = Encoding.UTF8.GetBytes(discover + newNode.ToString() + eom);
+                var echoBytes = Encoding.UTF8.GetBytes(discover + "IP:" + newNode.ToString() + eom);
                 var nodeEndpoint = new IPEndPoint(address, portNumber);
-                var node = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                await node.ConnectAsync(nodeEndpoint);
-                _ = await node.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-                node.Shutdown(SocketShutdown.Both);
+                var nodeSocket = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                await nodeSocket.ConnectAsync(nodeEndpoint);
+                _ = await nodeSocket.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+                nodeSocket.Shutdown(SocketShutdown.Both);
             }
         }
     }
