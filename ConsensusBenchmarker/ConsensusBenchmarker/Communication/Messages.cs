@@ -1,8 +1,12 @@
-﻿using System.Net;
+﻿using ConsensusBenchmarker.Models;
+using System.Net;
 
 namespace ConsensusBenchmarker.Communication
 {
-    public enum OperationType { DEF = 0, DIS, ACK, EOM };
+    /// <summary>
+    /// DEF = Default, DIS = Discover, TRA = Transaction, ACK = Acknoledgement, EOM = End of Message,
+    /// </summary>
+    public enum OperationType { DEF = 0, DIS, TRA, ACK, EOM };
 
     public static class Messages
     {
@@ -44,11 +48,6 @@ namespace ConsensusBenchmarker.Communication
             return value;
         }
 
-        public static string GiveMeYourKnownNodesMessage(IPAddress ipAddress) // remake
-        {
-            return $"{CreateTag(OperationType.DIS)}, {ipAddress} {CreateTag(OperationType.EOM)}";
-        }
-
         public static IPAddress ParseIpAddress(string IPMessage)
         {
             var ipString = IPMessage.Contains("IP:") ? IPMessage[3..] : IPMessage;
@@ -59,5 +58,17 @@ namespace ConsensusBenchmarker.Communication
             _ = byte.TryParse(ipArray[3], out var ip3);
             return new IPAddress(new byte[] { ip0, ip1, ip2, ip3 });
         }
+
+        public static string CreateDISMessage(IPAddress ipAddress)
+        {
+            return $"{CreateTag(OperationType.DIS)}IP:{ipAddress}{CreateTag(OperationType.EOM)}";
+        }
+
+        public static string CreateTRAMessage(Transaction transaction)
+        {
+            return $"{CreateTag(OperationType.TRA)}{transaction.ToString()}{CreateTag(OperationType.EOM)}";
+        }
+
+
     }
-}
+    }

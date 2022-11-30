@@ -1,4 +1,7 @@
-﻿using System.Net;
+﻿using ConsensusBenchmarker.Consensus;
+using ConsensusBenchmarker.Data_Collection;
+using ConsensusBenchmarker.Models;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -6,6 +9,9 @@ namespace ConsensusBenchmarker.Communication
 {
     public class CommunicationModule
     {
+        private DataCollectionModule dataCollectionModule = new DataCollectionModule();
+        private ConsensusModule consensusModule = new ConsensusModule();
+
         private readonly IPAddress? ipAddress;
         private readonly IPEndPoint? rxEndpoint;
         private readonly Socket? server;
@@ -47,14 +53,10 @@ namespace ConsensusBenchmarker.Communication
                 string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
 
                 await HandleMessage(message, handler, cancellationToken);
-
-                //var echoBytes = Encoding.UTF8.GetBytes(Messages.CreateTag(OperationType.ACK));
-                //await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-                //Console.WriteLine($"Socket server sent back acknowledgement: \"{Messages.OperationTypes["ACK"]}\"\n\n");
             }
         }
 
-        #region HandleMessage
+        #region HandleInputMessages
 
         private async Task HandleMessage(string message, Socket handler, CancellationToken cancellationToken = default)
         {
@@ -68,8 +70,12 @@ namespace ConsensusBenchmarker.Communication
                     case OperationType.DIS:
                         SaveNewIPAddresses(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.DIS));
                         break;
-                    case OperationType.DEF:
+                    case OperationType.TRA:
+                        RecieveTransaction(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.TRA));
                         break;
+                    case OperationType.DEF:
+                        throw new ArgumentOutOfRangeException("Operation type was not recognized.");
+
                 }
             }
         }
@@ -99,6 +105,14 @@ namespace ConsensusBenchmarker.Communication
             }
         }
 
+        private void RecieveTransaction(string message)
+        {
+            Transaction recievedTransaction = new Transaction(message);
+
+            // send to consensus module
+
+        }
+
         private Task ReceiveBlock()
         {
             throw new NotImplementedException();
@@ -114,7 +128,7 @@ namespace ConsensusBenchmarker.Communication
         public async Task AnnounceOwnIP()
         {
             var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 });
-            string messageToSend = $"{Messages.CreateTag(OperationType.DIS)}IP:{ipAddress!}{Messages.CreateTag(OperationType.EOM)}";
+            string messageToSend = Messages.CreateDISMessage(ipAddress!);
             string response = await SendMessage(networkManagerIP, 11_000, messageToSend);
 
             if (Messages.DoesMessageContainOperationTag(response, OperationType.ACK))

@@ -89,7 +89,7 @@ static class Program
         {
             var echoBytes = Encoding.UTF8.GetBytes(ack + CreateStringOfKnownNodes() + eom);
             await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-            Console.WriteLine($"Socket server sent back list of known nodes.\n\n"); // TEMP
+            Console.WriteLine($"Socket server sent back list of known nodes."); // TEMP
         }
         else
         {

@@ -8,8 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Consensus\" />
-    <Folder Include="Data Collection\" />
+    <None Remove="Consensus\NewFile1.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Storage\" />
   </ItemGroup>
 
