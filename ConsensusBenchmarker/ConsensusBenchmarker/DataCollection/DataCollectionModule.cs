@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ConsensusBenchmarker.DataCollection
 {
@@ -32,9 +33,11 @@ namespace ConsensusBenchmarker.DataCollection
 
         private static void ReadMemvalue(FileStream file, out int value)
         {
+            var numRegex = new Regex(@"([0-9])");
             var valueLine = GetLineWithWord("VmSize:", file);
             var sizeDenominator = valueLine.Substring(valueLine.Length - 3, 2);
-            var numberString = valueLine.Substring(valueLine.IndexOf("VmSize:") + "VmSize:".Length, valueLine.IndexOf(sizeDenominator));
+            var matches = numRegex.Matches(valueLine);
+            var numberString = matches.Count == 1 ? matches.First().Value : throw new Exception("Too many matches in memory file");
             var dividend = sizeDenominator == "kB" ? 1000 : sizeDenominator == "mB" ? 1 : sizeDenominator == "gB" ? 0.001 : 0;
 
             Console.WriteLine($"valueLine: {valueLine}");
