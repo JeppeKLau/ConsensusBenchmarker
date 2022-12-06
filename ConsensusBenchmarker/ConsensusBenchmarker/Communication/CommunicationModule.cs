@@ -66,7 +66,7 @@ namespace ConsensusBenchmarker.Communication
         {
             if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
             {
-                Console.WriteLine("Valid message recieved.");
+                Console.WriteLine($"Valid message recieved:\n{message}");
                 string messageWithoutEOM = Messages.RemoveOperationTypeTag(message, OperationType.EOM);
 
                 switch (Messages.GetOperationTypeEnum(messageWithoutEOM))
