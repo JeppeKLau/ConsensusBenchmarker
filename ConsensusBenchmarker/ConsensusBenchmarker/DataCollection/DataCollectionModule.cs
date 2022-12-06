@@ -30,7 +30,7 @@ namespace ConsensusBenchmarker.DataCollection
 
         }
 
-        private void ReadMemvalue(FileStream file, out int value)
+        private static void ReadMemvalue(FileStream file, out int value)
         {
             var valueLine = GetLineWithWord("VmSize:", file);
             var sizeDenominator = valueLine.Substring(valueLine.IndexOf('\n') - 2, 2);
@@ -42,16 +42,17 @@ namespace ConsensusBenchmarker.DataCollection
 
             if (!tryParse)
             {
-                throw new ArgumentException("Could not parse number from string", nameof(numberString));
+                throw new FormatException("Could not parse number from string");
             }
         }
 
-        private string GetLineWithWord(string word, FileStream file)
+        private static string GetLineWithWord(string word, FileStream file)
         {
             var startIndex = -1;
             var stringBuilder = new StringBuilder();
             foreach (var chars in ReadFileInChunks(file))
             {
+                Console.WriteLine($"chars: {chars}");
                 if (startIndex > -1 && chars.Contains('\n', StringComparison.CurrentCulture))
                 {
                     return stringBuilder.ToString();
