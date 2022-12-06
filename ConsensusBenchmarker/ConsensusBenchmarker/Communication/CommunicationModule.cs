@@ -179,7 +179,7 @@ namespace ConsensusBenchmarker.Communication
             _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
             int responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
             networkManager.Shutdown(SocketShutdown.Both);
-            //networkManager.Close();
+            networkManager.Close();
             return Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
         }
 
