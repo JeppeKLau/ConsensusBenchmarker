@@ -67,7 +67,7 @@ namespace ConsensusBenchmarker.DataCollection
             throw new ArgumentException($"File does not contain word {word} or line endings", nameof(file));
         }
 
-        private static IEnumerable<string> ReadFileInChunks(FileStream file, int chunkSize = 7)
+        private static IEnumerable<string> ReadFileInChunks(FileStream file, int chunkSize = 128)
         {
             byte[] buffer = new byte[chunkSize];
             int currentRead;
