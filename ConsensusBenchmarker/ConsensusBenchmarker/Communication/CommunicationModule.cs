@@ -9,9 +9,12 @@ namespace ConsensusBenchmarker.Communication
 {
     public class CommunicationModule
     {
+        private readonly string consensusType; 
+
         private DataCollectionModule dataCollectionModule = new DataCollectionModule();
         private ConsensusModule consensusModule = new ConsensusModule();
 
+        private readonly int sharedPortNumber = 11_000;
         private readonly IPAddress? ipAddress;
         private readonly IPEndPoint? rxEndpoint;
         private readonly Socket? server;
@@ -19,10 +22,11 @@ namespace ConsensusBenchmarker.Communication
 
         private List<IPAddress> knownNodes = new();
 
-        public CommunicationModule()
+        public CommunicationModule(string consensus)
         {
+            consensusType= consensus;
             ipAddress = GetLocalIPAddress();
-            rxEndpoint = new(ipAddress!, 11_000);
+            rxEndpoint = new(ipAddress!, sharedPortNumber);
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             knownNodes.Add(ipAddress!);
         }
@@ -118,18 +122,15 @@ namespace ConsensusBenchmarker.Communication
             throw new NotImplementedException();
         }
 
-        private Task SendBlock()
-        {
-            throw new NotImplementedException();
-        }
-
         #endregion
+
+        #region HandleOutputMessages
 
         public async Task AnnounceOwnIP()
         {
             var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 });
             string messageToSend = Messages.CreateDISMessage(ipAddress!);
-            string response = await SendMessage(networkManagerIP, 11_000, messageToSend);
+            string response = await SendMessageAndWaitForAnswer(networkManagerIP, messageToSend);
 
             if (Messages.DoesMessageContainOperationTag(response, OperationType.ACK))
             {
@@ -145,23 +146,68 @@ namespace ConsensusBenchmarker.Communication
             }
         }
 
-        private async Task<string> SendMessage(IPAddress receiver, int portNumber, string message, CancellationToken cancellationToken = default)
+        public async Task BroadcastTransaction(Transaction transaction)
         {
-            IPEndPoint networkManagerEndpoint = new IPEndPoint(receiver, portNumber);
-            Socket networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
+            string messageToSend = Messages.CreateTRAMessage(transaction);
 
-            while (!networkManager.Connected)
+            foreach (IPAddress otherNode in knownNodes)
             {
-                await networkManager.ConnectAsync(networkManagerEndpoint);
+                await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
             }
+        }
 
-            _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+        public async Task BroadcastBlock()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Send a message to another IP address and waits for the answer.
+        /// </summary>
+        /// <param name="receiver"></param>
+        /// <param name="message"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        private async Task<string> SendMessageAndWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
+        {
+            IPEndPoint networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
+            byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             byte[] responseBuffer = new byte[receivableByteSize];
-            int responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
-            networkManager.Shutdown(SocketShutdown.Both);
+            int responseBytes;
+
+            using (Socket networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
+            {
+                await networkManager.ConnectAsync(networkManagerEndpoint, cancellationToken);
+                _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+                responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
+                networkManager.Shutdown(SocketShutdown.Both);
+                networkManager.Close();
+            }
             return Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
         }
+
+        /// <summary>
+        /// Send a message to another IP address without waiting for the answer.
+        /// </summary>
+        /// <param name="receiver"></param>
+        /// <param name="message"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        private async Task SendMessageAndDontWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
+        {
+            IPEndPoint nodeEndpoint = new IPEndPoint(receiver, sharedPortNumber);
+            byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
+
+            using (Socket nodeManager = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
+            {
+                await nodeManager.ConnectAsync(nodeEndpoint, cancellationToken);
+                _ = await nodeManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+                nodeManager.Shutdown(SocketShutdown.Both);
+                nodeManager.Close();
+            }
+        }
+
+        #endregion
     }
 
 }

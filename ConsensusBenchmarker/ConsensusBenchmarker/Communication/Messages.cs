@@ -71,4 +71,4 @@ namespace ConsensusBenchmarker.Communication
 
 
     }
-    }
+}
