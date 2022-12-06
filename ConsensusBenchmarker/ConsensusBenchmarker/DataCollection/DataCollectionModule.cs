@@ -33,7 +33,7 @@ namespace ConsensusBenchmarker.DataCollection
 
         private static void ReadMemvalue(FileStream file, out int value)
         {
-            var numRegex = new Regex(@"([0-9])");
+            var numRegex = new Regex(@"[0-9]+");
             var valueLine = GetLineWithWord("VmSize:", file);
             var sizeDenominator = valueLine.Substring(valueLine.Length - 3, 2);
             var matches = numRegex.Matches(valueLine);
