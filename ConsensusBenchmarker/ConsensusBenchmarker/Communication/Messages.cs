@@ -44,8 +44,8 @@ namespace ConsensusBenchmarker.Communication
 
         public static OperationType GetOperationTypeEnum(string input)
         {
-            var tryGet = OperationTypes.TryGetValue(input.Substring(0, 6), out var value);
-            Console.WriteLine($"Operation TryGet: {tryGet}\nInput: {input[0..6]}\nSubstring: {input.Substring(0, 6)}");
+            var tryGet = OperationTypes.TryGetValue(input[..7], out var value);
+            Console.WriteLine($"Operation TryGet: {tryGet}\nInput: {input[0..7]}\n");
             return value;
         }
 
