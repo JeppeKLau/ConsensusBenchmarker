@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Communication
 {
     public class CommunicationModule
     {
-        private readonly string consensusType; 
+        private readonly string consensusType;
 
         private DataCollectionModule dataCollectionModule = new DataCollectionModule();
         private ConsensusModule consensusModule = new ConsensusModule();
@@ -24,7 +24,7 @@ namespace ConsensusBenchmarker.Communication
 
         public CommunicationModule(string consensus)
         {
-            consensusType= consensus;
+            consensusType = consensus;
             ipAddress = GetLocalIPAddress();
             rxEndpoint = new(ipAddress!, sharedPortNumber);
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -181,7 +181,7 @@ namespace ConsensusBenchmarker.Communication
                 _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
                 responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
                 networkManager.Shutdown(SocketShutdown.Both);
-                networkManager.Close();
+                //networkManager.Close();
             }
             return Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
         }
@@ -203,7 +203,7 @@ namespace ConsensusBenchmarker.Communication
                 await nodeManager.ConnectAsync(nodeEndpoint, cancellationToken);
                 _ = await nodeManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
                 nodeManager.Shutdown(SocketShutdown.Both);
-                nodeManager.Close();
+                //nodeManager.Close();
             }
         }
 
