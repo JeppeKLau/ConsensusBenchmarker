@@ -66,10 +66,12 @@ namespace ConsensusBenchmarker.Communication
         {
             if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
             {
-                Console.WriteLine($"Valid message recieved:\n{message}");
+                Console.WriteLine($"Complete message recieved:\n{message}");
                 string messageWithoutEOM = Messages.RemoveOperationTypeTag(message, OperationType.EOM);
 
-                switch (Messages.GetOperationTypeEnum(messageWithoutEOM))
+                var op = Messages.GetOperationTypeEnum(messageWithoutEOM);
+
+                switch (op)
                 {
                     case OperationType.DIS:
                         SaveNewIPAddresses(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.DIS));
@@ -78,7 +80,7 @@ namespace ConsensusBenchmarker.Communication
                         RecieveTransaction(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.TRA));
                         break;
                     case OperationType.DEF:
-                        throw new ArgumentOutOfRangeException("Operation type was not recognized.");
+                        throw new ArgumentOutOfRangeException($"Operation type {op} was not recognized.");
 
                 }
             }
