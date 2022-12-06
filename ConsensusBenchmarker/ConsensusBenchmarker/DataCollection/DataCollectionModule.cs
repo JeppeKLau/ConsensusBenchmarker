@@ -35,7 +35,7 @@ namespace ConsensusBenchmarker.DataCollection
         {
             var numRegex = new Regex(@"[0-9]+");
             var valueLine = GetLineWithWord("VmSize:", file);
-            var sizeDenominator = valueLine.Substring(valueLine.Length - 3, 2);
+            var sizeDenominator = valueLine.Substring(valueLine.Length - 2, 2);
             var matches = numRegex.Matches(valueLine);
             var numberString = matches.Count == 1 ? matches.First().Value : throw new Exception("Too many matches in memory file");
             var dividend = sizeDenominator == "kB" ? 1000 : sizeDenominator == "mB" ? 1 : sizeDenominator == "gB" ? 0.001 : 0;
