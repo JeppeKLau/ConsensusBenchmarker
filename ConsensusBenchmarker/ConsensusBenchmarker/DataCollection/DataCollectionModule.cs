@@ -37,6 +37,11 @@ namespace ConsensusBenchmarker.DataCollection
             var numberString = valueLine.Substring(valueLine.IndexOf("VmSize:") + "VmSize:".Length, valueLine.IndexOf(sizeDenominator));
             var dividend = sizeDenominator == "kB" ? 1000 : sizeDenominator == "mB" ? 1 : sizeDenominator == "gB" ? 0.001 : 0;
 
+            Console.WriteLine($"valueLine: {valueLine}");
+            Console.WriteLine($"sizeDenominator: {sizeDenominator}");
+            Console.WriteLine($"numberString: {numberString}");
+            Console.WriteLine($"dividend: {dividend}");
+
             var tryParse = int.TryParse(numberString, out value);
             value = (int)(value / dividend);
 
