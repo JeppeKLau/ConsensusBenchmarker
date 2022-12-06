@@ -53,32 +53,35 @@ namespace ConsensusBenchmarker.DataCollection
 
         private static string GetLineWithWord(string word, FileStream file)
         {
-            var startIndex = -1;
-            var stringBuilder = new StringBuilder();
-            foreach (var chars in ReadFileInChunks(file))
-            {
-                Console.WriteLine($"chars: {chars}");
-                if (startIndex > -1 && chars.Contains('\n', StringComparison.CurrentCulture))
-                {
-                    return stringBuilder.ToString();
-                }
+            var fileStreamReader = new StreamReader(file);
+            var lines = ReadLineTillDelimiter(fileStreamReader, '\n');
 
-                if (startIndex > -1 || (startIndex = chars.IndexOf(word)) > -1)
+            foreach (var line in lines)
+            {
+                if (line.Contains(word))
                 {
-                    stringBuilder.Append(chars);
+                    return line;
                 }
             }
 
             throw new ArgumentException($"File does not contain word {word} or line endings", nameof(file));
         }
 
-        private static IEnumerable<string> ReadFileInChunks(FileStream file, int chunkSize = 128)
+        private static IEnumerable<string> ReadLineTillDelimiter(TextReader reader, char delimiter)
         {
-            byte[] buffer = new byte[chunkSize];
-            int currentRead;
-            while ((currentRead = file.Read(buffer, 0, chunkSize)) > 0)
+            var stringBuilder = new StringBuilder();
+            while (reader.Peek() > -1)
             {
-                yield return Encoding.UTF8.GetString(buffer, 0, currentRead);
+                var c = (char)reader.Read();
+
+                if (c == delimiter)
+                {
+                    yield return stringBuilder.ToString();
+                    stringBuilder.Clear();
+                    continue;
+                }
+
+                stringBuilder.Append(c);
             }
         }
     }
