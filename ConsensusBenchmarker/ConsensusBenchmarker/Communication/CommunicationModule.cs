@@ -173,16 +173,13 @@ namespace ConsensusBenchmarker.Communication
             IPEndPoint networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             byte[] responseBuffer = new byte[receivableByteSize];
-            int responseBytes;
 
-            using (Socket networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
-            {
-                await networkManager.ConnectAsync(networkManagerEndpoint, cancellationToken);
-                _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
-                responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
-                networkManager.Shutdown(SocketShutdown.Both);
-                //networkManager.Close();
-            }
+            Socket networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            await networkManager.ConnectAsync(networkManagerEndpoint, cancellationToken);
+            _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+            int responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
+            networkManager.Shutdown(SocketShutdown.Both);
+            //networkManager.Close();
             return Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
         }
 
