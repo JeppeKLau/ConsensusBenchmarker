@@ -18,9 +18,55 @@ namespace ConsensusBenchmarker.Data_Collection
         {
             var actualMemFile = MEM_STAT_FILE.Replace("{pid}", currentProcess.Id.ToString());
             var memFileStream = File.OpenRead(actualMemFile);
+            var memValue = 0; // MB memory used
+
+            var memThread = new Thread(() =>
+            {
+                ReadMemvalue(memFileStream, out memValue);
+                Thread.Sleep(1000);
+                Console.WriteLine(memValue.ToString());
+            });
+            memThread.Start();
+
         }
 
-        private IEnumerable<string> ReadFileInChunks(FileStream file, int chunkSize = 7)
+        private void ReadMemvalue(FileStream file, out int value)
+        {
+            var valueLine = GetLineWithWord("VmSize:", file);
+            var sizeDenominator = valueLine.Substring(valueLine.IndexOf('\n') - 2, 2);
+            var numberString = valueLine.Substring(valueLine.IndexOf("VmSize:") + "VmSize:".Length, valueLine.IndexOf(sizeDenominator));
+            var dividend = sizeDenominator == "kB" ? 1000 : sizeDenominator == "mB" ? 1 : sizeDenominator == "gB" ? 0.001 : 0;
+
+            var tryParse = int.TryParse(numberString, out value);
+            value = (int)(value / dividend);
+
+            if (!tryParse)
+            {
+                throw new ArgumentException("Could not parse number from string", nameof(numberString));
+            }
+        }
+
+        private string GetLineWithWord(string word, FileStream file)
+        {
+            var startIndex = -1;
+            var stringBuilder = new StringBuilder();
+            foreach (var chars in ReadFileInChunks(file))
+            {
+                if (startIndex > -1 && chars.Contains('\n', StringComparison.CurrentCulture))
+                {
+                    return stringBuilder.ToString();
+                }
+
+                if (startIndex > -1 || (startIndex = chars.IndexOf(word)) > -1)
+                {
+                    stringBuilder.Append(chars);
+                }
+            }
+
+            throw new ArgumentException($"File does not contain word {word} or line endings", nameof(file));
+        }
+
+        private static IEnumerable<string> ReadFileInChunks(FileStream file, int chunkSize = 7)
         {
             byte[] buffer = new byte[chunkSize];
             int currentRead;
@@ -29,25 +75,5 @@ namespace ConsensusBenchmarker.Data_Collection
                 yield return Encoding.UTF8.GetString(buffer, 0, currentRead);
             }
         }
-
-        private string GetLineAfterWord(string word, FileStream file)
-        {
-            var startIndex = -1;
-            var stringBuilder = new StringBuilder();
-            foreach (var chars in ReadFileInChunks(file))
-            {
-                if (startIndex >= 0 && chars.Contains('\n', StringComparison.CurrentCulture))
-                {
-                    return stringBuilder.ToString();
-                }
-
-                if ((startIndex = chars.IndexOf(word)) >= 0)
-                {
-                    stringBuilder.Append(chars);
-                }
-            }
-            throw new ArgumentException($"File does not contain word {word}", nameof(file));
-        }
-
     }
 }
