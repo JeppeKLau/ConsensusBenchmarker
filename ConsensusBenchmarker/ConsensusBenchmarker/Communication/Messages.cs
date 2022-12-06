@@ -45,7 +45,7 @@ namespace ConsensusBenchmarker.Communication
         public static OperationType GetOperationTypeEnum(string input)
         {
             var tryGet = OperationTypes.TryGetValue(input[..7], out var value);
-            Console.WriteLine($"Operation TryGet: {tryGet}\nInput: {input[0..7]}\n");
+            if (!tryGet) Console.WriteLine($"Operation mapping failed. Input key was: {input[..7]}.\nMethod input was: {input}");
             return value;
         }
 

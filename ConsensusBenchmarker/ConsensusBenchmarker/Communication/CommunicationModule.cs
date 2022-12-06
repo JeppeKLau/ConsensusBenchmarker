@@ -1,5 +1,5 @@
 ﻿using ConsensusBenchmarker.Consensus;
-using ConsensusBenchmarker.Data_Collection;
+using ConsensusBenchmarker.DataCollection;
 using ConsensusBenchmarker.Models;
 using System.Net;
 using System.Net.Sockets;
@@ -68,10 +68,9 @@ namespace ConsensusBenchmarker.Communication
             {
                 Console.WriteLine($"Complete message recieved:\n{message}");
                 string messageWithoutEOM = Messages.RemoveOperationTypeTag(message, OperationType.EOM);
+                var operationType = Messages.GetOperationTypeEnum(messageWithoutEOM);
 
-                var op = Messages.GetOperationTypeEnum(messageWithoutEOM);
-
-                switch (op)
+                switch (operationType)
                 {
                     case OperationType.DIS:
                         SaveNewIPAddresses(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.DIS));
@@ -80,7 +79,7 @@ namespace ConsensusBenchmarker.Communication
                         RecieveTransaction(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.TRA));
                         break;
                     case OperationType.DEF:
-                        throw new ArgumentOutOfRangeException($"Operation type {op} was not recognized.");
+                        throw new ArgumentOutOfRangeException($"Operation type {operationType} was not recognized.");
 
                 }
             }

@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 
-namespace ConsensusBenchmarker.Data_Collection
+namespace ConsensusBenchmarker.DataCollection
 {
     public class DataCollectionModule
     {
