@@ -33,7 +33,7 @@ namespace ConsensusBenchmarker.DataCollection
         private static void ReadMemvalue(FileStream file, out int value)
         {
             var valueLine = GetLineWithWord("VmSize:", file);
-            var sizeDenominator = valueLine.Substring(valueLine.IndexOf('\n') - 2, 2);
+            var sizeDenominator = valueLine.Substring(valueLine.Length - 3, 2);
             var numberString = valueLine.Substring(valueLine.IndexOf("VmSize:") + "VmSize:".Length, valueLine.IndexOf(sizeDenominator));
             var dividend = sizeDenominator == "kB" ? 1000 : sizeDenominator == "mB" ? 1 : sizeDenominator == "gB" ? 0.001 : 0;
 
@@ -60,6 +60,7 @@ namespace ConsensusBenchmarker.DataCollection
             {
                 if (line.Contains(word))
                 {
+                    Console.WriteLine($"Line: {line}");
                     return line;
                 }
             }
