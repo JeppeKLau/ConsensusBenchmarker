@@ -25,7 +25,7 @@ namespace ConsensusBenchmarker.Consensus
             {
                 if (type.Name.ToLower().Equals(consensusType.ToLower() + "consensus"))
                 {
-                    return executingAssembly.CreateInstance(type.Name) as IConsensus ?? throw new Exception("Unknown IConsensus assembly");
+                    return executingAssembly.CreateInstance(type.Name) as IConsensus ?? throw new Exception($"Unknown IConsensus assembly: {type.Name}");
                 }
             }
             throw new Exception("Was not able to instantiate any Consensus class.");
