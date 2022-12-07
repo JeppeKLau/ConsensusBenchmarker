@@ -24,8 +24,8 @@ namespace ConsensusBenchmarker.DataCollection
             var memThread = new Thread(() =>
             {
                 ReadMemvalue(memFileStream, out memValue);
-                Thread.Sleep(1000);
                 Console.WriteLine(memValue.ToString());
+                Thread.Sleep(1000);
             });
             memThread.Start();
 
@@ -39,11 +39,6 @@ namespace ConsensusBenchmarker.DataCollection
             var matches = numRegex.Matches(valueLine);
             var numberString = matches.Count == 1 ? matches.First().Value : throw new Exception("Too many matches in memory file");
             var dividend = sizeDenominator == "kB" ? 1000 : sizeDenominator == "mB" ? 1 : sizeDenominator == "gB" ? 0.001 : 0;
-
-            Console.WriteLine($"valueLine: {valueLine}");
-            Console.WriteLine($"sizeDenominator: {sizeDenominator}");
-            Console.WriteLine($"numberString: {numberString}");
-            Console.WriteLine($"dividend: {dividend}");
 
             var tryParse = int.TryParse(numberString, out value);
             value = (int)(value / dividend);
@@ -63,7 +58,6 @@ namespace ConsensusBenchmarker.DataCollection
             {
                 if (line.Contains(word))
                 {
-                    Console.WriteLine($"Line: {line}");
                     return line;
                 }
             }

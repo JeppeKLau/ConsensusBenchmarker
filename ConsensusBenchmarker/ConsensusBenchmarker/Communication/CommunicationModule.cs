@@ -10,9 +10,10 @@ namespace ConsensusBenchmarker.Communication
     public class CommunicationModule
     {
         private readonly string consensusType;
+        private readonly int totalBlocksToCreate;
 
         private DataCollectionModule dataCollectionModule = new DataCollectionModule();
-        private ConsensusModule consensusModule = new ConsensusModule();
+        private ConsensusModule consensusModule;
 
         private readonly int sharedPortNumber = 11_000;
         private readonly IPAddress? ipAddress;
@@ -22,9 +23,12 @@ namespace ConsensusBenchmarker.Communication
 
         private List<IPAddress> knownNodes = new();
 
-        public CommunicationModule(string consensus)
+        public CommunicationModule(string consensus, int totalBlocks)
         {
             consensusType = consensus;
+            totalBlocksToCreate = totalBlocks;
+            consensusModule = new ConsensusModule(consensus);
+
             ipAddress = GetLocalIPAddress();
             rxEndpoint = new(ipAddress!, sharedPortNumber);
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -49,7 +53,7 @@ namespace ConsensusBenchmarker.Communication
             server!.Bind(rxEndpoint!);
             server!.Listen(1000);
 
-            while (true)
+            while (consensusModule.totalBlocksInChain < totalBlocksToCreate)
             {
                 var handler = await server!.AcceptAsync(cancellationToken);
                 var rxBuffer = new byte[receivableByteSize];
@@ -113,7 +117,7 @@ namespace ConsensusBenchmarker.Communication
         private void RecieveTransaction(string message)
         {
             Transaction recievedTransaction = new Transaction(message);
-
+            consensusModule.RecieveTransaction(recievedTransaction);
             // send to consensus module
 
         }
@@ -196,14 +200,11 @@ namespace ConsensusBenchmarker.Communication
             IPEndPoint nodeEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
 
-            using (Socket nodeManager = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
-            {
-                await nodeManager.ConnectAsync(nodeEndpoint, cancellationToken);
-                _ = await nodeManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
-                nodeManager.Shutdown(SocketShutdown.Both);
-                //nodeManager.Close();
-            }
-        }
+            Socket nodeManager = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            await nodeManager.ConnectAsync(nodeEndpoint, cancellationToken);
+            _ = await nodeManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+            nodeManager.Shutdown(SocketShutdown.Both);
+    }
 
         #endregion
     }

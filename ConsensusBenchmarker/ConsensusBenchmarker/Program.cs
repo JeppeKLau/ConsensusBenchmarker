@@ -10,8 +10,10 @@ class Program
     static async Task Main(string[] args)
     {
         string consensus = RetrieveConsensusMechanismType();
+        int totalBlocksToCreate = RetrieveNumberOfBlocksToCreate();
+
         var dataCollectionModule = new DataCollectionModule();
-        var communicationModule = new CommunicationModule(consensus);
+        var communicationModule = new CommunicationModule(consensus, totalBlocksToCreate);
         await communicationModule.AnnounceOwnIP();
         // ask for blockchain
 
@@ -36,16 +38,33 @@ class Program
     private static string RetrieveConsensusMechanismType()
     {
         var envString = Environment.GetEnvironmentVariable("CONSENSUS_TYPE");
-
         if (envString == null)
         {
-            throw new Exception("Could not fetch or recognize the environment variable.");
+            throw new Exception("Could not get the consensus environment variable.");
         }
 
-        if (!ConsensusTypes.Contains(envString))
+        if (!ConsensusTypes.Any(x => x.ToLower().Equals(envString.ToLower())))
         {
             throw new Exception("Unknown consensus mechanism in environment variable");
         }
         return envString;
+    }
+
+    private static int RetrieveNumberOfBlocksToCreate()
+    {
+        var envString = Environment.GetEnvironmentVariable("TOTAL_BLOCKS");
+        if (envString == null)
+        {
+            throw new Exception("Could not get the total block environment variable.");
+        }
+
+        if (int.TryParse(envString, out int numberOfBlocks))
+        {
+            return numberOfBlocks;
+        }
+        else
+        {
+            throw new Exception("Could not parse the total block environment variable to an integer.");
+        }
     }
 }
