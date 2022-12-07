@@ -11,6 +11,7 @@ class Program
     {
         string consensus = RetrieveConsensusMechanismType();
         int totalBlocksToCreate = RetrieveNumberOfBlocksToCreate();
+        string nodeName = RetrieveNodeName();
 
         var dataCollectionModule = new DataCollectionModule();
         var communicationModule = new CommunicationModule(consensus, totalBlocksToCreate);
@@ -63,5 +64,17 @@ class Program
             return numberOfBlocks;
         }
         throw new Exception("Could not parse the total block environment variable to an integer.");
+    }
+
+    private static string RetrieveNodeName()
+    {
+        var envString = Environment.GetEnvironmentVariable("REPLICA");
+        if (envString == null)
+        {
+            throw new Exception("Could not get the replica environment variable.");
+        }
+        Console.WriteLine(envString);
+
+        return envString;
     }
 }
