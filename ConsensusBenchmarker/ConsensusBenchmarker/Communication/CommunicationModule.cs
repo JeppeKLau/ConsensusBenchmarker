@@ -62,6 +62,7 @@ namespace ConsensusBenchmarker.Communication
 
                 await HandleMessage(message, handler, cancellationToken);
             }
+            Console.WriteLine($"consensusModule.totalBlocksInChain < totalBlocksToCreate: {consensusModule.totalBlocksInChain < totalBlocksToCreate}");
         }
 
         #region HandleInputMessages
@@ -204,7 +205,7 @@ namespace ConsensusBenchmarker.Communication
             await nodeManager.ConnectAsync(nodeEndpoint, cancellationToken);
             _ = await nodeManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
             nodeManager.Shutdown(SocketShutdown.Both);
-    }
+        }
 
         #endregion
     }
