@@ -11,21 +11,21 @@ class Program
     {
         string consensus = RetrieveConsensusMechanismType();
         int totalBlocksToCreate = RetrieveNumberOfBlocksToCreate();
-        string nodeName = RetrieveNodeName();
+        int nodeID = RetrieveNodeName();
 
         var dataCollectionModule = new DataCollectionModule();
-        var communicationModule = new CommunicationModule(consensus, totalBlocksToCreate);
+        var communicationModule = new CommunicationModule(consensus, totalBlocksToCreate, nodeID);
         // ask for blockchain
 
-        var communicationThread = new Thread(async () =>
+        var communicationThread = new Thread(() =>
         {
-            await communicationModule.AnnounceOwnIP();
-            await communicationModule.WaitForMessage();
+            communicationModule.AnnounceOwnIP().GetAwaiter().GetResult();
+            communicationModule.WaitForMessage().GetAwaiter().GetResult();
         });
 
-        var dataCollectionThread = new Thread(async () =>
+        var dataCollectionThread = new Thread(() =>
         {
-            await dataCollectionModule.CollectData();
+            dataCollectionModule.CollectData().GetAwaiter().GetResult();
         });
 
         dataCollectionThread.Start();
@@ -63,21 +63,23 @@ class Program
 
         if (int.TryParse(envString, out int numberOfBlocks))
         {
-            Console.WriteLine($"numberOfBlocks: {numberOfBlocks}");
             return numberOfBlocks;
         }
         throw new Exception("Could not parse the total block environment variable to an integer.");
     }
 
-    private static string RetrieveNodeName()
+    private static int RetrieveNodeName()
     {
         var envString = Environment.GetEnvironmentVariable("REPLICA");
         if (envString == null)
         {
             throw new Exception("Could not get the replica environment variable.");
         }
-        Console.WriteLine(envString);
 
-        return envString;
+        if (int.TryParse(envString, out int nodeID))
+        {
+            return nodeID;
+        }
+        throw new Exception("Could not parse the node id environment variable to an integer.");
     }
 }
