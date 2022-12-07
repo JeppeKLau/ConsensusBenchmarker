@@ -32,6 +32,8 @@ class Program
         communicationThread.Start();
 
         while (communicationThread.IsAlive) ;
+
+        Console.WriteLine("Communication thread is dead, terminating execution");
     }
 
     private static string[] ConsensusTypes = { "PoW", "PoS", "PoC", "PoET", "Raft", "PBFT", "RapidChain" };
