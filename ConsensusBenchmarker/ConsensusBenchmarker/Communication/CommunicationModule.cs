@@ -53,7 +53,9 @@ namespace ConsensusBenchmarker.Communication
             server!.Bind(rxEndpoint!);
             server!.Listen(1000);
 
-            while (consensusModule.totalBlocksInChain < totalBlocksToCreate)
+            Console.WriteLine($"Server listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
+
+            while (consensusModule.totalBlocksInChain <= totalBlocksToCreate)
             {
                 var handler = await server!.AcceptAsync(cancellationToken);
                 var rxBuffer = new byte[receivableByteSize];

@@ -15,11 +15,11 @@ class Program
 
         var dataCollectionModule = new DataCollectionModule();
         var communicationModule = new CommunicationModule(consensus, totalBlocksToCreate);
-        await communicationModule.AnnounceOwnIP();
         // ask for blockchain
 
         var communicationThread = new Thread(async () =>
         {
+            await communicationModule.AnnounceOwnIP();
             await communicationModule.WaitForMessage();
         });
 
@@ -30,9 +30,9 @@ class Program
 
         dataCollectionThread.Start();
         communicationThread.Start();
+        Console.WriteLine($"Communication thread is alive: {communicationThread.IsAlive}");
 
         while (communicationThread.IsAlive) ;
-
         Console.WriteLine("Communication thread is dead, terminating execution");
     }
 
@@ -63,6 +63,7 @@ class Program
 
         if (int.TryParse(envString, out int numberOfBlocks))
         {
+            Console.WriteLine($"numberOfBlocks: {numberOfBlocks}");
             return numberOfBlocks;
         }
         throw new Exception("Could not parse the total block environment variable to an integer.");
