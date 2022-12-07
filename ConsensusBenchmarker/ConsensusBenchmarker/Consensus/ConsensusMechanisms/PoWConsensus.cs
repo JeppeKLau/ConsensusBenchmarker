@@ -1,5 +1,4 @@
-﻿
-using ConsensusBenchmarker.Models;
+﻿using ConsensusBenchmarker.Models;
 
 namespace ConsensusBenchmarker.Consensus.PoW
 {

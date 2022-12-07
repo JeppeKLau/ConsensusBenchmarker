@@ -62,9 +62,6 @@ class Program
         {
             return numberOfBlocks;
         }
-        else
-        {
-            throw new Exception("Could not parse the total block environment variable to an integer.");
-        }
+        throw new Exception("Could not parse the total block environment variable to an integer.");
     }
 }
