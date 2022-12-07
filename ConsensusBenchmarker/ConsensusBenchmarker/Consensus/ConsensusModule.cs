@@ -10,11 +10,13 @@ namespace ConsensusBenchmarker.Consensus
         public List<Transaction> RecievedTransactionsSicnceLastBlock { get; set; } = new List<Transaction>();
 
         private readonly string consensusType;
+        private readonly int nodeID;
         private IConsensus ConsensusMechanism;
 
-        public ConsensusModule(string consensus)
+        public ConsensusModule(string consensusType, int nodeID)
         {
-            consensusType = consensus;
+            this.consensusType = consensusType;
+            this.nodeID = nodeID;
             ConsensusMechanism = InstantiateCorrectConsensusClass();
         }
 
