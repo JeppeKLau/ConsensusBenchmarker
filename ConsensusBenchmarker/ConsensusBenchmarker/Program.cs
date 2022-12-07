@@ -15,25 +15,15 @@ class Program
 
         var dataCollectionModule = new DataCollectionModule();
         var communicationModule = new CommunicationModule(consensus, totalBlocksToCreate, nodeID);
+        await communicationModule.AnnounceOwnIP();
         // ask for blockchain
 
-        var communicationThread = new Thread(() =>
-        {
-            communicationModule.AnnounceOwnIP().GetAwaiter().GetResult();
-            communicationModule.WaitForMessage().GetAwaiter().GetResult();
-        });
+        var communicationTask = communicationModule.WaitForMessage();
+        var dataCollectionTask = dataCollectionModule.CollectData();
 
-        var dataCollectionThread = new Thread(() =>
-        {
-            dataCollectionModule.CollectData().GetAwaiter().GetResult();
-        });
+        await Task.WhenAll(communicationTask, dataCollectionTask);
 
-        dataCollectionThread.Start();
-        communicationThread.Start();
-        Console.WriteLine($"Communication thread is alive: {communicationThread.IsAlive}");
-
-        while (communicationThread.IsAlive) ;
-        Console.WriteLine("Communication thread is dead, terminating execution");
+        Console.WriteLine("Communication task is complete, terminating execution");
     }
 
     private static string[] ConsensusTypes = { "PoW", "PoS", "PoC", "PoET", "Raft", "PBFT", "RapidChain" };
