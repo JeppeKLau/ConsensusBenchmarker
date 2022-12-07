@@ -47,7 +47,7 @@ class Program
         {
             throw new Exception("Unknown consensus mechanism in environment variable");
         }
-        return envString;
+        return ConsensusTypes.Single(x => x.ToLower().Equals(envString.ToLower()));
     }
 
     private static int RetrieveNumberOfBlocksToCreate()
