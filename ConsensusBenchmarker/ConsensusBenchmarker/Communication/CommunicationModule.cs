@@ -11,6 +11,7 @@ namespace ConsensusBenchmarker.Communication
     {
         private readonly string consensusType;
         private readonly int totalBlocksToCreate;
+        private readonly int nodeID;
 
         private DataCollectionModule dataCollectionModule = new DataCollectionModule();
         private ConsensusModule consensusModule;
@@ -23,11 +24,12 @@ namespace ConsensusBenchmarker.Communication
 
         private List<IPAddress> knownNodes = new();
 
-        public CommunicationModule(string consensus, int totalBlocks)
+        public CommunicationModule(string consensusType, int totalBlocksToCreate, int nodeID)
         {
-            consensusType = consensus;
-            totalBlocksToCreate = totalBlocks;
-            consensusModule = new ConsensusModule(consensus);
+            this.consensusType = consensusType;
+            this.totalBlocksToCreate = totalBlocksToCreate;
+            this.nodeID = nodeID;
+            consensusModule = new ConsensusModule(consensusType, nodeID);
 
             ipAddress = GetLocalIPAddress();
             rxEndpoint = new(ipAddress!, sharedPortNumber);
@@ -64,6 +66,7 @@ namespace ConsensusBenchmarker.Communication
 
                 await HandleMessage(message, handler, cancellationToken);
             }
+            //when total blocks has been reached, send all collected data to networkmanager ish?
             Console.WriteLine($"consensusModule.totalBlocksInChain < totalBlocksToCreate: {consensusModule.totalBlocksInChain < totalBlocksToCreate}");
         }
 
