@@ -81,6 +81,7 @@ namespace ConsensusBenchmarker.DataCollection
                 CpuFlag = false;
                 eventStack.Pop();
             }
+            mutex.ReleaseMutex();
         }
 
         private static void ReadMemvalue(FileStream file, out int value)
