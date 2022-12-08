@@ -1,4 +1,5 @@
 ﻿using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Events;
 using System.Reflection;
 
 namespace ConsensusBenchmarker.Consensus
@@ -7,17 +8,19 @@ namespace ConsensusBenchmarker.Consensus
     {
         private readonly string consensusType;
         private ConsensusDriver ConsensusMechanism;
+        private readonly Stack<IEvent> eventStack;
 
-        public ConsensusModule(string consensusType, int nodeID)
+        public ConsensusModule(string consensusType, int totalBlocksToCreate, int nodeID)
         {
             this.consensusType = consensusType;
-            ConsensusMechanism = InstantiateCorrespondingConsensusClass(nodeID);
+            ConsensusMechanism = InstantiateCorrespondingConsensusClass(totalBlocksToCreate, nodeID);
         }
 
-        private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID)
+        private ConsensusDriver InstantiateCorrespondingConsensusClass(int totalBlocksToCreate, int nodeID)
         {
             var executingAssembly = Assembly.GetExecutingAssembly();
-            var assemblyType = executingAssembly.GetType(consensusType + "Consensus");
+            var assemblyTypes = executingAssembly.GetTypes();
+            var assemblyType = assemblyTypes.FirstOrDefault(x => x.Name == consensusType + "Consensus");
 
             if (assemblyType == null) throw new Exception("Was not able to instantiate any Consensus class.");
 
