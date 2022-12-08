@@ -27,7 +27,7 @@ namespace ConsensusBenchmarker.DataCollection
         {
             var actualMemFile = MEM_STAT_FILE.Replace("{pid}", currentProcess.Id.ToString());
             var memFileStream = File.OpenRead(actualMemFile);
-            var mbMemory = 0; // MB memory used
+            var mbMemory = 0; // mB memory used
             var cpuFileStream = File.OpenRead(CPU_STAT_FILE);
             var cpuTime = 0; // CPU time
             eventStack.Push(new DataCollectionEvent(nodeID, DataCollectionEventType.CollectionReady));
@@ -38,10 +38,11 @@ namespace ConsensusBenchmarker.DataCollection
                 {
                     memFileStream.Seek(0, SeekOrigin.Begin);
                     ReadMemvalue(memFileStream, out mbMemory);
-                    Console.WriteLine(mbMemory.ToString());
+                    Console.WriteLine($"Memory: {mbMemory} mB");
                     Thread.Sleep(1000);
                     UpdateExecutionFlag();
                 }
+                Console.WriteLine("Ending memory thread");
             });
 
             var cpuThread = new Thread(() =>
@@ -50,10 +51,11 @@ namespace ConsensusBenchmarker.DataCollection
                 {
                     cpuFileStream.Seek(0, SeekOrigin.Begin);
                     ReadCpuValue(cpuFileStream, out cpuTime);
-                    Console.WriteLine(cpuTime.ToString());
+                    Console.WriteLine($"Cpu time: {cpuTime}");
                     Thread.Sleep(1000);
                     UpdateExecutionFlag();
                 }
+                Console.WriteLine("Ending CPU thread");
             });
 
             memThread.Start();
