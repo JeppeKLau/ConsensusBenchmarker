@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using ConsensusBenchmarker.Communication;
+using ConsensusBenchmarker.Consensus;
 using ConsensusBenchmarker.DataCollection;
 using ConsensusBenchmarker.Models.Events;
 
@@ -8,7 +9,7 @@ namespace ConsensusBenchmarker;
 
 class Program
 {
-    static async Task Main(string[] args)
+    static async Task Main()
     {
         string consensus = RetrieveConsensusMechanismType();
         int totalBlocksToCreate = RetrieveNumberOfBlocksToCreate();
@@ -17,7 +18,8 @@ class Program
         var eventStack = new Stack<IEvent>();
 
         var dataCollectionModule = new DataCollectionModule(ref eventStack, nodeID);
-        var communicationModule = new CommunicationModule(consensus, totalBlocksToCreate, nodeID, ref eventStack);
+        var communicationModule = new CommunicationModule(ref eventStack, nodeID);
+        var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID);
         await communicationModule.AnnounceOwnIP();
         // ask for blockchain
 

@@ -10,7 +10,7 @@ static class Program
     private static IPEndPoint? rxEndpoint;
     private static Socket? server;
 
-    private static List<IPAddress> knownNodes = new List<IPAddress>();
+    private static readonly List<IPAddress> knownNodes = new();
 
     private static readonly int receivableByteSize = 4096;
     private static readonly int portNumber = 11_000;
@@ -18,7 +18,7 @@ static class Program
     private static readonly string ack = "<|ACK|>";
     private static readonly string discover = "<|DIS|>";
 
-    static async Task Main(string[] args)
+    static async Task Main()
     {
         Initialize();
         await WaitInstruction();
@@ -85,7 +85,7 @@ static class Program
 
     private static async Task SendBackListOfKnownNodes(Socket handler, CancellationToken cancellationToken = default)
     {
-        if(knownNodes.Count > 0)
+        if (knownNodes.Count > 0)
         {
             var echoBytes = Encoding.UTF8.GetBytes(ack + CreateStringOfKnownNodes() + eom);
             await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);

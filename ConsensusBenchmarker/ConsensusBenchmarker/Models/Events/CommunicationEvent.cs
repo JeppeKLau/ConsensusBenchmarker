@@ -5,11 +5,11 @@
     {
         public int NodeId { get; set; }
 
-        public object Data { get; set; }
+        public object? Data { get; set; }
 
         public CommunicationEventType EventType { get; set; }
 
-        public CommunicationEvent(int nodeId, object data, CommunicationEventType eventType)
+        public CommunicationEvent(int nodeId, object? data, CommunicationEventType eventType)
         {
             NodeId = nodeId;
             Data = data;

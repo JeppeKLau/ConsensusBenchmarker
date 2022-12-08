@@ -5,15 +5,16 @@ using System.Text.RegularExpressions;
 
 namespace ConsensusBenchmarker.DataCollection
 {
-    public class DataCollectionModule
+    public partial class DataCollectionModule
     {
         private static readonly string CPU_STAT_FILE = "/proc/stat";         // cpu <10 numbers> \n
         private static readonly string MEM_STAT_FILE = "/proc/{pid}/status"; // VmSize: <some number of characters> \n
         private readonly Process currentProcess;
         private bool MemFlag = true;
-        private bool CpuFlag;
+        private bool CpuFlag = true;
         private readonly Stack<IEvent> eventStack;
         private readonly int nodeID;
+        private readonly Mutex mutex = new();
 
         public DataCollectionModule(ref Stack<IEvent> eventStack, int nodeID)
         {
@@ -59,24 +60,28 @@ namespace ConsensusBenchmarker.DataCollection
 
         private void ReadCpuValue(FileStream cpuFileStream, out int cpuTime)
         {
-            throw new NotImplementedException();
+            var numRegex = NumberRegex();
+            var valueLine = GetLineWithWord("cpu ", cpuFileStream);
+            var matches = numRegex.Matches(valueLine);
+            cpuTime = matches.Count == 10 ? matches.Take(3).Sum(x => int.Parse(x.Value)) : throw new Exception($"Incorrect match count: {matches.Count}");
         }
 
         private void UpdateExecutionFlag()
         {
-            var nextEvent = eventStack.Peek() as DataCollectionEvent;
-            if (nextEvent is null) return;
+            while (!mutex.WaitOne()) ;
+            if (eventStack.Peek() is not DataCollectionEvent nextEvent) return;
 
             if (nextEvent.DataCollectionEventType == DataCollectionEventType.End)
             {
                 MemFlag = false;
+                CpuFlag = false;
                 eventStack.Pop();
             }
         }
 
         private static void ReadMemvalue(FileStream file, out int value)
         {
-            var numRegex = new Regex(@"[0-9]+");
+            var numRegex = NumberRegex();
             var valueLine = GetLineWithWord("VmSize:", file);
             var sizeDenominator = valueLine.Substring(valueLine.Length - 2, 2);
             var matches = numRegex.Matches(valueLine);
@@ -125,5 +130,8 @@ namespace ConsensusBenchmarker.DataCollection
                 stringBuilder.Append(c);
             }
         }
+
+        [GeneratedRegex("[0-9]+")]
+        private static partial Regex NumberRegex();
     }
 }

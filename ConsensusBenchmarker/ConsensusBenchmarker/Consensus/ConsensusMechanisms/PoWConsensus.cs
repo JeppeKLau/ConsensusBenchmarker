@@ -49,7 +49,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             string transactionsAsString = string.Join(",", transactions.Select(x => x.ToString()));
             string wholeBlock = previousBlock.BlockHash + transactionsAsString + nonce.ToString();
-            byte[] encodedBlock
 
 
             //byte[] hashValue = sha256.ComputeHash(fileStream);

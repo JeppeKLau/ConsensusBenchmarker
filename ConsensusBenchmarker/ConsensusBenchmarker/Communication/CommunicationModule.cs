@@ -1,5 +1,5 @@
-﻿using ConsensusBenchmarker.Consensus;
-using ConsensusBenchmarker.Models;
+﻿using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Events;
 using System.Net;
 using System.Net.Sockets;
@@ -9,37 +9,28 @@ namespace ConsensusBenchmarker.Communication
 {
     public class CommunicationModule
     {
-        private readonly string consensusType;
-        private readonly int totalBlocksToCreate;
-        private readonly int nodeID;
-
-        private ConsensusModule consensusModule;
-
         private readonly int sharedPortNumber = 11_000;
         private readonly IPAddress? ipAddress;
         private readonly IPEndPoint? rxEndpoint;
         private readonly Socket? server;
         private readonly uint receivableByteSize = 4096;
 
-        private List<IPAddress> knownNodes = new();
-        private Stack<IEvent> eventStack;
+        private readonly List<IPAddress> knownNodes = new();
+        private readonly Stack<IEvent> eventStack;
+        private readonly int nodeId;
         private bool ExecutionFlag;
 
-        public CommunicationModule(string consensusType, int totalBlocksToCreate, int nodeID, ref Stack<IEvent> eventStack)
+        public CommunicationModule(ref Stack<IEvent> eventStack, int nodeId)
         {
-            this.consensusType = consensusType;
-            this.totalBlocksToCreate = totalBlocksToCreate;
-            this.nodeID = nodeID;
-            consensusModule = new ConsensusModule(consensusType, nodeID);
-
             ipAddress = GetLocalIPAddress();
             rxEndpoint = new(ipAddress!, sharedPortNumber);
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             knownNodes.Add(ipAddress!);
             this.eventStack = eventStack;
+            this.nodeId = nodeId;
         }
 
-        private IPAddress GetLocalIPAddress()
+        private static IPAddress GetLocalIPAddress()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (var ip in host.AddressList)
@@ -67,31 +58,31 @@ namespace ConsensusBenchmarker.Communication
                 string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
 
                 await HandleMessage(message, handler, cancellationToken);
-                UpdateExecutionFlag();
+                await HandleEventStack();
             }
             //when total blocks has been reached, send all collected data to networkmanager ish?
         }
 
-        private void UpdateExecutionFlag()
+        private async Task HandleEventStack()
         {
-            var nextEvent = eventStack.Peek() as CommunicationEvent;
-
-            if (nextEvent == null) return;
+            if (eventStack.Peek() is not CommunicationEvent nextEvent) return;
 
             switch (nextEvent.EventType)
             {
                 case CommunicationEventType.End:
                     ExecutionFlag = false;
-                    eventStack.Pop();
                     break;
                 case CommunicationEventType.SendTransaction:
-
+                    await BroadcastTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case CommunicationEventType.SendBlock:
+                    await BroadcastBlock(nextEvent.Data as Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
                     break;
                 default:
-                    break;
+                    throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
             }
+
+            eventStack.Pop();
 
         }
 
@@ -147,8 +138,8 @@ namespace ConsensusBenchmarker.Communication
 
         private void RecieveTransaction(string message)
         {
-            Transaction recievedTransaction = new Transaction(message);
-            consensusModule.RecieveTransaction(recievedTransaction);
+            var recievedTransaction = new Transaction(message);
+            eventStack.Push(new ConsensusEvent(nodeId, ConsensusEventType.AddTransaction, recievedTransaction));
             // send to consensus module
 
         }
@@ -186,13 +177,13 @@ namespace ConsensusBenchmarker.Communication
         {
             string messageToSend = Messages.CreateTRAMessage(transaction);
 
-            foreach (IPAddress otherNode in knownNodes)
+            foreach (var otherNode in knownNodes)
             {
                 await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
             }
         }
 
-        public async Task BroadcastBlock()
+        public async Task BroadcastBlock(Block block)
         {
             throw new NotImplementedException();
         }
@@ -206,11 +197,11 @@ namespace ConsensusBenchmarker.Communication
         /// <returns></returns>
         private async Task<string> SendMessageAndWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
-            IPEndPoint networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
+            var networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             byte[] responseBuffer = new byte[receivableByteSize];
 
-            Socket networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            var networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             await networkManager.ConnectAsync(networkManagerEndpoint, cancellationToken);
             _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
             int responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
@@ -228,10 +219,10 @@ namespace ConsensusBenchmarker.Communication
         /// <returns></returns>
         private async Task SendMessageAndDontWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
-            IPEndPoint nodeEndpoint = new IPEndPoint(receiver, sharedPortNumber);
+            var nodeEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
 
-            Socket nodeManager = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            var nodeManager = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             await nodeManager.ConnectAsync(nodeEndpoint, cancellationToken);
             _ = await nodeManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
             nodeManager.Shutdown(SocketShutdown.Both);

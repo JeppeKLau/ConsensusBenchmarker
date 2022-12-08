@@ -14,7 +14,7 @@ namespace ConsensusBenchmarker.Communication
 
         private static Dictionary<string, OperationType> PopulateOperationTypes()
         {
-            Dictionary<string, OperationType> OperationTypes = new Dictionary<string, OperationType>();
+            var OperationTypes = new Dictionary<string, OperationType>();
             foreach (OperationType operation in (OperationType[])Enum.GetValues(typeof(OperationType)))
             {
                 OperationTypes.Add(CreateTag(operation), operation);
@@ -67,7 +67,7 @@ namespace ConsensusBenchmarker.Communication
 
         public static string CreateTRAMessage(Transaction transaction)
         {
-            return $"{CreateTag(OperationType.TRA)}{transaction.ToString()}{CreateTag(OperationType.EOM)}";
+            return $"{CreateTag(OperationType.TRA)}{transaction}{CreateTag(OperationType.EOM)}";
         }
 
 
