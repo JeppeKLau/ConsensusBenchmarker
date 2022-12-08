@@ -19,7 +19,8 @@ namespace ConsensusBenchmarker.Consensus
         private ConsensusDriver InstantiateCorrespondingConsensusClass(int totalBlocksToCreate, int nodeID)
         {
             var executingAssembly = Assembly.GetExecutingAssembly();
-            var assemblyType = executingAssembly.GetType(consensusType + "Consensus");
+            var assemblyTypes = executingAssembly.GetTypes();
+            var assemblyType = assemblyTypes.FirstOrDefault(x => x.Name == consensusType + "Consensus");
 
             if (assemblyType == null) throw new Exception("Was not able to instantiate any Consensus class.");
 
