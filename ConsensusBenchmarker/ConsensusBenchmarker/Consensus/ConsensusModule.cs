@@ -5,33 +5,27 @@ namespace ConsensusBenchmarker.Consensus
 {
     public class ConsensusModule
     {
-        public int createdTransactionsByThisNode { get; set; } = 0;
-        public int totalBlocksInChain { get; set; } = 0;
-        public List<Transaction> RecievedTransactionsSicnceLastBlock { get; set; } = new List<Transaction>();
-
         private readonly string consensusType;
-        private readonly int nodeID;
-        private IConsensus ConsensusMechanism;
+        private ConsensusDriver ConsensusMechanism;
 
         public ConsensusModule(string consensusType, int nodeID)
         {
             this.consensusType = consensusType;
-            this.nodeID = nodeID;
-            ConsensusMechanism = InstantiateCorrectConsensusClass();
+            ConsensusMechanism = InstantiateCorrespondingConsensusClass(nodeID);
         }
 
-        private IConsensus InstantiateCorrectConsensusClass()
+        private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID)
         {
             var executingAssembly = Assembly.GetExecutingAssembly();
-            var assemblyTypes = executingAssembly.GetTypes().Where(t => t.GetInterface(nameof(IConsensus)) != null).ToList();
-            foreach (Type type in assemblyTypes)
-            {
-                if (type.Name.ToLower().Equals(consensusType.ToLower() + "consensus"))
-                {
-                    return executingAssembly.CreateInstance(type.FullName ?? "") as IConsensus ?? throw new Exception($"Unknown IConsensus assembly: {type.FullName ?? ""}");
-                }
-            }
-            throw new Exception("Was not able to instantiate any Consensus class.");
+            var assemblyType = executingAssembly.GetType(consensusType + "Consensus");
+
+            if (assemblyType == null) throw new Exception("Was not able to instantiate any Consensus class.");
+
+            var consensusCtor = assemblyType.GetConstructor(new[] { typeof(int) });
+
+            if (consensusCtor == null) throw new Exception("Consensus class does not have the required constructor");
+
+            return consensusCtor.Invoke(new object[] { nodeID }) as ConsensusDriver ?? throw new Exception("Construction invokation failed");
         }
 
         public void RecieveTransaction(Transaction transaction)

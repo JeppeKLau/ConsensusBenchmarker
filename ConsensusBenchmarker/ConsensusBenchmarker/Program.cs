@@ -2,6 +2,7 @@
 
 using ConsensusBenchmarker.Communication;
 using ConsensusBenchmarker.DataCollection;
+using ConsensusBenchmarker.Models.Events;
 
 namespace ConsensusBenchmarker;
 
@@ -13,8 +14,10 @@ class Program
         int totalBlocksToCreate = RetrieveNumberOfBlocksToCreate();
         int nodeID = RetrieveNodeName();
 
-        var dataCollectionModule = new DataCollectionModule();
-        var communicationModule = new CommunicationModule(consensus, totalBlocksToCreate, nodeID);
+        var eventStack = new Stack<IEvent>();
+
+        var dataCollectionModule = new DataCollectionModule(ref eventStack, nodeID);
+        var communicationModule = new CommunicationModule(consensus, totalBlocksToCreate, nodeID, ref eventStack);
         await communicationModule.AnnounceOwnIP();
         // ask for blockchain
 
@@ -23,7 +26,7 @@ class Program
 
         await Task.WhenAll(communicationTask, dataCollectionTask);
 
-        Console.WriteLine("Communication task is complete, terminating execution");
+        Console.WriteLine("All tasks are completed, terminating execution");
     }
 
     private static string[] ConsensusTypes = { "PoW", "PoS", "PoC", "PoET", "Raft", "PBFT", "RapidChain" };

@@ -1,6 +1,6 @@
 ﻿using ConsensusBenchmarker.Consensus;
-using ConsensusBenchmarker.DataCollection;
 using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Events;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -13,7 +13,6 @@ namespace ConsensusBenchmarker.Communication
         private readonly int totalBlocksToCreate;
         private readonly int nodeID;
 
-        private DataCollectionModule dataCollectionModule = new DataCollectionModule();
         private ConsensusModule consensusModule;
 
         private readonly int sharedPortNumber = 11_000;
@@ -23,8 +22,10 @@ namespace ConsensusBenchmarker.Communication
         private readonly uint receivableByteSize = 4096;
 
         private List<IPAddress> knownNodes = new();
+        private Stack<IEvent> eventStack;
+        private bool ExecutionFlag;
 
-        public CommunicationModule(string consensusType, int totalBlocksToCreate, int nodeID)
+        public CommunicationModule(string consensusType, int totalBlocksToCreate, int nodeID, ref Stack<IEvent> eventStack)
         {
             this.consensusType = consensusType;
             this.totalBlocksToCreate = totalBlocksToCreate;
@@ -35,6 +36,7 @@ namespace ConsensusBenchmarker.Communication
             rxEndpoint = new(ipAddress!, sharedPortNumber);
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             knownNodes.Add(ipAddress!);
+            this.eventStack = eventStack;
         }
 
         private IPAddress GetLocalIPAddress()
@@ -57,7 +59,7 @@ namespace ConsensusBenchmarker.Communication
 
             Console.WriteLine($"Server listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
 
-            while (consensusModule.totalBlocksInChain <= totalBlocksToCreate)
+            while (ExecutionFlag)
             {
                 var handler = await server!.AcceptAsync(cancellationToken);
                 var rxBuffer = new byte[receivableByteSize];
@@ -65,9 +67,32 @@ namespace ConsensusBenchmarker.Communication
                 string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
 
                 await HandleMessage(message, handler, cancellationToken);
+                UpdateExecutionFlag();
             }
             //when total blocks has been reached, send all collected data to networkmanager ish?
-            Console.WriteLine($"consensusModule.totalBlocksInChain < totalBlocksToCreate: {consensusModule.totalBlocksInChain < totalBlocksToCreate}");
+        }
+
+        private void UpdateExecutionFlag()
+        {
+            var nextEvent = eventStack.Peek() as CommunicationEvent;
+
+            if (nextEvent == null) return;
+
+            switch (nextEvent.EventType)
+            {
+                case CommunicationEventType.End:
+                    ExecutionFlag = false;
+                    eventStack.Pop();
+                    break;
+                case CommunicationEventType.SendTransaction:
+
+                    break;
+                case CommunicationEventType.SendBlock:
+                    break;
+                default:
+                    break;
+            }
+
         }
 
         #region HandleInputMessages

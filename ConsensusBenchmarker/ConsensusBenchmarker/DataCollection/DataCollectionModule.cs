@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using ConsensusBenchmarker.Models.Events;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -9,26 +10,68 @@ namespace ConsensusBenchmarker.DataCollection
         private static readonly string CPU_STAT_FILE = "/proc/stat";         // cpu <10 numbers> \n
         private static readonly string MEM_STAT_FILE = "/proc/{pid}/status"; // VmSize: <some number of characters> \n
         private readonly Process currentProcess;
+        private bool MemFlag = true;
+        private bool CpuFlag;
+        private readonly Stack<IEvent> eventStack;
+        private readonly int nodeID;
 
-        public DataCollectionModule()
+        public DataCollectionModule(ref Stack<IEvent> eventStack, int nodeID)
         {
             currentProcess = Process.GetCurrentProcess();
+            this.eventStack = eventStack;
+            this.nodeID = nodeID;
         }
 
         public async Task CollectData()
         {
             var actualMemFile = MEM_STAT_FILE.Replace("{pid}", currentProcess.Id.ToString());
             var memFileStream = File.OpenRead(actualMemFile);
-            var memValue = 0; // MB memory used
+            var mbMemory = 0; // MB memory used
+            var cpuFileStream = File.OpenRead(CPU_STAT_FILE);
+            var cpuTime = 0; // CPU time
+            eventStack.Push(new DataCollectionEvent(nodeID, DataCollectionEventType.CollectionReady));
 
             var memThread = new Thread(() =>
             {
-                ReadMemvalue(memFileStream, out memValue);
-                Console.WriteLine(memValue.ToString());
-                Thread.Sleep(1000);
+                while (MemFlag)
+                {
+                    ReadMemvalue(memFileStream, out mbMemory);
+                    Console.WriteLine(mbMemory.ToString());
+                    Thread.Sleep(1000);
+                    UpdateExecutionFlag();
+                }
             });
-            memThread.Start();
 
+            var cpuThread = new Thread(() =>
+            {
+                while (CpuFlag)
+                {
+                    ReadCpuValue(cpuFileStream, out cpuTime);
+                    Console.WriteLine(cpuTime.ToString());
+                    Thread.Sleep(1000);
+                    UpdateExecutionFlag();
+                }
+            });
+
+            memThread.Start();
+            cpuThread.Start();
+        }
+
+        private void ReadCpuValue(FileStream cpuFileStream, out int cpuTime)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void UpdateExecutionFlag()
+        {
+            var nextEvent = eventStack.Peek() as DataCollectionEvent;
+            if (nextEvent is null) return;
+
+            if (nextEvent.DataCollectionEventType == DataCollectionEventType.End)
+            {
+                MemFlag = false;
+                eventStack.Pop();
+            }
         }
 
         private static void ReadMemvalue(FileStream file, out int value)

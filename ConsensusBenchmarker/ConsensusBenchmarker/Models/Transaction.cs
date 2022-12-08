@@ -8,11 +8,12 @@ namespace ConsensusBenchmarker.Models
         public Transaction(string transaction)
         {
             string[] transactionElements = transaction.Split(';');
-            if(transactionElements.Length == 3)
+            if(transactionElements.Length == 4)
             {
                 Sender = Messages.ParseIpAddress(transactionElements[0]);
-                TransactionId = int.Parse(transactionElements[1]);
-                CreatedAt = DateTime.Parse(transactionElements[2]);
+                NodeID = int.Parse(transactionElements[1]);
+                TransactionId = int.Parse(transactionElements[2]);
+                CreatedAt = DateTime.Parse(transactionElements[3]);
             }
             else
             {
@@ -20,20 +21,22 @@ namespace ConsensusBenchmarker.Models
             }
         }
 
-        public Transaction(IPAddress sender, int transactionId, DateTime createdAt)
+        public Transaction(IPAddress sender, int nodeID, int transactionId, DateTime createdAt)
         {
             Sender = sender;
+            NodeID = nodeID;
             TransactionId = transactionId;
             CreatedAt = createdAt;
         }
 
         public IPAddress Sender { get; set; }
+        public int NodeID { get; set; }
         public int TransactionId { get; set; }
         public DateTime CreatedAt { get; set; }
 
         public override string ToString()
         {
-            return $"{Sender};{TransactionId};{CreatedAt}";
+            return $"{Sender};{NodeID};{TransactionId};{CreatedAt}";
         }
     }
 }
