@@ -36,6 +36,7 @@ namespace ConsensusBenchmarker.DataCollection
             {
                 while (MemFlag)
                 {
+                    memFileStream.Seek(0, SeekOrigin.Begin);
                     ReadMemvalue(memFileStream, out mbMemory);
                     Console.WriteLine(mbMemory.ToString());
                     Thread.Sleep(1000);
@@ -47,6 +48,7 @@ namespace ConsensusBenchmarker.DataCollection
             {
                 while (CpuFlag)
                 {
+                    cpuFileStream.Seek(0, SeekOrigin.Begin);
                     ReadCpuValue(cpuFileStream, out cpuTime);
                     Console.WriteLine(cpuTime.ToString());
                     Thread.Sleep(1000);
