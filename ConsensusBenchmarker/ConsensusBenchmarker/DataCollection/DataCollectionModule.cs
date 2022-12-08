@@ -104,6 +104,7 @@ namespace ConsensusBenchmarker.DataCollection
 
             foreach (var line in lines)
             {
+                Console.WriteLine(line);
                 if (line.Contains(word))
                 {
                     return line;
