@@ -5,7 +5,9 @@ VisualStudioVersion = 17.4.33103.184
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsensusBenchmarker", "ConsensusBenchmarker\ConsensusBenchmarker.csproj", "{D79B2968-BC7D-43E7-8A73-94FAEA19A227}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkManager", "NetworkManager\NetworkManager.csproj", "{442FF68A-F5F5-40F5-9B37-4786D09929DA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetworkManager", "NetworkManager\NetworkManager.csproj", "{442FF68A-F5F5-40F5-9B37-4786D09929DA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsensusBenchmarkerTest", "ConsensusBenchmarkerTest\ConsensusBenchmarkerTest.csproj", "{7455F0A5-2E0C-438F-86B9-215323ABE36E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{442FF68A-F5F5-40F5-9B37-4786D09929DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{442FF68A-F5F5-40F5-9B37-4786D09929DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{442FF68A-F5F5-40F5-9B37-4786D09929DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7455F0A5-2E0C-438F-86B9-215323ABE36E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7455F0A5-2E0C-438F-86B9-215323ABE36E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7455F0A5-2E0C-438F-86B9-215323ABE36E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7455F0A5-2E0C-438F-86B9-215323ABE36E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
