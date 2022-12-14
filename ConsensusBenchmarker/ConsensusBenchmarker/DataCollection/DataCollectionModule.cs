@@ -10,11 +10,14 @@ namespace ConsensusBenchmarker.DataCollection
         private static readonly string CPU_STAT_FILE = "/proc/stat";         // cpu <10 numbers> \n
         private static readonly string MEM_STAT_FILE = "/proc/{pid}/status"; // VmSize: <some number of characters> \n
         private readonly Process currentProcess;
-        private bool MemFlag = true;
-        private bool CpuFlag = true;
         private readonly Stack<IEvent> eventStack;
         private readonly int nodeID;
         private readonly Mutex mutex = new();
+
+        private readonly List<Thread> threads = new();
+        private bool ExecutionFlag;
+        private int blockCount = 0;
+        private int transactionCount = 0;
 
         public DataCollectionModule(ref Stack<IEvent> eventStack, int nodeID)
         {
@@ -25,69 +28,81 @@ namespace ConsensusBenchmarker.DataCollection
 
         public async Task CollectData()
         {
-            var actualMemFile = MEM_STAT_FILE.Replace("{pid}", currentProcess.Id.ToString());
-            var memFileStream = File.OpenRead(actualMemFile);
+            /*
+             *  Total CPU usage. (done)
+             *  Total storage used. {storage implementation}
+             *  Total messages sent and received, as well as their timestamps.
+             *  Total time spent verifying blocks and block creation time.
+             */
             var mbMemory = 0; // mB memory used
-            var cpuFileStream = File.OpenRead(CPU_STAT_FILE);
             var cpuTime = 0; // CPU time
-            eventStack.Push(new DataCollectionEvent(nodeID, DataCollectionEventType.CollectionReady));
 
-            var memThread = new Thread(() =>
+            threads.Add(new Thread(() =>
             {
-                while (MemFlag)
-                {
-                    memFileStream.Seek(0, SeekOrigin.Begin);
-                    ReadMemvalue(memFileStream, out mbMemory);
-                    Console.WriteLine($"Memory: {mbMemory} mB");
-                    Thread.Sleep(1000);
-                    UpdateExecutionFlag();
-                }
-                Console.WriteLine("Ending memory thread");
-            });
+                ReadMemvalue(out mbMemory);
+                Console.WriteLine($"Memory: {mbMemory} mB");
+            }));
 
-            var cpuThread = new Thread(() =>
+            threads.Add(new Thread(() =>
             {
-                while (CpuFlag)
-                {
-                    cpuFileStream.Seek(0, SeekOrigin.Begin);
-                    ReadCpuValue(cpuFileStream, out cpuTime);
-                    Console.WriteLine($"Cpu time: {cpuTime}");
-                    Thread.Sleep(1000);
-                    UpdateExecutionFlag();
-                }
-                Console.WriteLine("Ending CPU thread");
-            });
+                ReadCpuValue(out cpuTime);
+                Console.WriteLine($"Cpu time: {cpuTime}, block count: {blockCount}");
+            }));
+            eventStack.Push(new DataCollectionEvent(nodeID, DataCollectionEventType.CollectionReady, null));
 
-            memThread.Start();
-            cpuThread.Start();
+            while (ExecutionFlag)
+            {
+                HandleEvents();
+            }
         }
 
-        private void ReadCpuValue(FileStream cpuFileStream, out int cpuTime)
+        private static void ReadCpuValue(out int cpuTime)
         {
+            var cpuFileStream = File.OpenRead(CPU_STAT_FILE);
             var numRegex = NumberRegex();
             var valueLine = GetLineWithWord("cpu ", cpuFileStream);
             var matches = numRegex.Matches(valueLine);
             cpuTime = matches.Count == 10 ? matches.Take(3).Sum(x => int.Parse(x.Value)) : throw new Exception($"Incorrect match count: {matches.Count}");
+            cpuFileStream.Seek(0, SeekOrigin.Begin);
         }
 
-        private void UpdateExecutionFlag()
+        private void HandleEvents()
         {
-            while (!mutex.WaitOne()) ;
             if (eventStack.Peek() is not DataCollectionEvent nextEvent) return;
 
-            if (nextEvent.DataCollectionEventType == DataCollectionEventType.End)
+            switch (nextEvent.EventType)
             {
-                MemFlag = false;
-                CpuFlag = false;
-                eventStack.Pop();
+                case DataCollectionEventType.End:
+                    ExecutionFlag = false;
+                    break;
+                case DataCollectionEventType.BeginBlock:
+                    blockCount++;
+                    while (threads.Any(x => x.IsAlive)) ;
+                    threads.ForEach(x => x.Start());
+                    break;
+                case DataCollectionEventType.BeginTransaction:
+                    transactionCount++;
+                    while (threads.Any(x => x.IsAlive)) ;
+                    threads.ForEach(x => x.Start());
+                    break;
+                case DataCollectionEventType.EndBlock:
+                case DataCollectionEventType.EndTransaction:
+                    while (threads.Any(x => x.IsAlive)) ;
+                    threads.ForEach(x => x.Start());
+                    break;
+                default:
+                    throw new ArgumentException($"Unkown type of {nameof(DataCollectionEvent)}", nameof(nextEvent.EventType));
             }
-            mutex.ReleaseMutex();
+
+            eventStack.Pop();
         }
 
-        private static void ReadMemvalue(FileStream file, out int value)
+        private void ReadMemvalue(out int value)
         {
+            var actualMemFile = MEM_STAT_FILE.Replace("{pid}", currentProcess.Id.ToString());
+            var memFileStream = File.OpenRead(actualMemFile);
             var numRegex = NumberRegex();
-            var valueLine = GetLineWithWord("VmSize:", file);
+            var valueLine = GetLineWithWord("VmSize:", memFileStream);
             var sizeDenominator = valueLine.Substring(valueLine.Length - 2, 2);
             var matches = numRegex.Matches(valueLine);
             var numberString = matches.Count == 1 ? matches.First().Value : throw new Exception("Too many matches in memory file");
@@ -100,6 +115,7 @@ namespace ConsensusBenchmarker.DataCollection
             {
                 throw new FormatException("Could not parse number from string");
             }
+            memFileStream.Seek(0, SeekOrigin.Begin);
         }
 
         private static string GetLineWithWord(string word, FileStream file)

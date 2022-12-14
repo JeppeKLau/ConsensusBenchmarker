@@ -1,17 +1,14 @@
 ﻿namespace ConsensusBenchmarker.Models.Events
 {
-    public enum ConsensusEventType { End, CreateBlock, AddTransaction }
+    public enum ConsensusEventType { End, CreateBlock, RecieveBlock, CreateTransaction, RecieveTransaction, RequestBlockchain, RecieveBlockchain }
     public class ConsensusEvent : IEvent
     {
-        public int NodeId { get; set; }
-
         public ConsensusEventType EventType { get; set; }
 
-        public object Data { get; set; }
+        public object? Data { get; set; }
 
-        public ConsensusEvent(int nodeId, ConsensusEventType eventType, object data)
+        public ConsensusEvent(object? data, ConsensusEventType eventType)
         {
-            NodeId = nodeId;
             EventType = eventType;
             Data = data;
         }

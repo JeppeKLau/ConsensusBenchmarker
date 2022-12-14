@@ -110,12 +110,20 @@ static class Program
         {
             if (address != newNode)
             {
-                var echoBytes = Encoding.UTF8.GetBytes(discover + "IP:" + newNode.ToString() + eom);
-                var nodeEndpoint = new IPEndPoint(address, portNumber);
-                var nodeSocket = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                await nodeSocket.ConnectAsync(nodeEndpoint);
-                _ = await nodeSocket.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-                nodeSocket.Shutdown(SocketShutdown.Both);
+                try
+                {
+                    var echoBytes = Encoding.UTF8.GetBytes(discover + "IP:" + newNode.ToString() + eom);
+                    var nodeEndpoint = new IPEndPoint(address, portNumber);
+                    var nodeSocket = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    await nodeSocket.ConnectAsync(nodeEndpoint);
+                    _ = await nodeSocket.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+                    nodeSocket.Shutdown(SocketShutdown.Both);
+                }
+                catch (SocketException)
+                {
+                    Console.WriteLine("Socket had an exception, node has likely crashed. Removing address from list.");
+                    knownNodes.Remove(address);
+                }
             }
         }
     }

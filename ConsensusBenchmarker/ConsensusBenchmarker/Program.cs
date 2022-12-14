@@ -19,14 +19,15 @@ class Program
 
         var dataCollectionModule = new DataCollectionModule(ref eventStack, nodeID);
         var communicationModule = new CommunicationModule(ref eventStack, nodeID);
-        var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID);
+        var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID, ref eventStack);
         await communicationModule.AnnounceOwnIP();
         // ask for blockchain
 
-        var communicationTask = communicationModule.WaitForMessage();
+        var communicationTask = communicationModule.RunCommunication();
         var dataCollectionTask = dataCollectionModule.CollectData();
+        var consensusTask = consensusModule.RunConsensus();
 
-        await Task.WhenAll(communicationTask, dataCollectionTask);
+        await Task.WhenAll(communicationTask, dataCollectionTask, consensusTask);
 
         Console.WriteLine("All tasks are completed, terminating execution");
     }

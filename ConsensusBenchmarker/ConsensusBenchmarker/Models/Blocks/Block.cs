@@ -1,11 +1,11 @@
 ﻿namespace ConsensusBenchmarker.Models.Blocks
 {
-    public class Block
+    public abstract class Block
     {
-        public Block(int ownerNodeID, List<Transaction> transactions)
+        public Block(int ownerNodeID, DateTime blockCreatedAt, List<Transaction> transactions)
         {
             OwnerNodeID = ownerNodeID;
-            BlockCreatedAt = DateTime.Now.ToLocalTime();
+            BlockCreatedAt = blockCreatedAt;
             Transactions = transactions;
         }
 

@@ -1,6 +1,7 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Events;
+using Newtonsoft.Json;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -43,113 +44,15 @@ namespace ConsensusBenchmarker.Communication
             throw new ApplicationException("Node has no ip address setup. Try restarting client");
         }
 
-        public async Task WaitForMessage(CancellationToken cancellationToken = default)
+        public async Task RunCommunication(CancellationToken cancellationToken = default)
         {
-            server!.Bind(rxEndpoint!);
-            server!.Listen(1000);
+            while (!DataCollectionReady()) ;
 
-            Console.WriteLine($"Server listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
+            var eventTask = HandleEventStack();
+            var messageTask = WaitForMessage(cancellationToken);
 
-            while (ExecutionFlag)
-            {
-                var handler = await server!.AcceptAsync(cancellationToken);
-                var rxBuffer = new byte[receivableByteSize];
-                var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
-                string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
-
-                await HandleMessage(message, handler, cancellationToken);
-                await HandleEventStack();
-            }
-            //when total blocks has been reached, send all collected data to networkmanager ish?
+            await Task.WhenAll(messageTask, eventTask);
         }
-
-        private async Task HandleEventStack()
-        {
-            if (eventStack.Peek() is not CommunicationEvent nextEvent) return;
-
-            switch (nextEvent.EventType)
-            {
-                case CommunicationEventType.End:
-                    ExecutionFlag = false;
-                    break;
-                case CommunicationEventType.SendTransaction:
-                    await BroadcastTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
-                    break;
-                case CommunicationEventType.SendBlock:
-                    await BroadcastBlock(nextEvent.Data as Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
-                    break;
-                default:
-                    throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
-            }
-
-            eventStack.Pop();
-
-        }
-
-        #region HandleInputMessages
-
-        private async Task HandleMessage(string message, Socket handler, CancellationToken cancellationToken = default)
-        {
-            if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
-            {
-                Console.WriteLine($"Complete message recieved:\n{message}");
-                string messageWithoutEOM = Messages.RemoveOperationTypeTag(message, OperationType.EOM);
-                var operationType = Messages.GetOperationTypeEnum(messageWithoutEOM);
-
-                switch (operationType)
-                {
-                    case OperationType.DIS:
-                        SaveNewIPAddresses(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.DIS));
-                        break;
-                    case OperationType.TRA:
-                        RecieveTransaction(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.TRA));
-                        break;
-                    case OperationType.DEF:
-                        throw new ArgumentOutOfRangeException($"Operation type {operationType} was not recognized.");
-
-                }
-            }
-        }
-
-        /// <summary>
-        /// Finds a list of nodes from the message input which are then added to this node's list of known nodes.
-        /// </summary>
-        /// <param name="message"></param>
-        private void SaveNewIPAddresses(string message)
-        {
-            var ipAddresses = message.Split(',');
-            foreach (var ipAddress in ipAddresses)
-            {
-                AddNewNode(ipAddress);
-            }
-        }
-
-        private void AddNewNode(string DiscoverMessage)
-        {
-            if (DiscoverMessage.Contains('.'))
-            {
-                IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
-                if (!knownNodes.Contains(newIP))
-                {
-                    knownNodes.Add(newIP);
-                }
-            }
-        }
-
-        private void RecieveTransaction(string message)
-        {
-            var recievedTransaction = new Transaction(message);
-            eventStack.Push(new ConsensusEvent(nodeId, ConsensusEventType.AddTransaction, recievedTransaction));
-            // send to consensus module
-
-        }
-
-        private Task ReceiveBlock()
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
 
         #region HandleOutputMessages
 
@@ -173,19 +76,45 @@ namespace ConsensusBenchmarker.Communication
             }
         }
 
-        public async Task BroadcastTransaction(Transaction transaction)
+        private async Task HandleEventStack()
+        {
+            if (eventStack.Peek() is not CommunicationEvent nextEvent) return;
+
+            switch (nextEvent.EventType)
+            {
+                case CommunicationEventType.End:
+                    ExecutionFlag = false;
+                    break;
+                case CommunicationEventType.SendTransaction:
+                    await BroadcastTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
+                    break;
+                case CommunicationEventType.SendBlock:
+                    await BroadcastBlock(nextEvent.Data as Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
+                    break;
+                default:
+                    throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
+            }
+            eventStack.Pop();
+        }
+
+        private async Task BroadcastTransaction(Transaction transaction)
         {
             string messageToSend = Messages.CreateTRAMessage(transaction);
+            BroadcastMessageAndDontWaitForAnswer(messageToSend);
+        }
 
+        private async Task BroadcastBlock(Block block)
+        {
+            string messageToSend = Messages.CreateBLOMessage(block);
+            BroadcastMessageAndDontWaitForAnswer(messageToSend);
+        }
+
+        private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
+        {
             foreach (var otherNode in knownNodes)
             {
                 await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
             }
-        }
-
-        public async Task BroadcastBlock(Block block)
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -229,6 +158,103 @@ namespace ConsensusBenchmarker.Communication
         }
 
         #endregion
-    }
 
+        #region HandleInputMessages
+
+        private async Task WaitForMessage(CancellationToken cancellationToken = default)
+        {
+            server!.Bind(rxEndpoint!);
+            server!.Listen(1000);
+
+            //Console.WriteLine($"Server listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
+
+            while (ExecutionFlag)
+            {
+                var handler = await server!.AcceptAsync(cancellationToken);
+                var rxBuffer = new byte[receivableByteSize];
+                var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
+                string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
+
+                await HandleMessage(message, handler, cancellationToken);
+            }
+            //when total blocks has been reached, send all collected data to networkmanager ish?
+        }
+
+        private bool DataCollectionReady()
+        {
+            if (eventStack.Peek() is not DataCollectionEvent nextEvent) return false;
+            if (nextEvent.EventType == DataCollectionEventType.CollectionReady)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private async Task HandleMessage(string message, Socket handler, CancellationToken cancellationToken = default)
+        {
+            if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
+            {
+                Console.WriteLine($"Complete message recieved:\n{message}");
+                string messageWithoutEOM = Messages.RemoveOperationTypeTag(message, OperationType.EOM);
+                var operationType = Messages.GetOperationTypeEnum(messageWithoutEOM);
+
+                switch (operationType)
+                {
+                    case OperationType.DEF:
+                        throw new ArgumentOutOfRangeException($"Operation type {operationType} was not recognized.");
+                    case OperationType.DIS:
+                        SaveNewIPAddresses(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.DIS));
+                        break;
+                    case OperationType.TRA:
+                        RecieveTransaction(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.TRA));
+                        break;
+                    case OperationType.BLK:
+                        ReceiveBlock(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.BLK));
+                        break;
+                }
+            }
+        }
+
+        private void SaveNewIPAddresses(string message)
+        {
+            var ipAddresses = message.Split(',');
+            foreach (var ipAddress in ipAddresses)
+            {
+                AddNewNode(ipAddress);
+            }
+        }
+
+        private void AddNewNode(string DiscoverMessage)
+        {
+            if (DiscoverMessage.Contains('.'))
+            {
+                IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
+                if (!knownNodes.Contains(newIP))
+                {
+                    knownNodes.Add(newIP);
+                }
+            }
+        }
+
+        private void RecieveTransaction(string message)
+        {
+            if (JsonConvert.DeserializeObject<Transaction>(message) is not Transaction recievedTransaction)
+            {
+                throw new ArgumentException("Transaction could not be deserialized correctly", nameof(recievedTransaction));
+            }
+            eventStack.Push(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction));
+        }
+
+        private void ReceiveBlock(string message)
+        {
+            if (JsonConvert.DeserializeObject<Block>(message) is not Block recievedBlock)
+            {
+                throw new ArgumentException("Block could not be deserialized correctly", nameof(recievedBlock));
+            }
+            eventStack.Push(new ConsensusEvent(recievedBlock, ConsensusEventType.RecieveBlock));
+        }
+
+        #endregion
+
+    }
 }

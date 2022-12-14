@@ -4,14 +4,17 @@
 
     public class DataCollectionEvent : IEvent
     {
-        public DataCollectionEventType DataCollectionEventType { get; set; }
+        public DataCollectionEventType EventType { get; set; }
 
         public int NodeId { get; set; }
 
-        public DataCollectionEvent(int nodeId, DataCollectionEventType type)
+        public object? Data { get; set; }
+
+        public DataCollectionEvent(int nodeId, DataCollectionEventType type, object? data)
         {
             NodeId = nodeId;
-            DataCollectionEventType = type;
+            EventType = type;
+            Data = data;
         }
     }
 }

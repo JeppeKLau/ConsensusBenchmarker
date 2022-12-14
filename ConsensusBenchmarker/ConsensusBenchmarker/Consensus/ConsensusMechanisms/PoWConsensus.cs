@@ -1,4 +1,5 @@
 ﻿using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
 using System.Security.Cryptography;
 using System.Text;
@@ -7,66 +8,110 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 5;
+        public List<PoWBlock> Blocks { get; set; } = new List<PoWBlock>();
+
+        private readonly uint DifficultyLeadingZeroes = 6;
+        private bool allowMining = true;
+        private bool restartMining = false;
+        private readonly Random random;
         private readonly SHA256 sha256;
-        private PoWBlock? previousBlock;
 
         public PoWConsensus(int nodeID)
         {
             NodeID = nodeID;
             sha256 = SHA256.Create();
+            random = new Random(NodeID * new Random().Next());
         }
 
-        public override void RecieveBlock()
+        public override bool RecieveBlock(Block block)
         {
-            throw new NotImplementedException();
+            if (block is not PoWBlock recievedBlock)
+            {
+                throw new ArgumentException("Recieved block is not the correct type", nameof(block));
+            }
+
+            bool addBlock = false;
+            PoWBlock? previousBlock = GetLastValidBlock();
+            if (previousBlock == null) // Genesis Block
+            {
+                addBlock = true;
+            }
+            else
+            {
+                if (IsBlockValid(previousBlock, recievedBlock)) // Next Block
+                {
+                    addBlock = true;
+                }
+            }
+
+            if (addBlock)
+            {
+                allowMining = false;
+                AddNewBlock(recievedBlock);
+            }
+            allowMining = true;
+            return addBlock;
         }
 
         public override void RecieveTransaction(Transaction transaction)
         {
-            throw new NotImplementedException();
+            if (!RecievedTransactionsSinceLastBlock.Contains(transaction))
+            {
+                RecievedTransactionsSinceLastBlock.Add(transaction);
+                restartMining = true;
+            }
+        }
+
+        public override PoWBlock GenerateNextBlock()
+        {
+            while (!allowMining && RecievedTransactionsSinceLastBlock.Count != 0) ;
+            return MineNewBlock() ?? GenerateNextBlock();
         }
 
         #region MineNewBlock
 
-        // What happens if the node recieves a new transaction while "mining"?
-        private PoWBlock MineNewBlock(List<Transaction> transactions)
+        private void AddNewBlock(PoWBlock block)
         {
+            Blocks.Add(block);
+            TotalBlocksInChain++;
+            RemoveSpecificTransactions(block.Transactions);
+        }
+
+        private PoWBlock? MineNewBlock()
+        {
+            PoWBlock? previousBlock = GetLastValidBlock();
             string previousBlockHash = "";
             PoWBlock? newBlock = null;
-            uint nonce = 0;
+            int nonce;
+            restartMining = false;
 
             if (previousBlock != null)
             {
                 previousBlockHash = previousBlock.BlockHash;
             }
 
-            string transactionsAsString = string.Join(",", transactions.Select(x => x.ToString()));
+            RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ToList();
+            string transactionsAsString = string.Join(",", RecievedTransactionsSinceLastBlock.Select(x => x.ToString()));
             byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
             byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlockHash);
-
             byte[] previousHashAndTransactions = CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
 
-            while (nonce != uint.MaxValue)
+            while (allowMining && newBlock == null)
             {
+                if (restartMining) return null;
+
+                nonce = random.Next(0, int.MaxValue);
                 string blockHash = HashNewBlock(previousHashAndTransactions, nonce);
                 if (HashConformsToDifficulty(blockHash))
                 {
-                    newBlock = new PoWBlock(NodeID, transactions, blockHash, previousBlockHash, nonce);
-                    break;
+                    newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock, blockHash, previousBlockHash, nonce);
+                    AddNewBlock(newBlock);
                 }
-                nonce++;
-            }
-
-            if (newBlock == null)
-            {
-                throw new Exception("Could not mine a new block which conforms to the difficulty level.");
             }
             return newBlock;
-
         }
 
-        private string HashNewBlock(byte[] previousHashAndTransactions, uint nonce)
+        private string HashNewBlock(byte[] previousHashAndTransactions, int nonce)
         {
             byte[] encodedNonce = Encoding.UTF8.GetBytes(nonce.ToString());
             byte[] wholeBlock = CombineByteArrays(previousHashAndTransactions, encodedNonce);
@@ -74,7 +119,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return Convert.ToHexString(byteHash);
         }
 
-        public byte[] CombineByteArrays(byte[] first, byte[] second)
+        private byte[] CombineByteArrays(byte[] first, byte[] second)
         {
             byte[] ret = new byte[first.Length + second.Length];
             Buffer.BlockCopy(first, 0, ret, 0, first.Length);
@@ -97,6 +142,59 @@ namespace ConsensusBenchmarker.Consensus.PoW
         }
 
         #endregion
+
+        #region ValidateBlock
+
+        /// <summary>
+        /// Determines whether or not a new block is valid to be added as the next block in the chain. Throws exception if the current chain is empty.
+        /// </summary>
+        /// <param name="newBlock"></param>
+        /// <returns></returns>
+        private bool IsBlockValid(PoWBlock previousBlock, PoWBlock newBlock)
+        {
+            if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefor not be validated.");
+
+            if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && ValidateNewBlockHash(previousBlock, newBlock))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private bool ValidateNewBlockHash(PoWBlock previousBlock, PoWBlock newBlock)
+        {
+            RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ToList();
+            string transactionsAsString = string.Join(",", RecievedTransactionsSinceLastBlock.Select(x => x.ToString()));
+            byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
+            byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlock.BlockHash);
+            byte[] previousHashAndTransactions = CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
+
+            string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
+            if (HashConformsToDifficulty(newBlocksHash))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        #endregion
+
+        private void RemoveSpecificTransactions(List<Transaction> shouldBeRemoved)
+        {
+            foreach (Transaction transaction in shouldBeRemoved)
+            {
+                _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
+            }
+        }
+
+        private PoWBlock? GetLastValidBlock()
+        {
+            if (Blocks.Count > 0)
+            {
+                return Blocks.Last();
+            }
+            return null;
+        }
 
     }
 }

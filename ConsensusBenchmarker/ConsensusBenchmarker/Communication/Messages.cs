@@ -1,12 +1,14 @@
 ﻿using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Blocks;
+using Newtonsoft.Json;
 using System.Net;
 
 namespace ConsensusBenchmarker.Communication
 {
     /// <summary>
-    /// DEF = Default, DIS = Discover, TRA = Transaction, ACK = Acknoledgement, EOM = End of Message,
+    /// DEF = Default, DIS = Discover, TRA = Transaction, BLK = Block, ACK = Acknoledgement, EOM = End of Message,
     /// </summary>
-    public enum OperationType { DEF = 0, DIS, TRA, ACK, EOM };
+    public enum OperationType { DEF = 0, DIS, TRA, BLK, ACK, EOM };
 
     public static class Messages
     {
@@ -67,9 +69,15 @@ namespace ConsensusBenchmarker.Communication
 
         public static string CreateTRAMessage(Transaction transaction)
         {
-            return $"{CreateTag(OperationType.TRA)}{transaction}{CreateTag(OperationType.EOM)}";
+            string serializedTransaction = JsonConvert.SerializeObject(transaction);
+            return $"{CreateTag(OperationType.TRA)}{serializedTransaction}{CreateTag(OperationType.EOM)}";
         }
 
+        public static string CreateBLOMessage(Block block)
+        {
+            string serializedBlock = JsonConvert.SerializeObject(block);
+            return $"{CreateTag(OperationType.BLK)}{serializedBlock}{CreateTag(OperationType.EOM)}";
+        }
 
     }
 }
