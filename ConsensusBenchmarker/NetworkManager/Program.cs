@@ -105,6 +105,7 @@ static class Program
 
     private static async Task BroadcastNewNodeToAllPreviousNodes(CancellationToken cancellationToken = default)
     {
+        var nodesPendingRemoval = new List<IPAddress>();
         IPAddress newNode = knownNodes.Last();
         foreach (IPAddress address in knownNodes)
         {
@@ -122,9 +123,10 @@ static class Program
                 catch (SocketException)
                 {
                     Console.WriteLine("Socket had an exception, node has likely crashed. Removing address from list.");
-                    knownNodes.Remove(address);
+                    nodesPendingRemoval.Add(address);
                 }
             }
         }
+        nodesPendingRemoval.ForEach(x => knownNodes.Remove(x));
     }
 }
