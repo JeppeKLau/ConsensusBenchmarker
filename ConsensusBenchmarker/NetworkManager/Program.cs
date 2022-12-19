@@ -33,7 +33,7 @@ static class Program
 
     private static async Task WaitInstruction(CancellationToken cancellationToken = default)
     {
-        Console.WriteLine($"Listening on {rxEndpoint!.Address}:{rxEndpoint!.Port}");
+        Console.WriteLine($"Listening on {rxEndpoint!.Address}:{rxEndpoint!.Port}\n");
         server!.Bind(rxEndpoint!);
         server!.Listen(1000);
 
@@ -44,7 +44,6 @@ static class Program
             var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
             string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
 
-            Console.WriteLine("Recieved message: " + message); // TEMP
             await HandleMessage(message, handler, cancellationToken);
             Console.WriteLine("Status: Number of known nodes is currently: " + knownNodes.Count.ToString());
         }
@@ -54,12 +53,14 @@ static class Program
     {
         if (message.Contains(discover) && message.Contains(eom))
         {
-            string cleanMessage = message.Remove(message.IndexOf(eom), eom.Length).Remove(0, discover.Length);
-            Console.WriteLine(cleanMessage); // TEMP
-
+            string cleanMessage = message.Remove(message.IndexOf(eom), eom.Length).Remove(0, (message.IndexOf(discover) + discover.Length));
             await SendBackListOfKnownNodes(handler, cancellationToken);
             AddNewKnownNode(cleanMessage);
             await BroadcastNewNodeToAllPreviousNodes(cancellationToken);
+        }
+        else
+        {
+            Console.WriteLine($"Recieved invalid message:\n{message}.\n");
         }
     }
 
@@ -89,7 +90,6 @@ static class Program
         {
             var echoBytes = Encoding.UTF8.GetBytes(ack + CreateStringOfKnownNodes() + eom);
             await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-            Console.WriteLine($"Socket server sent back list of known nodes."); // TEMP
         }
         else
         {

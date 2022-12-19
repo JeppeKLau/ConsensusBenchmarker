@@ -165,8 +165,7 @@ namespace ConsensusBenchmarker.Communication
         {
             server!.Bind(rxEndpoint!);
             server!.Listen(1000);
-
-            //Console.WriteLine($"Server listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
+            Console.WriteLine($"Node listening on {rxEndpoint!.Address}:{rxEndpoint.Port}");
 
             while (ExecutionFlag)
             {
