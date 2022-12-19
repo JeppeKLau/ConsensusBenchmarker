@@ -1,6 +1,9 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
+using Microsoft.VisualBasic;
+using System.Linq;
+using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -8,7 +11,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        public List<PoWBlock> Blocks { get; set; } = new List<PoWBlock>();
 
         private readonly uint DifficultyLeadingZeroes = 6;
         private bool allowMining = true;
@@ -47,7 +49,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             if (addBlock)
             {
                 allowMining = false;
-                AddNewBlock(recievedBlock);
+                AddNewBlockToChain(block);
             }
             allowMining = true;
             return addBlock;
@@ -64,18 +66,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override PoWBlock GenerateNextBlock()
         {
-            while (!allowMining && RecievedTransactionsSinceLastBlock.Count != 0) ;
+            while (!allowMining && RecievedTransactionsSinceLastBlock.Count == 0) ;
             return MineNewBlock() ?? GenerateNextBlock();
         }
 
         #region MineNewBlock
-
-        private void AddNewBlock(PoWBlock block)
-        {
-            Blocks.Add(block);
-            TotalBlocksInChain++;
-            RemoveSpecificTransactions(block.Transactions);
-        }
 
         private PoWBlock? MineNewBlock()
         {
@@ -104,8 +99,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 string blockHash = HashNewBlock(previousHashAndTransactions, nonce);
                 if (HashConformsToDifficulty(blockHash))
                 {
-                    newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock, blockHash, previousBlockHash, nonce);
-                    AddNewBlock(newBlock);
+                    newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
+                    AddNewBlockToChain(newBlock);
                 }
             }
             return newBlock;
@@ -154,11 +149,27 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefor not be validated.");
 
-            if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && ValidateNewBlockHash(previousBlock, newBlock))
+            if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
             {
-                return true;
+                if (ValidateNewBlockHash(previousBlock, newBlock))
+                {
+                    return true;
+                }
             }
             return false;
+        }
+
+        private bool IsNodeAwareOfNewBlocksTransactions(PoWBlock newBlock)
+        {
+            bool hasSameTransactions = true;
+            foreach(Transaction transaction in newBlock.Transactions)
+            {
+                if(!RecievedTransactionsSinceLastBlock.Contains(transaction))
+                {
+                    hasSameTransactions = false;
+                }
+            }
+            return hasSameTransactions;
         }
 
         private bool ValidateNewBlockHash(PoWBlock previousBlock, PoWBlock newBlock)
@@ -179,19 +190,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         #endregion
 
-        private void RemoveSpecificTransactions(List<Transaction> shouldBeRemoved)
-        {
-            foreach (Transaction transaction in shouldBeRemoved)
-            {
-                _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
-            }
-        }
-
         private PoWBlock? GetLastValidBlock()
         {
             if (Blocks.Count > 0)
             {
-                return Blocks.Last();
+                return Blocks.Last() as PoWBlock;
             }
             return null;
         }

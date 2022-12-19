@@ -28,7 +28,7 @@ namespace ConsensusBenchmarkerTest.Tests
             // Assert
             Assert.AreEqual(((256 / 8) * 2), result.Length);
         }
-
+        
         [TestMethod]
         public void HashConformsToDifficulty_ReturnsTrue()
         {
@@ -97,27 +97,26 @@ namespace ConsensusBenchmarkerTest.Tests
             Assert.AreEqual(true, result.BlockHash.Length > 0);
         }
 
-        [TestMethod]
-        public void RecieveBlock_AddGenesisBlock()
-        {
-            // Arrange
-            PoWConsensus consensus = new PoWConsensus(1);
-            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
-            List<Transaction> transactions = new List<Transaction>()
-            {
-                { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
-                { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
-            };
-            consensus.RecievedTransactionsSinceLastBlock = transactions;
-            PoWBlock hashBlocked = (PoWBlock)methodInfo!.Invoke(consensus, null)!;
-            string hashBlockedSerialized = JsonConvert.SerializeObject(hashBlocked);
+        //[TestMethod]
+        //public void RecieveBlock_AddGenesisBlock()
+        //{
+        //    // Arrange
+        //    PoWConsensus consensus = new PoWConsensus(1);
+        //    MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
+        //    List<Transaction> transactions = new List<Transaction>()
+        //    {
+        //        { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
+        //        { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
+        //    };
+        //    consensus.RecievedTransactionsSinceLastBlock = transactions;
+        //    PoWBlock hashBlocked = (PoWBlock)methodInfo!.Invoke(consensus, null)!;
 
-            // Act
-            consensus.RecieveBlock(hashBlockedSerialized);
+        //    // Act
+        //    consensus.RecieveBlock(hashBlocked);
 
-            // Assert
-            Assert.AreEqual(1, consensus.Blocks.Count);
-        }
+        //    // Assert
+        //    Assert.AreEqual(1, consensus.Blocks.Count);
+        //}
 
         [TestMethod]
         public void RecieveBlock_AddGenesisBlockAndTheNextBlock()
@@ -133,9 +132,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1;
-            PoWBlock blocked1 = (PoWBlock)methodInfo!.Invoke(consensus, null)!;
-            string block1Serialized = JsonConvert.SerializeObject(blocked1);
-            consensus.RecieveBlock(block1Serialized); // This method clears the list fyi: consensus.RecievedTransactionsSinceLastBlock
+            _ = (PoWBlock)methodInfo!.Invoke(consensus, null)!;
 
             // Block 2:
             List<Transaction> transactions2 = new List<Transaction>()
@@ -145,10 +142,11 @@ namespace ConsensusBenchmarkerTest.Tests
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions2;
             PoWBlock blocked2 = (PoWBlock)methodInfo!.Invoke(consensus, null)!;
-            string block2Serialized = JsonConvert.SerializeObject(blocked2);
+            consensus.Blocks.Remove(blocked2); // It is added in "MineNewBlock" when it is 'mined'.
+            consensus.RecievedTransactionsSinceLastBlock = transactions2; // Simulates that it recieves a 'mined block'.
 
             // Act
-            consensus.RecieveBlock(block2Serialized);
+            consensus.RecieveBlock(blocked2);
 
             // Assert
             Assert.AreEqual(2, consensus.Blocks.Count);
@@ -156,7 +154,6 @@ namespace ConsensusBenchmarkerTest.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(Exception), "A invalid block was wrongfully determined to be valid and added to the chain.")]
         public void RecieveBlock_AddGenesisBlockAndTheNextInvalidBlock()
         {
             // Arrange
@@ -171,8 +168,6 @@ namespace ConsensusBenchmarkerTest.Tests
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1;
             PoWBlock blocked1 = (PoWBlock)methodInfo!.Invoke(consensus, null)!;
-            string block1Serialized = JsonConvert.SerializeObject(blocked1);
-            consensus.RecieveBlock(block1Serialized); // This method clears the list fyi: consensus.RecievedTransactionsSinceLastBlock
 
             // Block 2:
             List<Transaction> transactions2 = new List<Transaction>()
@@ -180,12 +175,11 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions1;
-            PoWBlock invalidBlock2 = new PoWBlock(42, DateTime.Now.ToLocalTime(), transactions2, "000000DJKHSDG000SOME0000HASH0QQQ", blocked1.BlockHash, 696969);
-            string invalidBlock2Serialized = JsonConvert.SerializeObject(invalidBlock2);
+            consensus.RecievedTransactionsSinceLastBlock = transactions2;
+            PoWBlock invalidBlock2 = new PoWBlock(42, DateTime.Now.ToLocalTime(), transactions2, "000000DJKHSDG000SOME0000HASH0QQQ", blocked1.BlockHash, 12345); // It HIGHLY unlikely that this is the correct nonce.
 
             // Act
-            consensus.RecieveBlock(invalidBlock2Serialized);
+            consensus.RecieveBlock(invalidBlock2);
 
             // Assert
             Assert.AreEqual(1, consensus.Blocks.Count);

@@ -176,7 +176,6 @@ namespace ConsensusBenchmarker.Communication
 
                 await HandleMessage(message, handler, cancellationToken);
             }
-            //when total blocks has been reached, send all collected data to networkmanager ish?
         }
 
         private bool DataCollectionReady()

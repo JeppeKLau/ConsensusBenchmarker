@@ -26,17 +26,17 @@ namespace ConsensusBenchmarker.Consensus
         {
             eventStack.Push(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
             var miningTask = new Task(() => HandleMiningOperation());
-            var eventTask = new Task(async () => { while (executionFlag) await HandleEventStack(); });
+            var eventTask = new Task(async () => await HandleEventStack());
 
             await Task.WhenAll(miningTask, eventTask);
         }
 
         private Task HandleMiningOperation()
         {
-            while (executionFlag && consensusMechanism.TotalBlocksInChain < totalBlocksToCreate)
+            while (executionFlag && consensusMechanism.Blocks.Count < totalBlocksToCreate)
             {
                 Block block = consensusMechanism.GenerateNextBlock();
-                eventStack.Push(new CommunicationEvent(block, CommunicationEventType.SendBlock));
+                eventStack.Push(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
                 eventStack.Push(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
             }
             executionFlag = false;
@@ -60,36 +60,39 @@ namespace ConsensusBenchmarker.Consensus
 
         private async Task HandleEventStack()
         {
-            if (eventStack.Peek() is not ConsensusEvent nextEvent) return;
-
-            switch (nextEvent.EventType)
+            while (executionFlag)
             {
-                case ConsensusEventType.End:
-                    executionFlag = false;
-                    break;
-                case ConsensusEventType.CreateBlock:
-                    break;
-                case ConsensusEventType.RecieveBlock:
-                    var valid = consensusMechanism.RecieveBlock(nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data)));
-                    if (valid)
-                    {
-                        eventStack.Push(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
-                    }
-                    break;
-                case ConsensusEventType.CreateTransaction:
-                    eventStack.Push(new CommunicationEvent(consensusMechanism.GenerateNextTransaction(), CommunicationEventType.SendTransaction));
-                    break;
-                case ConsensusEventType.RecieveTransaction:
-                    consensusMechanism.RecieveTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
-                    break;
-                case ConsensusEventType.RequestBlockchain:
-                    break;
-                case ConsensusEventType.RecieveBlockchain:
-                    break;
-                default:
-                    throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
+                if (eventStack.Peek() is not ConsensusEvent nextEvent) return;
+
+                switch (nextEvent.EventType)
+                {
+                    case ConsensusEventType.End:
+                        executionFlag = false;
+                        break;
+                    case ConsensusEventType.CreateBlock:
+                        break;
+                    case ConsensusEventType.RecieveBlock:
+                        var valid = consensusMechanism.RecieveBlock(nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data)));
+                        if (valid)
+                        {
+                            eventStack.Push(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
+                        }
+                        break;
+                    case ConsensusEventType.CreateTransaction:
+                        eventStack.Push(new CommunicationEvent(consensusMechanism.GenerateNextTransaction(), CommunicationEventType.SendTransaction));
+                        break;
+                    case ConsensusEventType.RecieveTransaction:
+                        consensusMechanism.RecieveTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
+                        break;
+                    case ConsensusEventType.RequestBlockchain:
+                        break;
+                    case ConsensusEventType.RecieveBlockchain:
+                        break;
+                    default:
+                        throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
+                }
+                eventStack.Pop();
             }
-            eventStack.Pop();
         }
     }
 }

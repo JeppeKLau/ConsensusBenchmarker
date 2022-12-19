@@ -1,5 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
+using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
 
 namespace ConsensusBenchmarker.Consensus
 {
@@ -9,6 +10,9 @@ namespace ConsensusBenchmarker.Consensus
         public int CreatedTransactionsByThisNode { get; set; } = 0;
         public int TotalBlocksInChain { get; set; } = 0;
         public List<Transaction> RecievedTransactionsSinceLastBlock { get; set; } = new List<Transaction>();
+        public List<Block> Blocks { get; set; } = new List<Block>();
+
+        private readonly int maxBlocksInChainAtOnce = 10;
 
         /// <summary>
         /// Handles the recieving of a new block from another node.
@@ -58,5 +62,34 @@ namespace ConsensusBenchmarker.Consensus
             return newTransaction;
         }
 
+        /// <summary>
+        /// Adds a new block to the chain as well as cleaning up the global chain and transactions.
+        /// </summary>
+        /// <param name="newBlock"></param>
+        protected void AddNewBlockToChain(Block newBlock)
+        {
+            if(!Blocks.Contains(newBlock))
+            {
+                Blocks.Add(newBlock);
+                MaintainBlockChainSize();
+                RemoveNewBlockTransactions(newBlock);
+            }
+        }
+
+        private void MaintainBlockChainSize()
+        {
+            if (Blocks.Count > maxBlocksInChainAtOnce)
+            {
+                Blocks.RemoveAt(0);
+            }
+        }
+
+        private void RemoveNewBlockTransactions(Block newBlock)
+        {
+            foreach (Transaction transaction in newBlock.Transactions)
+            {
+                _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
+            }
+        }
     }
 }
