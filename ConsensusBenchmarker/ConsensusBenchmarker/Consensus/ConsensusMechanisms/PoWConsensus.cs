@@ -26,7 +26,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (block is not PoWBlock recievedBlock)
             {
-                throw new ArgumentException("Recieved block is not the correct type", nameof(block));
+                throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
 
             bool addBlock = false;
