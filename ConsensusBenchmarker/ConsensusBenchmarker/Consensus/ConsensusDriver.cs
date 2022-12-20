@@ -72,13 +72,13 @@ namespace ConsensusBenchmarker.Consensus
         {
             if (!Blocks.Contains(newBlock))
             {
-                blocksMutex.WaitOne();
+                if (blocksMutex.WaitOne())
+                {
+                    Blocks.Add(newBlock);
+                    MaintainBlockChainSize();
 
-                Blocks.Add(newBlock);
-                MaintainBlockChainSize();
-
-                blocksMutex.ReleaseMutex();
-
+                    blocksMutex.ReleaseMutex();
+                }
                 RemoveNewBlockTransactions(newBlock);
             }
         }
@@ -93,12 +93,14 @@ namespace ConsensusBenchmarker.Consensus
 
         private void RemoveNewBlockTransactions(Models.Blocks.Block newBlock)
         {
-            recievedTransactionsMutex.WaitOne();
-            foreach (Transaction transaction in newBlock.Transactions)
+            if (recievedTransactionsMutex.WaitOne())
             {
-                _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
+                foreach (Transaction transaction in newBlock.Transactions)
+                {
+                    _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
+                }
+                recievedTransactionsMutex.ReleaseMutex();
             }
-            recievedTransactionsMutex.ReleaseMutex();
         }
     }
 }
