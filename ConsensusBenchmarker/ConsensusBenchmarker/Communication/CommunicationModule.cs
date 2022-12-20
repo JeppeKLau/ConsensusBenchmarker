@@ -232,6 +232,7 @@ namespace ConsensusBenchmarker.Communication
                     case OperationType.DEF:
                         break;
                     case OperationType.DIS:
+                        Console.WriteLine("Recieved discover message from the network manager: " + cleanMessageWithoutEOM); // TEMP
                         SaveNewIPAddresses(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.DIS));
                         break;
                     case OperationType.TRA:
