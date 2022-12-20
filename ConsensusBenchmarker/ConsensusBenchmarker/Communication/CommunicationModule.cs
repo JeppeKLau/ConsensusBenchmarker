@@ -88,7 +88,6 @@ namespace ConsensusBenchmarker.Communication
         {
             var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 }); // 192, 168, 100, 100 
             string messageToSend = Messages.CreateDISMessage(ipAddress!);
-            Console.WriteLine("Announcing self to network manager.");
             string response = await SendMessageAndWaitForAnswer(networkManagerIP, messageToSend);
 
             if (Messages.DoesMessageContainOperationTag(response, OperationType.ACK))
@@ -97,7 +96,6 @@ namespace ConsensusBenchmarker.Communication
                 response = Messages.RemoveOperationTypeTag(response, OperationType.EOM);
 
                 SaveNewIPAddresses(response);
-                Console.WriteLine("Announced itself to the Network Manager, and recieved a list of known nodes.");
             }
             else
             {
@@ -110,8 +108,6 @@ namespace ConsensusBenchmarker.Communication
         {
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not CommunicationEvent nextEvent) return;
-
-            Console.WriteLine($"Handling Communication event with type: {nextEvent.EventType}");
 
             switch (nextEvent.EventType)
             {
@@ -164,7 +160,6 @@ namespace ConsensusBenchmarker.Communication
         /// <returns><see cref="string"/></returns>
         private async Task<string> SendMessageAndWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine($"Sending message: {message} to {receiver}\n");
             var networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             byte[] responseBuffer = new byte[receivableByteSize];
@@ -173,7 +168,6 @@ namespace ConsensusBenchmarker.Communication
             await networkManager.ConnectAsync(networkManagerEndpoint, cancellationToken);
             _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
             int responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
-            Console.WriteLine($"Received answer: {Encoding.UTF8.GetString(responseBuffer, 0, responseBytes)}");
             networkManager.Shutdown(SocketShutdown.Both);
             networkManager.Close();
             return Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
@@ -231,7 +225,6 @@ namespace ConsensusBenchmarker.Communication
                     case OperationType.DEF:
                         break;
                     case OperationType.DIS:
-                        Console.WriteLine("Recieved discover message from the network manager: " + cleanMessageWithoutEOM); // TEMP
                         SaveNewIPAddresses(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.DIS));
                         break;
                     case OperationType.TRA:
@@ -251,7 +244,6 @@ namespace ConsensusBenchmarker.Communication
             {
                 AddNewNode(ipAddress);
             }
-            Console.WriteLine("I (" + nodeId + ") currently know this many nodes: " + knownNodes.Count);
         }
 
         private void AddNewNode(string DiscoverMessage)
@@ -285,7 +277,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
-            Console.WriteLine($"Recieved block from: " + recievedBlock.OwnerNodeID );
+            Console.WriteLine($"Recieved block from: " + recievedBlock.OwnerNodeID);
             eventQueue.Enqueue(new ConsensusEvent(recievedBlock, ConsensusEventType.RecieveBlock));
         }
 

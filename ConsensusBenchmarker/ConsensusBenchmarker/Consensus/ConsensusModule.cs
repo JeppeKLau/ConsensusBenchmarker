@@ -53,14 +53,14 @@ namespace ConsensusBenchmarker.Consensus
         {
             while (executionFlag)
             {
-                var stopWatch = new Stopwatch(); 
+                var stopWatch = new Stopwatch();
                 stopWatch.Start();
 
                 Block block = consensusMechanism.GenerateNextBlock(ref stopWatch);
 
                 stopWatch.Stop();
                 Console.WriteLine("Mined new block successfully. It took: " + stopWatch.Elapsed.Seconds + " seconds."); // TEMP
-                
+
                 eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
                 eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
                 eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
@@ -93,8 +93,6 @@ namespace ConsensusBenchmarker.Consensus
 
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not ConsensusEvent nextEvent) return;
-
-            Console.WriteLine($"Handling consensus event - type: {nextEvent.EventType}");
 
             switch (nextEvent.EventType)
             {

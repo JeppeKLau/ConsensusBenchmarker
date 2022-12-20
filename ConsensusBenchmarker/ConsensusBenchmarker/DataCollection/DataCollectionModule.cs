@@ -84,7 +84,7 @@ namespace ConsensusBenchmarker.DataCollection
         private void WriteInformationToDB(BaseMeasurement measurement)
         {
             Console.WriteLine("Writing to DB:");
-            Console.WriteLine(measurement + "\n\n");
+            Console.WriteLine(measurement + "\n");
             influxDBService.Write(write =>
             {
                 write.WriteMeasurement(measurement, WritePrecision.Ns, "primary", "MasterThesis");
@@ -105,8 +105,6 @@ namespace ConsensusBenchmarker.DataCollection
         {
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not DataCollectionEvent nextEvent) return;
-
-            Console.WriteLine($"Handling data collection event - type: {nextEvent.EventType}");
 
             switch (nextEvent.EventType)
             {

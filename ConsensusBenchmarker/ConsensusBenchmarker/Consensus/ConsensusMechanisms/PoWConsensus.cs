@@ -43,6 +43,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 {
                     addBlock = true;
                 }
+                else
+                {
+                    Console.WriteLine("Recieved a block which was NOT valid, from:" + block.OwnerNodeID);
+                }
             }
 
             if (addBlock)
