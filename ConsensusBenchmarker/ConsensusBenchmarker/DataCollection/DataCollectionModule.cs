@@ -83,8 +83,6 @@ namespace ConsensusBenchmarker.DataCollection
 
         private void WriteInformationToDB(BaseMeasurement measurement)
         {
-            Console.WriteLine("Writing to DB:");
-            Console.WriteLine(measurement + "\n");
             influxDBService.Write(write =>
             {
                 write.WriteMeasurement(measurement, WritePrecision.Ns, "primary", "MasterThesis");
