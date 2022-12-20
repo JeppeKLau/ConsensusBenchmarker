@@ -252,6 +252,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 AddNewNode(ipAddress);
             }
+            Console.WriteLine("I (" + nodeId + ") know this many other nodes: " + knownNodes.Count);
         }
 
         private void AddNewNode(string DiscoverMessage)
@@ -261,7 +262,7 @@ namespace ConsensusBenchmarker.Communication
                 IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
                 if (!knownNodes.Contains(newIP) && !newIP.Equals(ipAddress))
                 {
-                    while (knownNodesMutex.WaitOne()) ;
+                    while (!knownNodesMutex.WaitOne()) { Console.WriteLine($"Wait for {nameof(knownNodesMutex)}"); }
                     knownNodes.Add(newIP);
                     knownNodesMutex.ReleaseMutex();
                 }
