@@ -11,8 +11,8 @@ namespace ConsensusBenchmarker.Consensus
         public List<Transaction> RecievedTransactionsSinceLastBlock { get; set; } = new List<Transaction>();
         public List<Models.Blocks.Block> Blocks { get; set; } = new List<Models.Blocks.Block>();
 
-        private readonly Mutex recievedTransactionsMutex = new();
-        private readonly Mutex blocksMutex = new();
+        private readonly SemaphoreSlim recievedTransactionsMutex = new(1, 1);
+        private readonly SemaphoreSlim blocksMutex = new(1, 1);
 
         private readonly int maxBlocksInChainAtOnce = 10;
 
@@ -72,13 +72,13 @@ namespace ConsensusBenchmarker.Consensus
         {
             if (!Blocks.Contains(newBlock))
             {
-                if (blocksMutex.WaitOne())
-                {
-                    Blocks.Add(newBlock);
-                    MaintainBlockChainSize();
+                blocksMutex.Wait();
 
-                    blocksMutex.ReleaseMutex();
-                }
+                Blocks.Add(newBlock);
+                MaintainBlockChainSize();
+
+                blocksMutex.Release();
+
                 RemoveNewBlockTransactions(newBlock);
             }
         }
@@ -93,14 +93,14 @@ namespace ConsensusBenchmarker.Consensus
 
         private void RemoveNewBlockTransactions(Models.Blocks.Block newBlock)
         {
-            if (recievedTransactionsMutex.WaitOne())
+            recievedTransactionsMutex.Wait();
+
+            foreach (Transaction transaction in newBlock.Transactions)
             {
-                foreach (Transaction transaction in newBlock.Transactions)
-                {
-                    _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
-                }
-                recievedTransactionsMutex.ReleaseMutex();
+                _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
             }
+            recievedTransactionsMutex.Release();
+
         }
     }
 }

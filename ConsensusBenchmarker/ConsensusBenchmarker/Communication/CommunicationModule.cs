@@ -20,7 +20,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeId;
         private bool ExecutionFlag;
-        private readonly Mutex knownNodesMutex = new();
+        private readonly SemaphoreSlim knownNodesMutex = new(1, 1);
 
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
@@ -145,24 +145,14 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
         {
-            bool acquired;
-            while (true)
-            {
-                Console.WriteLine("Trying to get mutex");
-                acquired = knownNodesMutex.WaitOne();
-                if (acquired)
-                {
-                    Console.WriteLine("Got mutex.");
-                    break;
-                }
-            }
+            knownNodesMutex.Wait();
 
             foreach (var otherNode in knownNodes)
             {
                 await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
             }
 
-            if (acquired) knownNodesMutex.ReleaseMutex();
+            knownNodesMutex.Release();
         }
 
         /// <summary>
@@ -274,9 +264,9 @@ namespace ConsensusBenchmarker.Communication
                 IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
                 if (!knownNodes.Contains(newIP) && !newIP.Equals(ipAddress))
                 {
-                    var knownNodesMutexAcquired = knownNodesMutex.WaitOne();
+                    knownNodesMutex.Wait();
                     knownNodes.Add(newIP);
-                    if (knownNodesMutexAcquired) knownNodesMutex.ReleaseMutex();
+                    knownNodesMutex.Release();
                 }
             }
         }
