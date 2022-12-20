@@ -1,9 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
-using Microsoft.VisualBasic;
-using System.Linq;
-using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -114,7 +111,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return Convert.ToHexString(byteHash);
         }
 
-        private byte[] CombineByteArrays(byte[] first, byte[] second)
+        private static byte[] CombineByteArrays(byte[] first, byte[] second)
         {
             byte[] ret = new byte[first.Length + second.Length];
             Buffer.BlockCopy(first, 0, ret, 0, first.Length);
@@ -162,9 +159,9 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private bool IsNodeAwareOfNewBlocksTransactions(PoWBlock newBlock)
         {
             bool hasSameTransactions = true;
-            foreach(Transaction transaction in newBlock.Transactions)
+            foreach (Transaction transaction in newBlock.Transactions)
             {
-                if(!RecievedTransactionsSinceLastBlock.Contains(transaction))
+                if (!RecievedTransactionsSinceLastBlock.Contains(transaction))
                 {
                     hasSameTransactions = false;
                 }

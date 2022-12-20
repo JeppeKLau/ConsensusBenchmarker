@@ -4,35 +4,61 @@ using ConsensusBenchmarker.Communication;
 using ConsensusBenchmarker.Consensus;
 using ConsensusBenchmarker.DataCollection;
 using ConsensusBenchmarker.Models.Events;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
 
 namespace ConsensusBenchmarker;
 
 class Program
 {
-    static async Task Main()
+    static async Task Main(string[] _)
     {
-        string consensus = "PoW"; // RetrieveConsensusMechanismType();
-        int totalBlocksToCreate = 100; // RetrieveNumberOfBlocksToCreate();
-        int nodeID = 1; // RetrieveNodeName();
+        IConfiguration configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+        IServiceCollection serviceCollection = new ServiceCollection();
+        var startup = new Startup(configuration);
+        startup.ConfigureServices(serviceCollection);
 
-        var eventStack = new Stack<IEvent>();
+        IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
-        var dataCollectionModule = new DataCollectionModule(ref eventStack, nodeID);
-        var communicationModule = new CommunicationModule(ref eventStack, nodeID);
-        var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID, ref eventStack);
+        var moduleThreads = new List<Thread>();
+        string consensus = RetrieveConsensusMechanismType();
+        int totalBlocksToCreate = RetrieveNumberOfBlocksToCreate();
+        int nodeID = RetrieveNodeName();
+        var executionFlag = true;
+
+        var influxDBService = serviceProvider.GetRequiredService<InfluxDBService>();
+        var eventQueue = new ConcurrentQueue<IEvent>();
+
+        var dataCollectionModule = new DataCollectionModule(ref eventQueue, nodeID, influxDBService, ref executionFlag);
+        var communicationModule = new CommunicationModule(ref eventQueue);
+        var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID, ref eventQueue);
         await communicationModule.AnnounceOwnIP();
         // ask for blockchain ?
 
-        var dataCollectionTask = dataCollectionModule.CollectData();
-        var communicationTask = communicationModule.RunCommunication();
-        var consensusTask = consensusModule.RunConsensus();
+        // Create threads:
+        moduleThreads.AddRange(dataCollectionModule.SpawnThreads());
+        moduleThreads.AddRange(communicationModule.SpawnThreads());
+        moduleThreads.AddRange(consensusModule.SpawnThreads());
 
-        await Task.WhenAll(communicationTask, dataCollectionTask, consensusTask);
-        
-        Console.WriteLine("All tasks are completed, terminating execution");
+        // Start threads:
+        Console.WriteLine("Starting threads.");
+        foreach (Thread moduleThread in moduleThreads)
+        {
+            moduleThread.Start();
+        }
+
+        // Wait for threads to finish:
+        Console.WriteLine("Waiting for threads to finish.");
+        foreach (Thread moduleThread in moduleThreads)
+        {
+            moduleThread.Join();
+        }
+
+        Console.WriteLine("Test complete, terminating execution.");
     }
 
-    private static string[] ConsensusTypes = { "PoW", "PoS", "PoC", "PoET", "Raft", "PBFT", "RapidChain" };
+    private static readonly string[] ConsensusTypes = { "PoW", "PoS", "PoC", "PoET", "Raft", "PBFT", "RapidChain" };
 
     private static string RetrieveConsensusMechanismType()
     {

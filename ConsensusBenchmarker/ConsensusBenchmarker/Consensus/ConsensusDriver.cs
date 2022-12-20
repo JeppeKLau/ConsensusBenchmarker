@@ -1,6 +1,5 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
-using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
 
 namespace ConsensusBenchmarker.Consensus
 {
@@ -57,7 +56,7 @@ namespace ConsensusBenchmarker.Consensus
         /// <returns><see cref="Transaction"/></returns>
         public Transaction GenerateNextTransaction()
         {
-            Transaction newTransaction = new Transaction(NodeID, CreatedTransactionsByThisNode, DateTime.Now.ToLocalTime());
+            var newTransaction = new Transaction(NodeID, CreatedTransactionsByThisNode, DateTime.Now.ToLocalTime());
             CreatedTransactionsByThisNode++;
             return newTransaction;
         }
@@ -68,7 +67,7 @@ namespace ConsensusBenchmarker.Consensus
         /// <param name="newBlock"></param>
         protected void AddNewBlockToChain(Block newBlock)
         {
-            if(!Blocks.Contains(newBlock))
+            if (!Blocks.Contains(newBlock))
             {
                 Blocks.Add(newBlock);
                 MaintainBlockChainSize();

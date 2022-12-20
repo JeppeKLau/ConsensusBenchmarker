@@ -2,6 +2,7 @@
 using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Events;
 using Newtonsoft.Json;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -17,17 +18,15 @@ namespace ConsensusBenchmarker.Communication
         private readonly uint receivableByteSize = 4096;
 
         private readonly List<IPAddress> knownNodes = new();
-        private readonly Stack<IEvent> eventStack;
-        private readonly int nodeId;
+        private readonly ConcurrentQueue<IEvent> eventQueue;
         private bool ExecutionFlag;
 
-        public CommunicationModule(ref Stack<IEvent> eventStack, int nodeId)
+        public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue)
         {
             ipAddress = GetLocalIPAddress();
             rxEndpoint = new(ipAddress!, sharedPortNumber);
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            this.eventStack = eventStack;
-            this.nodeId = nodeId;
+            this.eventQueue = eventQueue;
             ExecutionFlag = true;
         }
 
@@ -44,22 +43,38 @@ namespace ConsensusBenchmarker.Communication
             throw new ApplicationException("Node has no ip address setup. Try restarting client");
         }
 
-        public async Task RunCommunication(CancellationToken cancellationToken = default)
+        public List<Thread> SpawnThreads()
         {
             while (!DataCollectionReady()) ;
 
-            var eventTask = HandleEventStack();
-            var messageTask = WaitForMessage(cancellationToken);
+            var eventThread = new Thread(() =>
+            {
+                while (ExecutionFlag)
+                {
+                    HandleEventQueue().GetAwaiter().GetResult();
+                }
+            });
 
-            await Task.WhenAll(messageTask, eventTask);
+            var messageThread = new Thread(() =>
+            {
+                while (ExecutionFlag)
+                {
+                    WaitForMessage().GetAwaiter().GetResult();
+                }
+            });
+
+            Console.WriteLine("Communication ready.");
+            return new List<Thread>() { eventThread, messageThread };
         }
 
         private bool DataCollectionReady()
         {
-            if (eventStack.Peek() is not DataCollectionEvent nextEvent) return false;
+            if (!eventQueue.TryPeek(out var @event)) return false;
+            if (@event is not DataCollectionEvent nextEvent) return false;
+
             if (nextEvent.EventType == DataCollectionEventType.CollectionReady)
             {
-                eventStack.Pop();
+                eventQueue.TryDequeue(out _);
                 return true;
             }
             return false;
@@ -69,7 +84,7 @@ namespace ConsensusBenchmarker.Communication
 
         public async Task AnnounceOwnIP()
         {
-            var networkManagerIP = new IPAddress(new byte[] { 192, 168, 0, 119 }); // 192, 168, 100, 100 
+            var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 }); // 192, 168, 100, 100 
             string messageToSend = Messages.CreateDISMessage(ipAddress!);
             string response = await SendMessageAndWaitForAnswer(networkManagerIP, messageToSend);
 
@@ -79,6 +94,7 @@ namespace ConsensusBenchmarker.Communication
                 response = Messages.RemoveOperationTypeTag(response, OperationType.EOM);
 
                 SaveNewIPAddresses(response);
+                Console.WriteLine("Announced itself to the Network Manager, and recieved a list of known nodes.");
             }
             else
             {
@@ -87,9 +103,12 @@ namespace ConsensusBenchmarker.Communication
             }
         }
 
-        private async Task HandleEventStack()
+        private async Task HandleEventQueue()
         {
-            if (eventStack.Peek() is not CommunicationEvent nextEvent) return;
+            if (!eventQueue.TryPeek(out var @event)) return;
+            if (@event is not CommunicationEvent nextEvent) return;
+
+            Console.WriteLine($"Handling Communication event with type: {nextEvent.EventType}");
 
             switch (nextEvent.EventType)
             {
@@ -105,19 +124,19 @@ namespace ConsensusBenchmarker.Communication
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
             }
-            eventStack.Pop();
+            eventQueue.TryDequeue(out _);
         }
 
         private async Task BroadcastTransaction(Transaction transaction)
         {
             string messageToSend = Messages.CreateTRAMessage(transaction);
-            BroadcastMessageAndDontWaitForAnswer(messageToSend);
+            await BroadcastMessageAndDontWaitForAnswer(messageToSend);
         }
 
         private async Task BroadcastBlock(Block block)
         {
             string messageToSend = Messages.CreateBLOMessage(block);
-            BroadcastMessageAndDontWaitForAnswer(messageToSend);
+            await BroadcastMessageAndDontWaitForAnswer(messageToSend);
         }
 
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
@@ -137,6 +156,7 @@ namespace ConsensusBenchmarker.Communication
         /// <returns></returns>
         private async Task<string> SendMessageAndWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
+            Console.WriteLine($"Sending message: {message} to {receiver}\n\n");
             var networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             byte[] responseBuffer = new byte[receivableByteSize];
@@ -159,6 +179,7 @@ namespace ConsensusBenchmarker.Communication
         /// <returns></returns>
         private async Task SendMessageAndDontWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
+            Console.WriteLine($"Sending message: {message} to {receiver}\n\n");
             var nodeEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
 
@@ -185,16 +206,16 @@ namespace ConsensusBenchmarker.Communication
                 var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
                 string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
 
-                await HandleMessage(message, handler, cancellationToken);
+                HandleMessage(message);
             }
         }
 
-        private async Task HandleMessage(string message, Socket handler, CancellationToken cancellationToken = default)
+        private void HandleMessage(string message)
         {
             if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
             {
-                Console.WriteLine($"Complete message recieved:\n{message}");
                 string cleanMessageWithoutEOM = Messages.RemoveOperationTypeTag(Messages.TrimUntillTag(message), OperationType.EOM);
+                Console.WriteLine($"Message recieved.");
 
                 var operationType = Messages.GetOperationTypeEnum(cleanMessageWithoutEOM);
 
@@ -240,18 +261,20 @@ namespace ConsensusBenchmarker.Communication
         {
             if (JsonConvert.DeserializeObject<Transaction>(message) is not Transaction recievedTransaction)
             {
-                throw new ArgumentException("Transaction could not be deserialized correctly", nameof(recievedTransaction));
+                throw new ArgumentException("Transaction could not be deserialized correctly", nameof(message));
             }
-            eventStack.Push(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction));
+            Console.WriteLine($"Recieved transaction message: " + message);
+            eventQueue.Enqueue(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction));
         }
 
         private void ReceiveBlock(string message)
         {
             if (JsonConvert.DeserializeObject<Block>(message) is not Block recievedBlock)
             {
-                throw new ArgumentException("Block could not be deserialized correctly", nameof(recievedBlock));
+                throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
-            eventStack.Push(new ConsensusEvent(recievedBlock, ConsensusEventType.RecieveBlock));
+            Console.WriteLine($"Recieved block message: " + message);
+            eventQueue.Enqueue(new ConsensusEvent(recievedBlock, ConsensusEventType.RecieveBlock));
         }
 
         #endregion

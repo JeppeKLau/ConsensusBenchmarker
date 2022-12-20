@@ -1,6 +1,6 @@
 ﻿namespace ConsensusBenchmarker.Models.Events
 {
-    public enum DataCollectionEventType { End, CollectionReady, BeginBlock, EndBlock, BeginTransaction, EndTransaction }
+    public enum DataCollectionEventType { End, CollectionReady, BeginBlock, BeginTransaction, IncMessage }
 
     public class DataCollectionEvent : IEvent
     {

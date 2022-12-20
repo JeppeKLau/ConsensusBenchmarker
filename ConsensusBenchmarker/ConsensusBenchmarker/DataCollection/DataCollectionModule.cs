@@ -1,4 +1,7 @@
 ﻿using ConsensusBenchmarker.Models.Events;
+using ConsensusBenchmarker.Models.Measurements;
+using InfluxDB.Client.Api.Domain;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -10,56 +13,88 @@ namespace ConsensusBenchmarker.DataCollection
         private static readonly string CPU_STAT_FILE = "/proc/stat";         // cpu <10 numbers> \n
         private static readonly string MEM_STAT_FILE = "/proc/{pid}/status"; // VmSize: <some number of characters> \n
         private readonly Process currentProcess;
-        private readonly Stack<IEvent> eventStack;
+        private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeID;
+        private readonly InfluxDBService influxDBService;
+        private bool mainExecutionFlag;
         private readonly Mutex mutex = new();
 
-        private readonly List<Thread> threads = new();
-        private bool ExecutionFlag;
+        private Thread? memThread;
+        private bool executionFlag;
         private int blockCount = 0;
         private int transactionCount = 0;
+        private int messageCount;
 
-        public DataCollectionModule(ref Stack<IEvent> eventStack, int nodeID)
+        public DataCollectionModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeID, InfluxDBService influxDBService, ref bool mainExecutionFlag)
         {
             currentProcess = Process.GetCurrentProcess();
-            this.eventStack = eventStack;
+            this.eventQueue = eventQueue;
             this.nodeID = nodeID;
-            ExecutionFlag = true;
+            this.influxDBService = influxDBService;
+            this.mainExecutionFlag = mainExecutionFlag;
+            executionFlag = true;
         }
 
-        public async Task CollectData()
+        public List<Thread> SpawnThreads()
+        {
+            var collectDataThread = new Thread(CollectData);
+            memThread = new Thread(() =>
+            {
+                while (executionFlag)
+                {
+                    ReadMemvalue(out int mbMemory);
+                    WriteInformationToDB(new MemoryMeasurement(nodeID, DateTime.UtcNow, mbMemory));
+                    Thread.Sleep(1000);
+                }
+            });
+
+            Console.WriteLine("Data collection ready");
+            eventQueue.Enqueue(new DataCollectionEvent(nodeID, DataCollectionEventType.CollectionReady, null));
+            return new List<Thread>() { collectDataThread, memThread };
+        }
+
+        private void CollectData()
         {
             /*
-             *  Total CPU usage. (done)
+             *  _Total CPU usage.
              *  Total storage used. {storage implementation}
-             *  Total messages sent and received, as well as their timestamps.
-             *  Total time spent verifying blocks and block creation time.
+             *      - How do we write blocks to storage?
+             *          - Do we write blocks to permanent storage?
+             *      - Where do we store the blocks?
+             *  _Total messages sent and received, as well as their timestamps.
+             *      - Count messages transmitted to and from node
+             *          - 
+             *  Total time spent verifying blocks and block creation time. 
              */
-            var mbMemory = 0; // mB memory used
-            var cpuTime = 0; // CPU time
 
-            threads.Add(new Thread(() =>
-            {
-                ReadMemvalue(out mbMemory);
-                Console.WriteLine($"Memory: {mbMemory} mB");
-            }));
-
-            threads.Add(new Thread(() =>
-            {
-                ReadCpuValue(out cpuTime);
-                Console.WriteLine($"Cpu time: {cpuTime}, block count: {blockCount}");
-            }));
-            eventStack.Push(new DataCollectionEvent(nodeID, DataCollectionEventType.CollectionReady, null));
-
-            while (ExecutionFlag)
+            while (executionFlag)
             {
                 HandleEvents();
             }
+
+            ReadCpuValue(out int cpuTime);
+            WriteInformationToDB(new CPUMeasurement(nodeID, DateTime.UtcNow, cpuTime));
+
+            WriteInformationToDB(new BlockMeasurement(nodeID, DateTime.UtcNow, blockCount));
+            WriteInformationToDB(new TransactionMeasurement(nodeID, DateTime.UtcNow, transactionCount));
+            WriteInformationToDB(new MessageMeasurement(nodeID, DateTime.UtcNow, messageCount));
+            memThread?.Join();
+            mainExecutionFlag = false;
+        }
+
+        private void WriteInformationToDB(BaseMeasurement measurement)
+        {
+            Console.WriteLine("Writing to DB:");
+            Console.WriteLine(measurement + "\n\n");
+            influxDBService.Write(write =>
+            {
+                write.WriteMeasurement(measurement, WritePrecision.Ns, "primary");
+            });
         }
 
         private static void ReadCpuValue(out int cpuTime)
         {
-            var cpuFileStream = File.OpenRead(CPU_STAT_FILE);
+            var cpuFileStream = System.IO.File.OpenRead(CPU_STAT_FILE);
             var numRegex = NumberRegex();
             var valueLine = GetLineWithWord("cpu ", cpuFileStream);
             var matches = numRegex.Matches(valueLine);
@@ -69,38 +104,35 @@ namespace ConsensusBenchmarker.DataCollection
 
         private void HandleEvents()
         {
-            if (eventStack.Peek() is not DataCollectionEvent nextEvent) return;
+            if (!eventQueue.TryPeek(out var @event)) return;
+            if (@event is not DataCollectionEvent nextEvent) return;
+
+            Console.WriteLine($"Handling data collection event - type: {nextEvent.EventType}");
 
             switch (nextEvent.EventType)
             {
                 case DataCollectionEventType.End:
-                    ExecutionFlag = false;
+                    executionFlag = false;
                     break;
                 case DataCollectionEventType.BeginBlock:
                     blockCount++;
-                    while (threads.Any(x => x.IsAlive)) ;
-                    threads.ForEach(x => x.Start());
                     break;
                 case DataCollectionEventType.BeginTransaction:
                     transactionCount++;
-                    while (threads.Any(x => x.IsAlive)) ;
-                    threads.ForEach(x => x.Start());
                     break;
-                case DataCollectionEventType.EndBlock:
-                case DataCollectionEventType.EndTransaction:
-                    while (threads.Any(x => x.IsAlive)) ;
-                    threads.ForEach(x => x.Start());
+                case DataCollectionEventType.IncMessage:
+                    messageCount++;
                     break;
                 default:
                     throw new ArgumentException($"Unkown type of {nameof(DataCollectionEvent)}", nameof(nextEvent.EventType));
             }
-            eventStack.Pop();
+            eventQueue.TryDequeue(out _);
         }
 
         private void ReadMemvalue(out int value)
         {
             var actualMemFile = MEM_STAT_FILE.Replace("{pid}", currentProcess.Id.ToString());
-            var memFileStream = File.OpenRead(actualMemFile);
+            var memFileStream = System.IO.File.OpenRead(actualMemFile);
             var numRegex = NumberRegex();
             var valueLine = GetLineWithWord("VmSize:", memFileStream);
             var sizeDenominator = valueLine.Substring(valueLine.Length - 2, 2);

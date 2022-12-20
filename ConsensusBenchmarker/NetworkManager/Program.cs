@@ -26,7 +26,7 @@ static class Program
 
     private static void Initialize()
     {
-        ipAddress = new IPAddress(new byte[] { 192, 168, 0, 119 }); // 192, 168, 100, 100
+        ipAddress = new IPAddress(new byte[] { 192, 168, 100, 100 }); // 192, 168, 100, 100
         rxEndpoint = new(ipAddress!, portNumber);
         server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
     }
@@ -122,9 +122,10 @@ static class Program
                     _ = await nodeSocket.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
                     nodeSocket.Shutdown(SocketShutdown.Both);
                 }
-                catch (SocketException)
+                catch (SocketException ex)
                 {
                     Console.WriteLine("Socket had an exception, node has likely crashed. Removing address from list.");
+                    Console.WriteLine(ex);
                     nodesPendingRemoval.Add(address);
                 }
             }
