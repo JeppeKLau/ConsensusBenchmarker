@@ -145,13 +145,24 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
         {
-            while (!knownNodesMutex.WaitOne()) ;
+            bool acquired;
+            while (true)
+            {
+                Console.WriteLine("Trying to get mutex");
+                acquired = knownNodesMutex.WaitOne();
+                if (acquired)
+                {
+                    Console.WriteLine("Got mutex.");
+                    break;
+                }
+            }
 
             foreach (var otherNode in knownNodes)
             {
                 await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
             }
-            knownNodesMutex.ReleaseMutex();
+
+            if (acquired) knownNodesMutex.ReleaseMutex();
         }
 
         /// <summary>
