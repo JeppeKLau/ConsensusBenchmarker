@@ -1,6 +1,6 @@
 ﻿namespace ConsensusBenchmarker.Models.Blocks
 {
-    public abstract class Block
+    public class Block
     {
         public Block(int ownerNodeID, DateTime blockCreatedAt, List<Transaction> transactions)
         {
