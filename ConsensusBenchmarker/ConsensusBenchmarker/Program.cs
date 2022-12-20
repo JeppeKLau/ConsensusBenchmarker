@@ -51,7 +51,7 @@ class Program
 
         // Start threads:
         Console.WriteLine("Starting threads.");
-        foreach (Thread moduleThread in moduleThreads)
+        foreach (Thread moduleThread in moduleThreads.Where(t => t.ThreadState == ThreadState.Unstarted))
         {
             moduleThread.Start();
         }
