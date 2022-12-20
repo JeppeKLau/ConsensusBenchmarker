@@ -145,7 +145,7 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
         {
-            while (!knownNodesMutex.WaitOne()) ;
+            knownNodesMutex.WaitOne();
             foreach (var otherNode in knownNodes)
             {
                 await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
