@@ -36,13 +36,18 @@ class Program
         var dataCollectionModule = new DataCollectionModule(ref eventQueue, nodeID, influxDBService, ref executionFlag);
         var communicationModule = new CommunicationModule(ref eventQueue, nodeID);
         var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID, ref eventQueue);
-        await communicationModule.AnnounceOwnIP();
         // ask for blockchain ?
 
         // Create threads:
         moduleThreads.AddRange(dataCollectionModule.SpawnThreads());
         moduleThreads.AddRange(communicationModule.SpawnThreads());
         moduleThreads.AddRange(consensusModule.SpawnThreads());
+
+        // Start communication thread first, so nodes can discover each other before it begins:
+        Console.WriteLine("Starting the communication thread.");
+        moduleThreads[3].Start();
+        await communicationModule.AnnounceOwnIP();
+        Thread.Sleep(10_000);
 
         // Start threads:
         Console.WriteLine("Starting threads.");
