@@ -88,6 +88,7 @@ namespace ConsensusBenchmarker.Communication
         {
             var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 }); // 192, 168, 100, 100 
             string messageToSend = Messages.CreateDISMessage(ipAddress!);
+            Console.WriteLine("Announcing self to network manager");
             string response = await SendMessageAndWaitForAnswer(networkManagerIP, messageToSend);
 
             if (Messages.DoesMessageContainOperationTag(response, OperationType.ACK))
@@ -170,6 +171,7 @@ namespace ConsensusBenchmarker.Communication
             await networkManager.ConnectAsync(networkManagerEndpoint, cancellationToken);
             _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
             int responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
+            Console.WriteLine($"Received answer: {Encoding.UTF8.GetString(responseBuffer, 0, responseBytes)}");
             networkManager.Shutdown(SocketShutdown.Both);
             networkManager.Close();
             return Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
