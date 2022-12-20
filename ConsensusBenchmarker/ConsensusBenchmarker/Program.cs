@@ -6,6 +6,7 @@ using ConsensusBenchmarker.DataCollection;
 using ConsensusBenchmarker.Models.Events;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using System.Collections.Concurrent;
 
 namespace ConsensusBenchmarker;
@@ -20,6 +21,8 @@ class Program
         startup.ConfigureServices(serviceCollection);
 
         IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
+
+        JsonConvert.DefaultSettings = () => new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
 
         var moduleThreads = new List<Thread>();
         string consensus = RetrieveConsensusMechanismType();
