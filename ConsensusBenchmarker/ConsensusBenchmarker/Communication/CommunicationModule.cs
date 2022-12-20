@@ -1,7 +1,5 @@
 ﻿using ConsensusBenchmarker.Models;
-using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Events;
-using InfluxDB.Client.Api.Domain;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Net;
@@ -22,7 +20,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeId;
         private bool ExecutionFlag;
-        private Mutex knownNodesMutex = new();
+        private readonly Mutex knownNodesMutex = new();
 
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
@@ -279,7 +277,8 @@ namespace ConsensusBenchmarker.Communication
 
         private void ReceiveBlock(string message)
         {
-            if (JsonConvert.DeserializeObject<Block>(message) is not Block recievedBlock)
+            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+            if (JsonConvert.DeserializeObject<Models.Blocks.Block>(message, settings) is not Models.Blocks.Block recievedBlock)
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
