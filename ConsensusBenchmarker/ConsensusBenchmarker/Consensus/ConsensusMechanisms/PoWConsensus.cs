@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 6;
+        private readonly uint DifficultyLeadingZeroes = 7;
         private bool allowMining;
         private bool restartMining;
         private readonly Random random;
@@ -157,7 +157,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
 
             Console.WriteLine($"Previous: {previousBlock.BlockHash}");
-            Console.WriteLine($"New: {newBlock.PreviousBlockHash}");
+            Console.WriteLine($"New:      {newBlock.PreviousBlockHash}");
 
             if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
             {

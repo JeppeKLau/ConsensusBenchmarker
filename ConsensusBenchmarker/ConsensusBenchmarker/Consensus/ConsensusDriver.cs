@@ -61,6 +61,7 @@ namespace ConsensusBenchmarker.Consensus
         public Transaction GenerateNextTransaction()
         {
             var newTransaction = new Transaction(NodeID, CreatedTransactionsByThisNode, DateTime.Now.ToLocalTime());
+            RecievedTransactionsSinceLastBlock.Add(newTransaction);
             CreatedTransactionsByThisNode++;
             return newTransaction;
         }
@@ -78,7 +79,7 @@ namespace ConsensusBenchmarker.Consensus
                 Blocks.Add(newBlock);
                 TotalBlocksInChain++;
 
-                Console.WriteLine("Added a new block to my chain. Block creator is: " + newBlock.OwnerNodeID + ". Current blocks in chain: " + TotalBlocksInChain);
+                Console.WriteLine("---Added a new block to my chain. Block creator is: " + newBlock.OwnerNodeID + ". Current blocks in chain: " + TotalBlocksInChain);
 
                 MaintainBlockChainSize();
 
