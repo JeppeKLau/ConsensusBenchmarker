@@ -154,7 +154,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
         /// <returns></returns>
         private bool IsBlockValid(PoWBlock previousBlock, PoWBlock newBlock)
         {
-            if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefor not be validated.");
+            if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
+
+            Console.WriteLine($"Previous: {previousBlock.BlockHash}");
+            Console.WriteLine($"New: {newBlock.PreviousBlockHash}");
 
             if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
             {
@@ -173,6 +176,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 if (!RecievedTransactionsSinceLastBlock.Contains(transaction))
                 {
+                    Console.WriteLine($"Node is unaware of this transaction, owner: {transaction.NodeID} and id: {transaction.TransactionId}");
                     hasSameTransactions = false;
                 }
             }
@@ -181,8 +185,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private bool ValidateNewBlockHash(PoWBlock previousBlock, PoWBlock newBlock)
         {
-            RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ToList();
-            string transactionsAsString = string.Join(",", RecievedTransactionsSinceLastBlock.Select(x => x.ToString()));
+            var transactions = newBlock.Transactions.OrderBy(x => x.NodeID).ToList();
+            var transactionsAsString = string.Join(",", transactions.Select(x => x.ToString()));
             byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
             byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlock.BlockHash);
             byte[] previousHashAndTransactions = CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
