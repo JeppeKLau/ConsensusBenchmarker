@@ -60,9 +60,9 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override void RecieveTransaction(Transaction transaction)
         {
-            if (!RecievedTransactionsSinceLastBlock.Contains(transaction))
+            if (!RecievedTransactionsSinceLastBlock.ContainsKey((transaction.NodeID, transaction.TransactionId)))
             {
-                RecievedTransactionsSinceLastBlock.Add(transaction);
+                RecievedTransactionsSinceLastBlock.Add((transaction.NodeID, transaction.TransactionId), transaction);
                 restartMining = true;
             }
         }
@@ -88,7 +88,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 previousBlockHash = previousBlock.BlockHash;
             }
 
-            RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ToList();
             string transactionsAsString = string.Join(",", RecievedTransactionsSinceLastBlock.Select(x => x.ToString()));
             byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
             byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlockHash);
@@ -106,7 +105,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 string blockHash = HashNewBlock(previousHashAndTransactions, nonce);
                 if (HashConformsToDifficulty(blockHash))
                 {
-                    newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
+                    newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), CreateDeepCopyOfTransactions(RecievedTransactionsSinceLastBlock), blockHash, previousBlockHash, nonce);
                     AddNewBlockToChain(newBlock);
                 }
             }
@@ -121,7 +120,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return Convert.ToHexString(byteHash);
         }
 
-        private byte[] CombineByteArrays(byte[] first, byte[] second)
+        private static byte[] CombineByteArrays(byte[] first, byte[] second)
         {
             byte[] ret = new byte[first.Length + second.Length];
             Buffer.BlockCopy(first, 0, ret, 0, first.Length);
@@ -171,22 +170,18 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private bool IsNodeAwareOfNewBlocksTransactions(PoWBlock newBlock)
         {
-            bool hasSameTransactions = true;
-            foreach (Transaction transaction in newBlock.Transactions)
+            var intersection = RecievedTransactionsSinceLastBlock.Intersect(newBlock.Transactions);
+            if (intersection.Count() == newBlock.Transactions.Count) { return true; }
+            else
             {
-                if (!RecievedTransactionsSinceLastBlock.Contains(transaction))
-                {
-                    Console.WriteLine($"Node is unaware of this transaction, owner: {transaction.NodeID} and id: {transaction.TransactionId}");
-                    hasSameTransactions = false;
-                }
+                Console.WriteLine($"PoW: The new block created by node {newBlock.OwnerNodeID} does not have a matching subset of transactions.");
+                return false;
             }
-            return hasSameTransactions;
         }
 
         private bool ValidateNewBlockHash(PoWBlock previousBlock, PoWBlock newBlock)
         {
-            var transactions = newBlock.Transactions.OrderBy(x => x.NodeID).ToList();
-            var transactionsAsString = string.Join(",", transactions.Select(x => x.ToString()));
+            var transactionsAsString = string.Join(",", newBlock.Transactions.Select(x => x.ToString()));
             byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
             byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlock.BlockHash);
             byte[] previousHashAndTransactions = CombineByteArrays(previousBlockHashInBytes, encodedTransactions);

@@ -2,7 +2,7 @@
 {
     public class Block
     {
-        public Block(int ownerNodeID, DateTime blockCreatedAt, List<Transaction> transactions)
+        public Block(int ownerNodeID, DateTime blockCreatedAt, SortedList<(int, int), Transaction> transactions)
         {
             OwnerNodeID = ownerNodeID;
             BlockCreatedAt = blockCreatedAt;
@@ -11,7 +11,7 @@
 
         public int OwnerNodeID { get; set; }
         public DateTime BlockCreatedAt { get; set; }
-        public List<Transaction> Transactions { get; set; } = new List<Transaction>();
+        public SortedList<(int, int), Transaction> Transactions { get; set; } = new SortedList<(int, int), Transaction>();
 
     }
 }

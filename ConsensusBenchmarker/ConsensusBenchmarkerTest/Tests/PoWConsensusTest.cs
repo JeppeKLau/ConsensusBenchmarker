@@ -89,10 +89,10 @@ namespace ConsensusBenchmarkerTest.Tests
 
             PoWConsensus consensus = new PoWConsensus(1);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
-            List<Transaction> transactions = new List<Transaction>()
+            SortedList<(int, int), Transaction> transactions = new SortedList<(int, int), Transaction>()
             {
-                { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
-                { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
+                { (2, 1), new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
+                { (3, 1), new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions;
 
@@ -115,27 +115,27 @@ namespace ConsensusBenchmarkerTest.Tests
 
             PoWConsensus consensus = new PoWConsensus(1);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
-            
+
             // Block 1:
-            List<Transaction> transactions1 = new List<Transaction>()
+            SortedList<(int, int), Transaction> transactions1 = new SortedList<(int, int), Transaction>()
             {
-                { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
-                { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
+                { (2, 1), new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
+                { (3, 1), new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1;
             _ = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
 
             // Block 2:
-            List<Transaction> transactions2 = new List<Transaction>()
+            SortedList<(int, int), Transaction> transactions2 = new SortedList<(int, int), Transaction>()
             {
-                { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
-                { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
+                { (2, 2), new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
+                { (3, 2), new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions2;
+            consensus.RecievedTransactionsSinceLastBlock = consensus.CreateDeepCopyOfTransactions(transactions2);
             PoWBlock blocked2 = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
             consensus.Blocks.Remove(blocked2); // It is added in "MineNewBlock" when it is 'mined'.
             consensus.TotalBlocksInChain--;
-            consensus.RecievedTransactionsSinceLastBlock = transactions2; // Simulates that it recieves a 'mined block'.
+            consensus.RecievedTransactionsSinceLastBlock = consensus.CreateDeepCopyOfTransactions(transactions2); // Simulates that it has recieved new transactions before recieving block 2.
 
             // Act
             consensus.RecieveBlock(blocked2);
@@ -159,19 +159,19 @@ namespace ConsensusBenchmarkerTest.Tests
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:
-            List<Transaction> transactions1 = new List<Transaction>()
+            SortedList<(int, int), Transaction> transactions1 = new SortedList<(int, int), Transaction>()
             {
-                { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
-                { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
+                { (2, 1), new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
+                { (3, 1), new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1;
             PoWBlock blocked1 = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
 
             // Block 2:
-            List<Transaction> transactions2 = new List<Transaction>()
+            SortedList<(int, int), Transaction> transactions2 = new SortedList<(int, int), Transaction>()
             {
-                { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
-                { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
+                { (2, 2), new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
+                { (3, 2), new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions2;
             PoWBlock invalidBlock2 = new PoWBlock(42, DateTime.Now.ToLocalTime(), transactions2, "000000DJKHSDG000SOME0000HASH0QQQ", blocked1.BlockHash, 12345); // It HIGHLY unlikely that this is the correct nonce.
