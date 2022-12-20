@@ -26,7 +26,7 @@ static class Program
 
     private static void Initialize()
     {
-        ipAddress = new IPAddress(new byte[] { 192, 168, 100, 100 });
+        ipAddress = new IPAddress(new byte[] { 192, 168, 0, 119 }); // 192, 168, 100, 100
         rxEndpoint = new(ipAddress!, portNumber);
         server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
     }
@@ -54,6 +54,8 @@ static class Program
         if (message.Contains(discover) && message.Contains(eom))
         {
             string cleanMessage = message.Remove(message.IndexOf(eom), eom.Length).Remove(0, (message.IndexOf(discover) + discover.Length));
+            Console.WriteLine("Recieved message: " + cleanMessage); // TEMP
+
             await SendBackListOfKnownNodes(handler, cancellationToken);
             AddNewKnownNode(cleanMessage);
             await BroadcastNewNodeToAllPreviousNodes(cancellationToken);

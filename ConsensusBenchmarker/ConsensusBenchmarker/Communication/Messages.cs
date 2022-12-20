@@ -38,6 +38,11 @@ namespace ConsensusBenchmarker.Communication
             return false;
         }
 
+        public static string TrimUntillTag(string input)
+        {
+            return input.Remove(0, input.IndexOf("<|"));
+        }
+
         public static string RemoveOperationTypeTag(string input, OperationType operationType)
         {
             string tag = CreateTag(operationType);

@@ -26,9 +26,9 @@ namespace ConsensusBenchmarker.Communication
             ipAddress = GetLocalIPAddress();
             rxEndpoint = new(ipAddress!, sharedPortNumber);
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            knownNodes.Add(ipAddress!);
             this.eventStack = eventStack;
             this.nodeId = nodeId;
+            ExecutionFlag = true;
         }
 
         private static IPAddress GetLocalIPAddress()
@@ -54,11 +54,22 @@ namespace ConsensusBenchmarker.Communication
             await Task.WhenAll(messageTask, eventTask);
         }
 
+        private bool DataCollectionReady()
+        {
+            if (eventStack.Peek() is not DataCollectionEvent nextEvent) return false;
+            if (nextEvent.EventType == DataCollectionEventType.CollectionReady)
+            {
+                eventStack.Pop();
+                return true;
+            }
+            return false;
+        }
+
         #region HandleOutputMessages
 
         public async Task AnnounceOwnIP()
         {
-            var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 });
+            var networkManagerIP = new IPAddress(new byte[] { 192, 168, 0, 119 }); // 192, 168, 100, 100 
             string messageToSend = Messages.CreateDISMessage(ipAddress!);
             string response = await SendMessageAndWaitForAnswer(networkManagerIP, messageToSend);
 
@@ -178,36 +189,27 @@ namespace ConsensusBenchmarker.Communication
             }
         }
 
-        private bool DataCollectionReady()
-        {
-            if (eventStack.Peek() is not DataCollectionEvent nextEvent) return false;
-            if (nextEvent.EventType == DataCollectionEventType.CollectionReady)
-            {
-                return true;
-            }
-            return false;
-        }
-
         private async Task HandleMessage(string message, Socket handler, CancellationToken cancellationToken = default)
         {
             if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
             {
                 Console.WriteLine($"Complete message recieved:\n{message}");
-                string messageWithoutEOM = Messages.RemoveOperationTypeTag(message, OperationType.EOM);
-                var operationType = Messages.GetOperationTypeEnum(messageWithoutEOM);
+                string cleanMessageWithoutEOM = Messages.RemoveOperationTypeTag(Messages.TrimUntillTag(message), OperationType.EOM);
+
+                var operationType = Messages.GetOperationTypeEnum(cleanMessageWithoutEOM);
 
                 switch (operationType)
                 {
                     case OperationType.DEF:
-                        throw new ArgumentOutOfRangeException($"Operation type {operationType} was not recognized.");
+                        break;
                     case OperationType.DIS:
-                        SaveNewIPAddresses(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.DIS));
+                        SaveNewIPAddresses(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.DIS));
                         break;
                     case OperationType.TRA:
-                        RecieveTransaction(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.TRA));
+                        RecieveTransaction(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.TRA));
                         break;
                     case OperationType.BLK:
-                        ReceiveBlock(Messages.RemoveOperationTypeTag(messageWithoutEOM, OperationType.BLK));
+                        ReceiveBlock(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.BLK));
                         break;
                 }
             }
@@ -227,7 +229,7 @@ namespace ConsensusBenchmarker.Communication
             if (DiscoverMessage.Contains('.'))
             {
                 IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
-                if (!knownNodes.Contains(newIP))
+                if (!knownNodes.Contains(newIP) && !newIP.Equals(ipAddress))
                 {
                     knownNodes.Add(newIP);
                 }

@@ -11,9 +11,9 @@ class Program
 {
     static async Task Main()
     {
-        string consensus = RetrieveConsensusMechanismType();
-        int totalBlocksToCreate = RetrieveNumberOfBlocksToCreate();
-        int nodeID = RetrieveNodeName();
+        string consensus = "PoW"; // RetrieveConsensusMechanismType();
+        int totalBlocksToCreate = 100; // RetrieveNumberOfBlocksToCreate();
+        int nodeID = 1; // RetrieveNodeName();
 
         var eventStack = new Stack<IEvent>();
 
@@ -21,14 +21,14 @@ class Program
         var communicationModule = new CommunicationModule(ref eventStack, nodeID);
         var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID, ref eventStack);
         await communicationModule.AnnounceOwnIP();
-        // ask for blockchain
+        // ask for blockchain ?
 
-        var communicationTask = communicationModule.RunCommunication();
         var dataCollectionTask = dataCollectionModule.CollectData();
+        var communicationTask = communicationModule.RunCommunication();
         var consensusTask = consensusModule.RunConsensus();
 
         await Task.WhenAll(communicationTask, dataCollectionTask, consensusTask);
-
+        
         Console.WriteLine("All tasks are completed, terminating execution");
     }
 

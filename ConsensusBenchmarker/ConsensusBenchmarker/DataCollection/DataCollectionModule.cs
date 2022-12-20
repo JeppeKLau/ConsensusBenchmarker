@@ -24,6 +24,7 @@ namespace ConsensusBenchmarker.DataCollection
             currentProcess = Process.GetCurrentProcess();
             this.eventStack = eventStack;
             this.nodeID = nodeID;
+            ExecutionFlag = true;
         }
 
         public async Task CollectData()
@@ -93,7 +94,6 @@ namespace ConsensusBenchmarker.DataCollection
                 default:
                     throw new ArgumentException($"Unkown type of {nameof(DataCollectionEvent)}", nameof(nextEvent.EventType));
             }
-
             eventStack.Pop();
         }
 

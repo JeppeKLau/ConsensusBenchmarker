@@ -25,8 +25,8 @@ namespace ConsensusBenchmarker.Consensus
         public async Task RunConsensus()
         {
             eventStack.Push(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
-            var miningTask = new Task(() => HandleMiningOperation());
-            var eventTask = new Task(async () => await HandleEventStack());
+            var miningTask = HandleMiningOperation();
+            var eventTask = HandleEventStack();
 
             await Task.WhenAll(miningTask, eventTask);
         }
