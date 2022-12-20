@@ -79,7 +79,7 @@ namespace ConsensusBenchmarker.Consensus
                 Blocks.Add(newBlock);
                 TotalBlocksInChain++;
 
-                Console.WriteLine("-----Added a new block to my chain. I am Node: " + NodeID + ". Block creator is: " + newBlock.OwnerNodeID + ". Current blocks in chain: " + TotalBlocksInChain);
+                Console.WriteLine("ConsensusDriver: Added a new block to my chain. I am Node: " + NodeID + ". Block creator is: " + newBlock.OwnerNodeID + ". Current blocks in chain: " + TotalBlocksInChain);
 
                 MaintainBlockChainSize();
 
@@ -97,16 +97,25 @@ namespace ConsensusBenchmarker.Consensus
             }
         }
 
-        private void RemoveNewBlockTransactions(Models.Blocks.Block newBlock)
+        private void RemoveNewBlockTransactions(Block newBlock)
         {
             recievedTransactionsMutex.Wait();
+            List<Transaction> transactionsToBeRemoved = new();
 
-            foreach (Transaction transaction in newBlock.Transactions)
+            foreach (Transaction blockTransaction in newBlock.Transactions)
             {
-                _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
+                foreach (Transaction nodeTransaction in RecievedTransactionsSinceLastBlock)
+                {
+                    if (blockTransaction.Equals(nodeTransaction))
+                    {
+                        transactionsToBeRemoved.Add(nodeTransaction);
+                    }
+                }
             }
+            _ = RecievedTransactionsSinceLastBlock.RemoveAll(transactionsToBeRemoved.Contains);
+
             recievedTransactionsMutex.Release();
-            Console.WriteLine("Number of current transactions after adding a new block and removing its transactions: " + RecievedTransactionsSinceLastBlock.Count);
+            Console.WriteLine("ConsensusDriver: Number of current transactions after adding a new block and removing its transactions is: " + RecievedTransactionsSinceLastBlock.Count);
         }
     }
 }

@@ -266,7 +266,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Transaction could not be deserialized correctly", nameof(message));
             }
-            Console.WriteLine($"Recieved transaction from: " + recievedTransaction.NodeID + ". transaction index: " + recievedTransaction.TransactionId);
+            Console.WriteLine($"Recieved transaction from: " + recievedTransaction.NodeID + ". with transaction index: " + recievedTransaction.TransactionId);
             eventQueue.Enqueue(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction));
         }
 
