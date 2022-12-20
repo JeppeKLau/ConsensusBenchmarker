@@ -1,6 +1,7 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Events;
+using InfluxDB.Client.Api.Domain;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Net;
@@ -19,14 +20,17 @@ namespace ConsensusBenchmarker.Communication
 
         private readonly List<IPAddress> knownNodes = new();
         private readonly ConcurrentQueue<IEvent> eventQueue;
+        private readonly int nodeId;
         private bool ExecutionFlag;
+        private Mutex knownNodesMutex = new();
 
-        public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue)
+        public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
             ipAddress = GetLocalIPAddress();
             rxEndpoint = new(ipAddress!, sharedPortNumber);
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             this.eventQueue = eventQueue;
+            this.nodeId = nodeId;
             ExecutionFlag = true;
         }
 
@@ -116,10 +120,11 @@ namespace ConsensusBenchmarker.Communication
                     ExecutionFlag = false;
                     break;
                 case CommunicationEventType.SendTransaction:
+                    eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncTransaction, nextEvent.Data));
                     await BroadcastTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case CommunicationEventType.SendBlock:
-                    await BroadcastBlock(nextEvent.Data as Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
+                    await BroadcastBlock(nextEvent.Data as Models.Blocks.Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -133,7 +138,7 @@ namespace ConsensusBenchmarker.Communication
             await BroadcastMessageAndDontWaitForAnswer(messageToSend);
         }
 
-        private async Task BroadcastBlock(Block block)
+        private async Task BroadcastBlock(Models.Blocks.Block block)
         {
             string messageToSend = Messages.CreateBLOMessage(block);
             await BroadcastMessageAndDontWaitForAnswer(messageToSend);
@@ -141,10 +146,12 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
         {
+            while (knownNodesMutex.WaitOne()) ;
             foreach (var otherNode in knownNodes)
             {
                 await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
             }
+            knownNodesMutex.ReleaseMutex();
         }
 
         /// <summary>
@@ -217,6 +224,7 @@ namespace ConsensusBenchmarker.Communication
                 string cleanMessageWithoutEOM = Messages.RemoveOperationTypeTag(Messages.TrimUntillTag(message), OperationType.EOM);
                 Console.WriteLine($"Message recieved.");
 
+                eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncMessage, message));
                 var operationType = Messages.GetOperationTypeEnum(cleanMessageWithoutEOM);
 
                 switch (operationType)
@@ -252,7 +260,9 @@ namespace ConsensusBenchmarker.Communication
                 IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
                 if (!knownNodes.Contains(newIP) && !newIP.Equals(ipAddress))
                 {
+                    while (knownNodesMutex.WaitOne()) ;
                     knownNodes.Add(newIP);
+                    knownNodesMutex.ReleaseMutex();
                 }
             }
         }

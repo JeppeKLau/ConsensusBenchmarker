@@ -62,6 +62,7 @@ namespace ConsensusBenchmarker.Consensus
                 Console.WriteLine("Mined new block successfully. It took: " + stopWatch.Elapsed.Seconds + " seconds."); // TEMP
                 eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
                 eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
+                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
             }
         }
 

@@ -9,7 +9,10 @@ namespace ConsensusBenchmarker.Consensus
         public int CreatedTransactionsByThisNode { get; set; } = 0;
         public int TotalBlocksInChain { get; set; } = 0;
         public List<Transaction> RecievedTransactionsSinceLastBlock { get; set; } = new List<Transaction>();
-        public List<Block> Blocks { get; set; } = new List<Block>();
+        public List<Models.Blocks.Block> Blocks { get; set; } = new List<Models.Blocks.Block>();
+
+        private readonly Mutex recievedTransactionsMutex = new();
+        private readonly Mutex blocksMutex = new();
 
         private readonly int maxBlocksInChainAtOnce = 10;
 
@@ -18,7 +21,7 @@ namespace ConsensusBenchmarker.Consensus
         /// </summary>
         /// <param name="serializedBlock"></param>
         /// <returns><see cref="bool"/></returns>
-        public virtual bool RecieveBlock(Block block)
+        public virtual bool RecieveBlock(Models.Blocks.Block block)
         {
             throw new NotImplementedException();
         }
@@ -65,12 +68,17 @@ namespace ConsensusBenchmarker.Consensus
         /// Adds a new block to the chain as well as cleaning up the global chain and transactions.
         /// </summary>
         /// <param name="newBlock"></param>
-        protected void AddNewBlockToChain(Block newBlock)
+        protected void AddNewBlockToChain(Models.Blocks.Block newBlock)
         {
             if (!Blocks.Contains(newBlock))
             {
+                while (blocksMutex.WaitOne()) ;
+
                 Blocks.Add(newBlock);
                 MaintainBlockChainSize();
+
+                blocksMutex.ReleaseMutex();
+
                 RemoveNewBlockTransactions(newBlock);
             }
         }
@@ -83,12 +91,14 @@ namespace ConsensusBenchmarker.Consensus
             }
         }
 
-        private void RemoveNewBlockTransactions(Block newBlock)
+        private void RemoveNewBlockTransactions(Models.Blocks.Block newBlock)
         {
+            while (recievedTransactionsMutex.WaitOne()) ;
             foreach (Transaction transaction in newBlock.Transactions)
             {
                 _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
             }
+            recievedTransactionsMutex.ReleaseMutex();
         }
     }
 }

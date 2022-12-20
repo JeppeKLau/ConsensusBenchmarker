@@ -31,7 +31,7 @@ class Program
         var eventQueue = new ConcurrentQueue<IEvent>();
 
         var dataCollectionModule = new DataCollectionModule(ref eventQueue, nodeID, influxDBService, ref executionFlag);
-        var communicationModule = new CommunicationModule(ref eventQueue);
+        var communicationModule = new CommunicationModule(ref eventQueue, nodeID);
         var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID, ref eventQueue);
         await communicationModule.AnnounceOwnIP();
         // ask for blockchain ?

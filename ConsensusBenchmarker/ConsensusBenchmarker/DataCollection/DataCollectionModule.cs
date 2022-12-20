@@ -114,10 +114,10 @@ namespace ConsensusBenchmarker.DataCollection
                 case DataCollectionEventType.End:
                     executionFlag = false;
                     break;
-                case DataCollectionEventType.BeginBlock:
+                case DataCollectionEventType.IncBlock:
                     blockCount++;
                     break;
-                case DataCollectionEventType.BeginTransaction:
+                case DataCollectionEventType.IncTransaction:
                     transactionCount++;
                     break;
                 case DataCollectionEventType.IncMessage:
