@@ -145,14 +145,13 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
         {
-            if (knownNodesMutex.WaitOne())
+            while (!knownNodesMutex.WaitOne()) ;
+
+            foreach (var otherNode in knownNodes)
             {
-                foreach (var otherNode in knownNodes)
-                {
-                    await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
-                }
-                knownNodesMutex.ReleaseMutex();
+                await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
             }
+            knownNodesMutex.ReleaseMutex();
         }
 
         /// <summary>
@@ -264,11 +263,9 @@ namespace ConsensusBenchmarker.Communication
                 IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
                 if (!knownNodes.Contains(newIP) && !newIP.Equals(ipAddress))
                 {
-                    if (knownNodesMutex.WaitOne())
-                    {
-                        knownNodes.Add(newIP);
-                        knownNodesMutex.ReleaseMutex();
-                    }
+                    var knownNodesMutexAcquired = knownNodesMutex.WaitOne();
+                    knownNodes.Add(newIP);
+                    if (knownNodesMutexAcquired) knownNodesMutex.ReleaseMutex();
                 }
             }
         }
