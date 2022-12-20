@@ -107,24 +107,28 @@ static class Program
 
     private static async Task BroadcastNewNodeToAllPreviousNodes(CancellationToken cancellationToken = default)
     {
+        Console.WriteLine("Begins broadcasting new node to previous known nodes."); // TEMP
+
         var nodesPendingRemoval = new List<IPAddress>();
         IPAddress newNode = knownNodes.Last();
         foreach (IPAddress address in knownNodes)
         {
-            if (address != newNode)
+            if (!address.Equals(newNode))
             {
                 try
                 {
                     var echoBytes = Encoding.UTF8.GetBytes(discover + "IP:" + newNode.ToString() + eom);
                     var nodeEndpoint = new IPEndPoint(address, portNumber);
                     var nodeSocket = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    Console.WriteLine($"Connecting to {address}");
                     await nodeSocket.ConnectAsync(nodeEndpoint);
                     _ = await nodeSocket.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
                     nodeSocket.Shutdown(SocketShutdown.Both);
+                    Console.WriteLine("Shutting down socket");
                 }
                 catch (SocketException ex)
                 {
-                    Console.WriteLine("Socket had an exception, node has likely crashed. Removing address from list.");
+                    Console.WriteLine($"Socket had an exception, node has likely crashed. Removing {address} from list.");
                     Console.WriteLine(ex);
                     nodesPendingRemoval.Add(address);
                 }

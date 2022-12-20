@@ -161,7 +161,7 @@ namespace ConsensusBenchmarker.Communication
         /// <returns></returns>
         private async Task<string> SendMessageAndWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine($"Sending message: {message} to {receiver}\n\n");
+            Console.WriteLine($"Sending message: {message} to {receiver}\n");
             var networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             byte[] responseBuffer = new byte[receivableByteSize];
