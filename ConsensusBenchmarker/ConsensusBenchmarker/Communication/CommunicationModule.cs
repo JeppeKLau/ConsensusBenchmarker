@@ -145,7 +145,7 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
         {
-            while (knownNodesMutex.WaitOne()) ;
+            while (!knownNodesMutex.WaitOne()) ;
             foreach (var otherNode in knownNodes)
             {
                 await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
@@ -262,7 +262,7 @@ namespace ConsensusBenchmarker.Communication
                 IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
                 if (!knownNodes.Contains(newIP) && !newIP.Equals(ipAddress))
                 {
-                    while (!knownNodesMutex.WaitOne()) { Console.WriteLine($"Wait for {nameof(knownNodesMutex)}"); }
+                    knownNodesMutex.WaitOne();
                     knownNodes.Add(newIP);
                     knownNodesMutex.ReleaseMutex();
                 }

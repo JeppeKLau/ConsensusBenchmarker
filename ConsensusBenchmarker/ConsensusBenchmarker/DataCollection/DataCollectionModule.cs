@@ -17,7 +17,6 @@ namespace ConsensusBenchmarker.DataCollection
         private readonly int nodeID;
         private readonly InfluxDBService influxDBService;
         private bool mainExecutionFlag;
-        private readonly Mutex mutex = new();
 
         private Thread? memThread;
         private bool executionFlag;

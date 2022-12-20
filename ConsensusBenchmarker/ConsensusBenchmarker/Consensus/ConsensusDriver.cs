@@ -72,7 +72,7 @@ namespace ConsensusBenchmarker.Consensus
         {
             if (!Blocks.Contains(newBlock))
             {
-                while (blocksMutex.WaitOne()) ;
+                blocksMutex.WaitOne();
 
                 Blocks.Add(newBlock);
                 MaintainBlockChainSize();
@@ -93,7 +93,7 @@ namespace ConsensusBenchmarker.Consensus
 
         private void RemoveNewBlockTransactions(Models.Blocks.Block newBlock)
         {
-            while (recievedTransactionsMutex.WaitOne()) ;
+            recievedTransactionsMutex.WaitOne();
             foreach (Transaction transaction in newBlock.Transactions)
             {
                 _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
