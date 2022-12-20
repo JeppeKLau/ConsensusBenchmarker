@@ -88,7 +88,7 @@ namespace ConsensusBenchmarker.DataCollection
             Console.WriteLine(measurement + "\n\n");
             influxDBService.Write(write =>
             {
-                write.WriteMeasurement(measurement, WritePrecision.Ns, "primary");
+                write.WriteMeasurement(measurement, WritePrecision.Ns, "primary", "MasterThesis");
             });
         }
 
