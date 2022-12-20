@@ -22,7 +22,7 @@ class Program
 
         IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
-        JsonConvert.DefaultSettings = () => new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+        JsonConvert.DefaultSettings = () => new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
 
         var moduleThreads = new List<Thread>();
         string consensus = RetrieveConsensusMechanismType();
