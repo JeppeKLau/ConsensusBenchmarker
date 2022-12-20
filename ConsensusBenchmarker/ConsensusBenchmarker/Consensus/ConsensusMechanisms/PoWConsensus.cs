@@ -1,6 +1,7 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -8,10 +9,9 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-
         private readonly uint DifficultyLeadingZeroes = 6;
-        private bool allowMining = true;
-        private bool restartMining = false;
+        private bool allowMining;
+        private bool restartMining;
         private readonly Random random;
         private readonly SHA256 sha256;
 
@@ -20,6 +20,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
             NodeID = nodeID;
             sha256 = SHA256.Create();
             random = new Random(NodeID * new Random().Next());
+            allowMining = true;
+            restartMining = false;
         }
 
         public override bool RecieveBlock(Block block)
@@ -61,15 +63,15 @@ namespace ConsensusBenchmarker.Consensus.PoW
             }
         }
 
-        public override PoWBlock GenerateNextBlock()
+        public override PoWBlock GenerateNextBlock(ref Stopwatch Stopwatch)
         {
             while (!allowMining && RecievedTransactionsSinceLastBlock.Count == 0) ;
-            return MineNewBlock() ?? GenerateNextBlock();
+            return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
         }
 
         #region MineNewBlock
 
-        private PoWBlock? MineNewBlock()
+        private PoWBlock? MineNewBlock(ref Stopwatch stopwatch)
         {
             PoWBlock? previousBlock = GetLastValidBlock();
             string previousBlockHash = "";
@@ -88,9 +90,13 @@ namespace ConsensusBenchmarker.Consensus.PoW
             byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlockHash);
             byte[] previousHashAndTransactions = CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
 
-            while (allowMining && newBlock == null)
+            while (newBlock == null)
             {
-                if (restartMining) return null;
+                if (restartMining || allowMining == false)
+                {
+                    stopwatch.Restart();
+                    return null;
+                }
 
                 nonce = random.Next(0, int.MaxValue);
                 string blockHash = HashNewBlock(previousHashAndTransactions, nonce);
@@ -111,7 +117,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return Convert.ToHexString(byteHash);
         }
 
-        private static byte[] CombineByteArrays(byte[] first, byte[] second)
+        private byte[] CombineByteArrays(byte[] first, byte[] second)
         {
             byte[] ret = new byte[first.Length + second.Length];
             Buffer.BlockCopy(first, 0, ret, 0, first.Length);

@@ -32,12 +32,12 @@ namespace ConsensusBenchmarker.Consensus
             var consensusThreads = new List<Thread>
             {
                 new Thread(() =>
-            {
-                while (executionFlag)
                 {
-                    HandleEventQueue();
-                }
-            })
+                    while (executionFlag)
+                    {
+                        HandleEventQueue();
+                    }
+                })
             };
 
             if (consensusType == "PoW") // Could probably be prettier
@@ -53,13 +53,14 @@ namespace ConsensusBenchmarker.Consensus
         {
             while (executionFlag)
             {
-                var stopWatch = new Stopwatch(); // TEMP
-                stopWatch.Start(); // TEMP
+                var stopWatch = new Stopwatch(); 
+                stopWatch.Start();
 
-                Block block = consensusMechanism.GenerateNextBlock();
+                Block block = consensusMechanism.GenerateNextBlock(ref stopWatch);
 
-                stopWatch.Stop(); // TEMP
+                stopWatch.Stop();
                 Console.WriteLine("Mined new block successfully. It took: " + stopWatch.Elapsed.Seconds + " seconds."); // TEMP
+                
                 eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
                 eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
                 eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
@@ -83,7 +84,7 @@ namespace ConsensusBenchmarker.Consensus
 
         private void HandleEventQueue()
         {
-            if (consensusMechanism.Blocks.Count > totalBlocksToCreate)
+            if (consensusMechanism.TotalBlocksInChain > totalBlocksToCreate)
             {
                 eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.End));
                 eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.End, null));
@@ -93,7 +94,7 @@ namespace ConsensusBenchmarker.Consensus
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not ConsensusEvent nextEvent) return;
 
-            Console.WriteLine($"Handling data collection event - type: {nextEvent.EventType}");
+            Console.WriteLine($"Handling consensus event - type: {nextEvent.EventType}");
 
             switch (nextEvent.EventType)
             {

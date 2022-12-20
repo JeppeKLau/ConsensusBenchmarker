@@ -88,7 +88,7 @@ namespace ConsensusBenchmarker.Communication
         {
             var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 }); // 192, 168, 100, 100 
             string messageToSend = Messages.CreateDISMessage(ipAddress!);
-            Console.WriteLine("Announcing self to network manager");
+            Console.WriteLine("Announcing self to network manager.");
             string response = await SendMessageAndWaitForAnswer(networkManagerIP, messageToSend);
 
             if (Messages.DoesMessageContainOperationTag(response, OperationType.ACK))
@@ -133,12 +133,14 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task BroadcastTransaction(Transaction transaction)
         {
+            Console.WriteLine("Broadcasts new transaction to this many known nodes:" + knownNodes.Count);
             string messageToSend = Messages.CreateTRAMessage(transaction);
             await BroadcastMessageAndDontWaitForAnswer(messageToSend);
         }
 
         private async Task BroadcastBlock(Models.Blocks.Block block)
         {
+            Console.WriteLine("Broadcasts new block to this many known nodes:" + knownNodes.Count);
             string messageToSend = Messages.CreateBLOMessage(block);
             await BroadcastMessageAndDontWaitForAnswer(messageToSend);
         }
@@ -146,12 +148,10 @@ namespace ConsensusBenchmarker.Communication
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
         {
             knownNodesMutex.Wait();
-
             foreach (var otherNode in knownNodes)
             {
                 await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
             }
-
             knownNodesMutex.Release();
         }
 
@@ -161,7 +161,7 @@ namespace ConsensusBenchmarker.Communication
         /// <param name="receiver"></param>
         /// <param name="message"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
+        /// <returns><see cref="string"/></returns>
         private async Task<string> SendMessageAndWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
             Console.WriteLine($"Sending message: {message} to {receiver}\n");
@@ -185,13 +185,11 @@ namespace ConsensusBenchmarker.Communication
         /// <param name="receiver"></param>
         /// <param name="message"></param>
         /// <param name="cancellationToken"></param>
-        /// <returns></returns>
+        /// <returns><see cref="Task"/></returns>
         private async Task SendMessageAndDontWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine($"Sending message: {message} to {receiver}\n\n");
             var nodeEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
-
             var nodeManager = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             await nodeManager.ConnectAsync(nodeEndpoint, cancellationToken);
             _ = await nodeManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
@@ -224,10 +222,9 @@ namespace ConsensusBenchmarker.Communication
             if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
             {
                 string cleanMessageWithoutEOM = Messages.RemoveOperationTypeTag(Messages.TrimUntillTag(message), OperationType.EOM);
-                Console.WriteLine($"Message recieved.");
-
-                eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncMessage, message));
                 var operationType = Messages.GetOperationTypeEnum(cleanMessageWithoutEOM);
+
+                eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncMessage, cleanMessageWithoutEOM));
 
                 switch (operationType)
                 {
@@ -254,7 +251,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 AddNewNode(ipAddress);
             }
-            Console.WriteLine("I (" + nodeId + ") know this many other nodes: " + knownNodes.Count);
+            Console.WriteLine("I (" + nodeId + ") currently know this many nodes: " + knownNodes.Count);
         }
 
         private void AddNewNode(string DiscoverMessage)
@@ -277,7 +274,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Transaction could not be deserialized correctly", nameof(message));
             }
-            Console.WriteLine($"Recieved transaction message: " + message);
+            Console.WriteLine($"Recieved transaction from: " + recievedTransaction.NodeID + ". transaction index: " + recievedTransaction.TransactionId);
             eventQueue.Enqueue(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction));
         }
 
@@ -288,7 +285,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
-            Console.WriteLine($"Recieved block message: " + message);
+            Console.WriteLine($"Recieved block from: " + recievedBlock.OwnerNodeID );
             eventQueue.Enqueue(new ConsensusEvent(recievedBlock, ConsensusEventType.RecieveBlock));
         }
 

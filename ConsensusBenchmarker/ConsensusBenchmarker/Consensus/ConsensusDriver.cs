@@ -1,5 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
+using System.Diagnostics;
 
 namespace ConsensusBenchmarker.Consensus
 {
@@ -48,7 +49,7 @@ namespace ConsensusBenchmarker.Consensus
         /// Generates and returns a new valid block.
         /// </summary>
         /// <returns><see cref="Block"/></returns>
-        public virtual Block GenerateNextBlock()
+        public virtual Block GenerateNextBlock(ref Stopwatch Stopwatch)
         {
             throw new NotImplementedException();
         }
@@ -75,6 +76,10 @@ namespace ConsensusBenchmarker.Consensus
                 blocksMutex.Wait();
 
                 Blocks.Add(newBlock);
+                TotalBlocksInChain++;
+
+                Console.WriteLine("Added a new block to my chain. Block creator is:" + newBlock.OwnerNodeID + ". Current blocks in chain: " + TotalBlocksInChain);
+
                 MaintainBlockChainSize();
 
                 blocksMutex.Release();
@@ -100,7 +105,7 @@ namespace ConsensusBenchmarker.Consensus
                 _ = RecievedTransactionsSinceLastBlock.Remove(transaction);
             }
             recievedTransactionsMutex.Release();
-
+            Console.WriteLine("Number of current transactions after adding a new block and removing its transactions: " + RecievedTransactionsSinceLastBlock.Count);
         }
     }
 }
