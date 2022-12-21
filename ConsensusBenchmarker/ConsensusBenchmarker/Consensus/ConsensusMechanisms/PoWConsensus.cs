@@ -189,7 +189,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             consoleSemaphore.Wait();
             Console.WriteLine("newBlock previous hash and transactions:");
             Console.WriteLine(newBlock.PreviousBlockHash);
-            Console.WriteLine(newBlock.Transactions.Select(x => x.ToString()));
+            newBlock.Transactions.ForEach(Console.WriteLine);
             Console.WriteLine();
 
             Console.WriteLine("Validate: Block hash inputs:");
