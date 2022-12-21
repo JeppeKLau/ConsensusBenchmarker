@@ -33,6 +33,30 @@ namespace ConsensusBenchmarkerTest.Tests
         }
 
         [TestMethod]
+        public void HashNewBlock_UseTwoDifferentInstances()
+        {
+            // Arrange
+            var consensus1 = new PoWConsensus(1);
+            var consensus2 = new PoWConsensus(2);
+            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
+            string previousBlockHash = "ABC";
+            string transactions = "5;1;2022-01-01:00:00:00,6;1;2022-01-01:00:00:00"; // Two transactions
+            byte[] previousHashAndTransactions = Encoding.UTF8.GetBytes(previousBlockHash + transactions);
+            int nonce = 0;
+            object[] parameters = { previousHashAndTransactions, nonce };
+
+            // Act
+            var (result1, _) = ((byte[], byte[]))methodInfo!.Invoke(consensus1, parameters)!;
+            string stringres1 = Convert.ToHexString(result1);
+
+            var (result2, _) = ((byte[], byte[]))methodInfo!.Invoke(consensus2, parameters)!;
+            string stringres2 = Convert.ToHexString(result2);
+
+            // Assert
+            Assert.AreEqual(stringres1, stringres2);
+        }
+
+        [TestMethod]
         public void HashConformsToDifficulty_ReturnsTrue()
         {
             // Arrange
