@@ -94,7 +94,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
                 nonce = random.NextInt64(0, int.MaxValue);
                 var (blockByteArray, wholeBlock) = HashNewBlock(previousHashAndTransactions, nonce);
-                string blockHash = Convert.ToBase64String(blockByteArray);
+                string blockHash = Convert.ToHexString(blockByteArray);
                 if (HashConformsToDifficulty(blockHash))
                 {
                     newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
@@ -131,7 +131,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             byte[] encodedNonce = Encoding.UTF8.GetBytes(nonce.ToString());
             byte[] wholeBlock = CombineByteArrays(previousHashAndTransactions, encodedNonce);
             byte[] byteHash = sha256.ComputeHash(wholeBlock);
-            return (byteHash, wholeBlock); // Convert.ToHexString(byteHash);
+            return (byteHash, wholeBlock); //{ byteHash, wholeBlock }; // Convert.ToHexString(byteHash);
         }
 
         private static byte[] CombineByteArrays(byte[] first, byte[] second)
@@ -198,7 +198,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
 
             var (blockByteArray, wholeBlock) = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
-            string newBlocksHash = Convert.ToBase64String(blockByteArray);
+            string newBlocksHash = Convert.ToHexString(blockByteArray);
             consoleSemaphore.Wait();
             Console.WriteLine("Validate({0}): Block hash inputs:", DateTime.Now);
             Console.WriteLine(string.Join(',', previousHashAndTransactions));

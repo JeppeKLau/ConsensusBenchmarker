@@ -25,10 +25,11 @@ namespace ConsensusBenchmarkerTest.Tests
             object[] parameters = { previousHashAndTransactions, nonce };
 
             // Act
-            string result = (string)methodInfo!.Invoke(consensus, parameters)!;
+            var (result, _) = ((byte[], byte[]))methodInfo!.Invoke(consensus, parameters)!;
+            string stringres = Convert.ToHexString(result);
 
             // Assert
-            Assert.AreEqual(((256 / 8) * 2), result.Length);
+            Assert.AreEqual(((256 / 8) * 2), stringres.Length);
         }
 
         [TestMethod]
