@@ -197,6 +197,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 return true;
             }
             Console.WriteLine($"PoW: The recieved block from node {newBlock.OwnerNodeID} should be valid, but its hash does not conform to the difficulty.");
+
+            Console.WriteLine($"PoW: newBlocksHash !!:  {newBlocksHash}");
+            Console.WriteLine($"PoW: New blocks's hash: {newBlock.BlockHash}");
+
             return false;
         }
 
