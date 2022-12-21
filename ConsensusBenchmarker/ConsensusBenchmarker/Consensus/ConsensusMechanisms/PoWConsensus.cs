@@ -98,10 +98,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 {
                     newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
                     AddNewBlockToChain(newBlock);
-                    Console.WriteLine("Mine: Block hash inputs:");
-                    previousHashAndTransactions.ToList().ForEach(x => Console.Write(x + ","));
-                    Console.WriteLine();
-                    Console.WriteLine(nonce);
                 }
             }
             return newBlock;
