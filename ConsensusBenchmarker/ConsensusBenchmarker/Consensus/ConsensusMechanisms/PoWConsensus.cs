@@ -106,6 +106,9 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     AddNewBlockToChain(newBlock);
                     Console.WriteLine("Added new block with hash:");
                     Console.WriteLine(newBlock.BlockHash);
+                    Console.WriteLine("Block hash inputs:");
+                    Console.WriteLine(previousHashAndTransactions);
+                    Console.WriteLine(nonce);
                 }
             }
             return newBlock;
@@ -122,9 +125,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private string HashNewBlock(byte[] previousHashAndTransactions, long nonce)
         {
             // this is broke
-            Console.WriteLine("Block hash inputs:");
-            Console.WriteLine(previousHashAndTransactions);
-            Console.WriteLine(nonce);
             byte[] encodedNonce = Encoding.UTF8.GetBytes(nonce.ToString());
             byte[] wholeBlock = CombineByteArrays(previousHashAndTransactions, encodedNonce);
             byte[] byteHash = sha256.ComputeHash(wholeBlock);
@@ -210,6 +210,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             Console.WriteLine($"PoW: newBlocksHash !!:  {newBlocksHash}");
             Console.WriteLine($"PoW: New blocks's hash: {newBlock.BlockHash}");
+
+            Console.WriteLine("Block hash inputs:");
+            Console.WriteLine(previousHashAndTransactions);
+            Console.WriteLine(newBlock.Nonce);
 
             return false;
         }
