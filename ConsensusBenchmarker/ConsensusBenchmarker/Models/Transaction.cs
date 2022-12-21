@@ -1,10 +1,6 @@
-﻿using System;
-
-namespace ConsensusBenchmarker.Models
+﻿namespace ConsensusBenchmarker.Models
 {
-    public interface ICloneable<T> { }
-
-    public class Transaction : ICloneable<Transaction>
+    public class Transaction
     {
         public Transaction(int nodeID, int transactionId, DateTime createdAt)
         {
@@ -21,17 +17,8 @@ namespace ConsensusBenchmarker.Models
         {
             return obj is Transaction transaction &&
                    NodeID == transaction.NodeID &&
-                   TransactionId == transaction.TransactionId;
-        }
-
-        public override int GetHashCode()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Transaction Clone()
-        {
-            return new Transaction(NodeID, TransactionId, CreatedAt);
+                   TransactionId == transaction.TransactionId &&
+                   CreatedAt.Equals(transaction.CreatedAt);
         }
     }
 }
