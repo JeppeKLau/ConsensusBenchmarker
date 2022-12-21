@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 7;
+        private readonly uint DifficultyLeadingZeroes = 6;
         private bool allowMining;
         private bool restartMining;
         private readonly Random random;
@@ -164,7 +164,9 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 {
                     return true;
                 }
+                Console.WriteLine("%%%%%%%%%%\nBlock hash not valid\n%%%%%%%%%%");
             }
+            if (!previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash)) Console.WriteLine("%%%%%%%%%%\nPrevious block has different hash\n%%%%%%%%%%");
             return false;
         }
 
@@ -175,6 +177,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             if (intersection.Count() == newBlock.Transactions.Count) { return true; }
             else
             {
+                Console.WriteLine("%%%%%%%%%%\nNode unaware\n%%%%%%%%%%");
                 return false;
             }
         }
