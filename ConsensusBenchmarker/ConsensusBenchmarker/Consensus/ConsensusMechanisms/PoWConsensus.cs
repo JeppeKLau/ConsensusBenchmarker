@@ -100,7 +100,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 }
             }
             consoleSemaphore.Wait();
-            Console.WriteLine("New block mined, hash input:");
+            Console.WriteLine("New block mined ({0}), hash input:", DateTime.Now);
             Console.WriteLine(string.Join(',', previousHashAndTransactions));
             Console.WriteLine(newBlock.Nonce);
             Console.WriteLine();
@@ -191,7 +191,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
             consoleSemaphore.Wait();
-            Console.WriteLine("Validate: Block hash inputs:");
+            Console.WriteLine("Validate({0}): Block hash inputs:", DateTime.Now);
             Console.WriteLine(string.Join(',', previousHashAndTransactions));
             Console.WriteLine(newBlock.Nonce);
             Console.WriteLine();
