@@ -73,7 +73,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override PoWBlock GenerateNextBlock(ref Stopwatch Stopwatch)
         {
-            while (!allowMining && RecievedTransactionsSinceLastBlock.Count == 0) ;
+            while (!allowMining && RecievedTransactionsSinceLastBlock.Count == 0) { Console.WriteLine("Short circuited mining using allowMining"); }
+
             return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
         }
 
@@ -93,7 +94,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 if (restartMining || allowMining == false)
                 {
-                    Console.WriteLine($"PoW: node {NodeID} was interrupted in its mining.");
+                    Console.WriteLine($"PoW: node {NodeID} was interrupted in its mining due to {0}.", restartMining ? nameof(restartMining) : nameof(allowMining));
                     stopwatch.Restart();
                     return null;
                 }
