@@ -73,7 +73,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override PoWBlock GenerateNextBlock(ref Stopwatch Stopwatch)
         {
-            while (allowMining == false || RecievedTransactionsSinceLastBlock.Count == 0) { Console.WriteLine("Short circuited mining using allowMining"); }
+            while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0) ;
 
             return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
         }
