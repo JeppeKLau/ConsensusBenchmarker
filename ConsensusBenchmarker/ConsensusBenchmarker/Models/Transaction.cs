@@ -26,5 +26,12 @@
         {
             return Equals(obj as Transaction);
         }
+
+        public override string ToString()
+        {
+            return nameof(NodeID) + " : " + NodeID.ToString() + "\n" +
+                nameof(TransactionId) + " : " + TransactionId.ToString() + "\n" +
+                nameof(CreatedAt) + " : " + CreatedAt.ToString();
+        }
     }
 }
