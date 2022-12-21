@@ -113,7 +113,6 @@ namespace ConsensusBenchmarker.Consensus
 
             List<Transaction> transactionsToBeRemoved = new();
             transactionsToBeRemoved.AddRange(RecievedTransactionsSinceLastBlock.Intersect(newBlock.Transactions));
-            _ = RecievedTransactionsSinceLastBlock.RemoveAll(transactionsToBeRemoved.Contains);
 
             Console.WriteLine("New block transactions:");
             newBlock.Transactions.ForEach(t => Console.Write($"({t.NodeID}, {t.TransactionId}) "));
@@ -126,6 +125,8 @@ namespace ConsensusBenchmarker.Consensus
             Console.WriteLine("Transaction to be removed:");
             transactionsToBeRemoved.ForEach(t => Console.Write($"({t.NodeID}, {t.TransactionId}) "));
             Console.WriteLine();
+
+            _ = RecievedTransactionsSinceLastBlock.RemoveAll(transactionsToBeRemoved.Contains);
 
             Console.WriteLine("CD: Number of current transactions after adding a new block and removing its transactions is: " + RecievedTransactionsSinceLastBlock.Count);
 

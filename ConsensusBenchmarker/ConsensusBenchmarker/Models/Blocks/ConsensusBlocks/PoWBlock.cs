@@ -2,7 +2,7 @@
 {
     public class PoWBlock : Block
     {
-        public PoWBlock(int ownerNodeID, DateTime blockCreatedAt, List<Transaction> transactions, string blockHash, string previousBlockHash, int nonce) 
+        public PoWBlock(int ownerNodeID, DateTime blockCreatedAt, List<Transaction> transactions, string blockHash, string previousBlockHash, long nonce)
             : base(ownerNodeID, blockCreatedAt, transactions)
         {
             BlockHash = blockHash;
@@ -12,7 +12,7 @@
 
         public string BlockHash { get; set; }
         public string PreviousBlockHash { get; set; }
-        public int Nonce { get; set; } = 0;
+        public long Nonce { get; set; } = 0;
 
     }
 }

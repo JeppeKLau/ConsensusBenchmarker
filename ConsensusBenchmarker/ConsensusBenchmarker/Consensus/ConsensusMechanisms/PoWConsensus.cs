@@ -82,30 +82,23 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private PoWBlock? MineNewBlock(ref Stopwatch stopwatch)
         {
             PoWBlock? previousBlock = GetLastValidBlock();
-            string previousBlockHash = "";
+            string previousBlockHash = previousBlock?.BlockHash ?? string.Empty;
             PoWBlock? newBlock = null;
-            int nonce;
+            long nonce;
             restartMining = false;
 
-            if (previousBlock != null)
-            {
-                previousBlockHash = previousBlock.BlockHash;
-            }
-
-            string transactionsAsString = string.Join(",", RecievedTransactionsSinceLastBlock.Select(x => x.ToString()));
-            byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
-            byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlockHash);
-            byte[] previousHashAndTransactions = CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
+            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(previousBlockHash, RecievedTransactionsSinceLastBlock);
 
             while (newBlock == null)
             {
                 if (restartMining || allowMining == false)
                 {
+                    Console.WriteLine($"PoW: node {NodeID} was interrupted in its mining.");
                     stopwatch.Restart();
                     return null;
                 }
 
-                nonce = random.Next(0, int.MaxValue);
+                nonce = random.NextInt64(0, int.MaxValue);
                 string blockHash = HashNewBlock(previousHashAndTransactions, nonce);
                 if (HashConformsToDifficulty(blockHash))
                 {
@@ -116,7 +109,15 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return newBlock;
         }
 
-        private string HashNewBlock(byte[] previousHashAndTransactions, int nonce)
+        private static byte[] GetPreviousHashAndTransactionByteArray(string previousBlockHash, List<Transaction> transactions)
+        {
+            var transactionsAsString = string.Join(",", transactions.Select(x => x.ToString()));
+            byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
+            byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlockHash);
+            return CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
+        }
+
+        private string HashNewBlock(byte[] previousHashAndTransactions, long nonce)
         {
             byte[] encodedNonce = Encoding.UTF8.GetBytes(nonce.ToString());
             byte[] wholeBlock = CombineByteArrays(previousHashAndTransactions, encodedNonce);
@@ -159,8 +160,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
 
-            Console.WriteLine($"PoW: Previous: {previousBlock.BlockHash}");
-            Console.WriteLine($"PoW: New:      {newBlock.PreviousBlockHash}");
+            Console.WriteLine($"PoW: Previous:       {previousBlock.BlockHash}");
+            Console.WriteLine($"PoW: New's previous: {newBlock.PreviousBlockHash}");
 
             if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
             {
@@ -186,13 +187,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private bool ValidateNewBlockHash(PoWBlock newBlock)
         {
-            var transactionsAsString = string.Join(",", newBlock.Transactions.Select(x => x.ToString()));
-            byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
-            byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(newBlock.PreviousBlockHash);
-            byte[] previousHashAndTransactions = CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
+            var sortedTransactions = newBlock.Transactions.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList(); // TEMP
+            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, sortedTransactions);
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
-            if (HashConformsToDifficulty(newBlocksHash))
+            if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
             {
                 return true;
             }

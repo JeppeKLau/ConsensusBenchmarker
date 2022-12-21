@@ -1,6 +1,8 @@
 using ConsensusBenchmarker.Consensus.PoW;
 using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
+using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -225,6 +227,59 @@ namespace ConsensusBenchmarkerTest.Tests
             Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
             Assert.AreEqual(2, consensus.Blocks.Count);
             Assert.AreEqual(1, consensus.RecievedTransactionsSinceLastBlock.Count);
+        }
+
+        [TestMethod]
+        public void RecieveBlock_AreTwoBlockHashesEqual()
+        {
+            // Arrange
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            ref var stopWatchRef = ref stopWatch;
+            object[] parameters = { stopWatchRef };
+
+            var consensus = new PoWConsensus(1);
+            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
+
+            // Block 1:
+            var transactions1 = new List<Transaction>()
+            {
+                { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
+            };
+            consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
+            PoWBlock block1 = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
+
+            // Block 2:
+            var transactions2 = new List<Transaction>()
+            {
+                { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
+            };
+            consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
+            PoWBlock block2 = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
+            consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
+            consensus.Blocks.Remove(block2);
+
+            // Serialize and deserialize:
+            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
+
+            string block2Serialized = JsonConvert.SerializeObject(block2, settings);
+            if (JsonConvert.DeserializeObject<Block>(block2Serialized, settings) is not Block block2Deserialized)
+            {
+                throw new ArgumentException("Block could not be deserialized correctly", nameof(block2Deserialized));
+            }
+
+            // Set up validate block:
+            MethodInfo? methodInfo2 = typeof(PoWConsensus).GetMethod(name: "IsBlockValid", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
+            object[] parameters2 = { block1, block2Deserialized };
+
+            // Act
+            bool result = (bool)methodInfo2!.Invoke(consensus, parameters2)!;
+
+            // Assert
+            Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
+            Assert.AreEqual(true, result);
         }
 
     }
