@@ -47,9 +47,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             if (addBlock)
             {
+                Console.WriteLine("Adding block:");
                 allowMining = false;
                 AddNewBlockToChain(block);
             }
+            Console.WriteLine("Not adding block");
             allowMining = true;
             return addBlock;
         }
@@ -157,6 +159,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
 
+            Console.WriteLine($"Previous block hash: {previousBlock.BlockHash}");
+            Console.WriteLine($"New blokc previous hash: {newBlock.PreviousBlockHash}");
 
             if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
             {
