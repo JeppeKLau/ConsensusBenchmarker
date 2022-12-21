@@ -31,10 +31,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
-            consoleSemaphore.Wait();
-            Console.WriteLine("Recieved block:");
-            Console.WriteLine(recievedBlock.ToString());
-            consoleSemaphore.Release();
+            //consoleSemaphore.Wait();
+            //Console.WriteLine("Recieved block:");
+            //Console.WriteLine(recievedBlock.ToString());
+            //consoleSemaphore.Release();
 
             bool addBlock = false;
             PoWBlock? previousBlock = GetLastValidBlock();
