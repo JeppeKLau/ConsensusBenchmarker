@@ -268,8 +268,8 @@ namespace ConsensusBenchmarker.Communication
 
         private void ReceiveBlock(string message)
         {
-            //var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
-            if (JsonConvert.DeserializeObject<Models.Blocks.Block>(message) is not Models.Blocks.Block recievedBlock)
+            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
+            if (JsonConvert.DeserializeObject<Models.Blocks.Block>(message, settings) is not Models.Blocks.Block recievedBlock)
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
