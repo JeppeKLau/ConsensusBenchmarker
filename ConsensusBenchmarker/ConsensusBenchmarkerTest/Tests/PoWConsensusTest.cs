@@ -184,5 +184,48 @@ namespace ConsensusBenchmarkerTest.Tests
             Assert.AreEqual(2, consensus.RecievedTransactionsSinceLastBlock.Count);
         }
 
+        [TestMethod]
+        public void RecieveBlock_AddExtraTransaction()
+        {
+            // Arrange
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            ref var stopWatchRef = ref stopWatch;
+            object[] parameters = { stopWatchRef };
+
+            var consensus = new PoWConsensus(1);
+            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
+
+            // Block 1:
+            var transactions1 = new List<Transaction>()
+            {
+                { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
+            };
+            consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
+            _ = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
+
+            // Block 2:
+            var transactions2 = new List<Transaction>()
+            {
+                { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
+            };
+            consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
+            PoWBlock blocked2 = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
+            consensus.Blocks.Remove(blocked2); // It is added in "MineNewBlock" when it is 'mined'.
+            consensus.TotalBlocksInChain--;
+            consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList(); // Simulates that it recieves a 'mined block'.
+            consensus.AddNewTransaction(new Transaction(42, 3, DateTime.Now.ToLocalTime()));
+
+            // Act
+            consensus.RecieveBlock(blocked2);
+
+            // Assert
+            Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
+            Assert.AreEqual(2, consensus.Blocks.Count);
+            Assert.AreEqual(1, consensus.RecievedTransactionsSinceLastBlock.Count);
+        }
+
     }
 }

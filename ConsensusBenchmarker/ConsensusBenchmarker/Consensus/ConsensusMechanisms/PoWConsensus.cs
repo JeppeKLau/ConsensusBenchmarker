@@ -164,7 +164,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
             {
-                if (ValidateNewBlockHash(previousBlock, newBlock))
+                if (ValidateNewBlockHash(newBlock))
                 {
                     return true;
                 }
@@ -184,11 +184,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
             }
         }
 
-        private bool ValidateNewBlockHash(PoWBlock previousBlock, PoWBlock newBlock)
+        private bool ValidateNewBlockHash(PoWBlock newBlock)
         {
             var transactionsAsString = string.Join(",", newBlock.Transactions.Select(x => x.ToString()));
             byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
-            byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlock.BlockHash);
+            byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(newBlock.PreviousBlockHash);
             byte[] previousHashAndTransactions = CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
@@ -196,6 +196,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 return true;
             }
+            Console.WriteLine($"PoW: The recieved block from node {newBlock.OwnerNodeID} should be valid, but its hash does not conform to the difficulty.");
             return false;
         }
 
