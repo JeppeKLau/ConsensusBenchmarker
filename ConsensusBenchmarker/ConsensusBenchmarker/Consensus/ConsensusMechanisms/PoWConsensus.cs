@@ -107,7 +107,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     Console.WriteLine("Added new block with hash:");
                     Console.WriteLine(newBlock.BlockHash);
                     Console.WriteLine("Block hash inputs:");
-                    Console.WriteLine(previousHashAndTransactions);
+                    previousHashAndTransactions.ToList().ForEach(x => Console.Write(x));
+                    Console.WriteLine();
                     Console.WriteLine(nonce);
                 }
             }
@@ -212,7 +213,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
             Console.WriteLine($"PoW: New blocks's hash: {newBlock.BlockHash}");
 
             Console.WriteLine("Block hash inputs:");
-            Console.WriteLine(previousHashAndTransactions);
+            previousHashAndTransactions.ToList().ForEach(x => Console.Write(x));
+            Console.WriteLine();
             Console.WriteLine(newBlock.Nonce);
 
             return false;
