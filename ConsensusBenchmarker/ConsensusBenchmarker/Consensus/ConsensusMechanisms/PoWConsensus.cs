@@ -86,6 +86,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             while (newBlock == null)
             {
+                Console.Write(".");
                 if (restartMining || allowMining == false)
                 {
                     stopwatch.Restart();
@@ -101,6 +102,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     AddNewBlockToChain(newBlock);
 
                     consoleSemaphore.Wait();
+                    Console.WriteLine();
                     Console.WriteLine("New block mined ({0}), hash input:", DateTime.Now);
                     Console.WriteLine(string.Join(',', previousHashAndTransactions));
                     Console.WriteLine(newBlock.Nonce);
