@@ -99,14 +99,14 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     AddNewBlockToChain(newBlock);
                 }
             }
-            consoleSemaphore.Wait();
-            Console.WriteLine("New block mined ({0}), hash input:", DateTime.Now);
-            Console.WriteLine(string.Join(',', previousHashAndTransactions));
-            Console.WriteLine(newBlock.Nonce);
-            Console.WriteLine();
-            Console.WriteLine("Block: ");
-            Console.WriteLine(newBlock.ToString());
-            consoleSemaphore.Release();
+            //consoleSemaphore.Wait();
+            //Console.WriteLine("New block mined ({0}), hash input:", DateTime.Now);
+            //Console.WriteLine(string.Join(',', previousHashAndTransactions));
+            //Console.WriteLine(newBlock.Nonce);
+            //Console.WriteLine();
+            //Console.WriteLine("Block: ");
+            //Console.WriteLine(newBlock.ToString());
+            //consoleSemaphore.Release();
             return newBlock;
         }
 
@@ -124,7 +124,23 @@ namespace ConsensusBenchmarker.Consensus.PoW
             byte[] encodedNonce = Encoding.UTF8.GetBytes(nonce.ToString());
             byte[] wholeBlock = CombineByteArrays(previousHashAndTransactions, encodedNonce);
             byte[] byteHash = sha256.ComputeHash(wholeBlock);
-            return Convert.ToHexString(byteHash);
+            string hashString = Convert.ToBase64String(byteHash);
+
+            if (HashConformsToDifficulty(hashString))
+            {
+                consoleSemaphore.Wait();
+                Console.WriteLine("Whole block array:");
+                Console.WriteLine(string.Join(',', wholeBlock));
+                Console.WriteLine();
+                Console.WriteLine("Byte hash:");
+                Console.WriteLine(string.Join(',', byteHash));
+                Console.WriteLine();
+                Console.WriteLine("Hash string:");
+                Console.WriteLine(hashString);
+                consoleSemaphore.Release();
+            }
+
+            return hashString;
         }
 
         private static byte[] CombineByteArrays(byte[] first, byte[] second)
@@ -162,7 +178,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
 
-            if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
+            if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash))
             {
                 if (ValidateNewBlockHash(newBlock))
                 {
@@ -173,31 +189,31 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return false;
         }
 
-        private bool IsNodeAwareOfNewBlocksTransactions(PoWBlock newBlock)
-        {
-            var intersection = RecievedTransactionsSinceLastBlock.Intersect(newBlock.Transactions);
+        //private bool IsNodeAwareOfNewBlocksTransactions(PoWBlock newBlock)
+        //{
+        //    var intersection = RecievedTransactionsSinceLastBlock.Intersect(newBlock.Transactions);
 
-            if (intersection.Count() == newBlock.Transactions.Count) { return true; }
-            else
-            {
-                Console.WriteLine("%%%%%%%%%%\nNode unaware\n%%%%%%%%%%");
-                return false;
-            }
-        }
+        //    if (intersection.Count() == newBlock.Transactions.Count) { return true; }
+        //    else
+        //    {
+        //        Console.WriteLine("%%%%%%%%%%\nNode unaware\n%%%%%%%%%%");
+        //        return false;
+        //    }
+        //}
 
         private bool ValidateNewBlockHash(PoWBlock newBlock)
         {
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
-            consoleSemaphore.Wait();
-            Console.WriteLine("Validate({0}): Block hash inputs:", DateTime.Now);
-            Console.WriteLine(string.Join(',', previousHashAndTransactions));
-            Console.WriteLine(newBlock.Nonce);
-            Console.WriteLine();
-            Console.WriteLine("Incoming block:");
-            Console.WriteLine(newBlock.ToString());
-            consoleSemaphore.Release();
+            //consoleSemaphore.Wait();
+            //Console.WriteLine("Validate({0}): Block hash inputs:", DateTime.Now);
+            //Console.WriteLine(string.Join(',', previousHashAndTransactions));
+            //Console.WriteLine(newBlock.Nonce);
+            //Console.WriteLine();
+            //Console.WriteLine("Incoming block:");
+            //Console.WriteLine(newBlock.ToString());
+            //consoleSemaphore.Release();
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
             {
                 return true;
