@@ -203,6 +203,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
             // broke
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
+            Console.WriteLine("Block hash inputs:");
+            previousHashAndTransactions.ToList().ForEach(x => Console.Write(x));
+            Console.WriteLine();
+            Console.WriteLine(newBlock.Nonce);
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
             {
                 return true;
@@ -211,11 +215,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             Console.WriteLine($"PoW: newBlocksHash !!:  {newBlocksHash}");
             Console.WriteLine($"PoW: New blocks's hash: {newBlock.BlockHash}");
-
-            Console.WriteLine("Block hash inputs:");
-            previousHashAndTransactions.ToList().ForEach(x => Console.Write(x));
-            Console.WriteLine();
-            Console.WriteLine(newBlock.Nonce);
 
             return false;
         }
