@@ -103,6 +103,9 @@ namespace ConsensusBenchmarker.Consensus.PoW
             Console.WriteLine("New block mined, hash input:");
             Console.WriteLine(string.Join(',', previousHashAndTransactions));
             Console.WriteLine(newBlock.Nonce);
+            Console.WriteLine();
+            Console.WriteLine("Block: ");
+            Console.WriteLine(newBlock.ToString());
             consoleSemaphore.Release();
             return newBlock;
         }
@@ -188,14 +191,12 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
             consoleSemaphore.Wait();
-            Console.WriteLine("newBlock previous hash and transactions:");
-            Console.WriteLine(newBlock.PreviousBlockHash);
-            newBlock.Transactions.ForEach(Console.WriteLine);
-            Console.WriteLine();
-
             Console.WriteLine("Validate: Block hash inputs:");
             Console.WriteLine(string.Join(',', previousHashAndTransactions));
             Console.WriteLine(newBlock.Nonce);
+            Console.WriteLine();
+            Console.WriteLine("Incoming block:");
+            Console.WriteLine(newBlock.ToString());
             consoleSemaphore.Release();
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
             {
