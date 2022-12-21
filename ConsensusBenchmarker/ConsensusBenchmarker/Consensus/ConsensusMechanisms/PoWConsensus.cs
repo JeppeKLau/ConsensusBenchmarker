@@ -94,7 +94,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 if (restartMining || allowMining == false)
                 {
-                    Console.WriteLine($"PoW: node {NodeID} was interrupted in its mining due to {0}.", restartMining ? nameof(restartMining) : nameof(allowMining));
+                    Console.WriteLine($"PoW: node {NodeID} was interrupted in its mining due to {(restartMining ? nameof(restartMining) : nameof(allowMining))}.");
                     stopwatch.Restart();
                     return null;
                 }
