@@ -10,7 +10,6 @@ using Newtonsoft.Json;
 using System.Collections.Concurrent;
 
 namespace ConsensusBenchmarker;
-
 class Program
 {
     static async Task Main(string[] _)
