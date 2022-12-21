@@ -166,7 +166,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 }
                 Console.WriteLine("%%%%%%%%%%\nBlock hash not valid\n%%%%%%%%%%");
             }
-            if (!previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash)) Console.WriteLine("%%%%%%%%%%\nPrevious block has different hash\n%%%%%%%%%%");
             return false;
         }
 
