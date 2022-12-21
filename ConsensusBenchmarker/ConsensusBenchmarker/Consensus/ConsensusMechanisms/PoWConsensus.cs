@@ -14,6 +14,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private bool restartMining;
         private readonly Random random;
         private readonly SHA256 sha256;
+        private SemaphoreSlim consoleSemaphore = new(1, 1);
 
         public PoWConsensus(int nodeID)
         {
@@ -30,9 +31,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
-
+            consoleSemaphore.Wait();
             Console.WriteLine("Recieved block:");
             Console.WriteLine(recievedBlock.ToString());
+            consoleSemaphore.Release();
 
             bool addBlock = false;
             PoWBlock? previousBlock = GetLastValidBlock();
@@ -182,9 +184,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
+            consoleSemaphore.Wait();
             Console.WriteLine("Validate: Block hash inputs:");
             Console.WriteLine(Encoding.UTF8.GetString(previousHashAndTransactions));
             Console.WriteLine(newBlock.Nonce);
+            consoleSemaphore.Release();
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
             {
                 return true;
