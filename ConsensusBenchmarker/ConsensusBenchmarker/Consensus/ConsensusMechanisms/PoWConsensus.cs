@@ -104,6 +104,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 {
                     newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
                     AddNewBlockToChain(newBlock);
+                    Console.WriteLine("Added new block with hash:");
+                    Console.WriteLine(newBlock.BlockHash);
                 }
             }
             return newBlock;
@@ -191,7 +193,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
 
             Console.WriteLine("\n------------------\n");
-            Console.WriteLine(newBlock.ToString());
+            Console.WriteLine(newBlock.BlockHash);
             Console.WriteLine("\n------------------\n");
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
