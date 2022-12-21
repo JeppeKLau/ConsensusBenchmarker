@@ -273,8 +273,6 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
-            Console.WriteLine("Block transactions:");
-            recievedBlock.Transactions.ForEach(t => Console.WriteLine($"({t.NodeID}, {t.TransactionId}) {t.CreatedAt}"));
             eventQueue.Enqueue(new ConsensusEvent(recievedBlock, ConsensusEventType.RecieveBlock));
         }
 
