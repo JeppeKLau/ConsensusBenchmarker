@@ -47,7 +47,6 @@ namespace ConsensusBenchmarker.DataCollection
                 }
             });
 
-            Console.WriteLine("Data collection ready");
             eventQueue.Enqueue(new DataCollectionEvent(nodeID, DataCollectionEventType.CollectionReady, null));
             return new List<Thread>() { collectDataThread, memThread };
         }

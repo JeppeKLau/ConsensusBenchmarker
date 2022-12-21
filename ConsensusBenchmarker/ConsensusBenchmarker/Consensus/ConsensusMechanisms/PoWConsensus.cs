@@ -43,10 +43,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 {
                     addBlock = true;
                 }
-                else
-                {
-                    Console.WriteLine("PoW: Recieved a block which was NOT valid, from:" + block.OwnerNodeID);
-                }
             }
 
             if (addBlock)
@@ -64,10 +60,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 AddNewTransaction(transaction);
                 restartMining = true;
-            }
-            else
-            {
-                Console.WriteLine($"PoW: Tried to add a new recieved transaction(owner: {transaction.NodeID}, id: {transaction.TransactionId}), but it already existed.");
             }
         }
 
@@ -104,9 +96,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 {
                     newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
                     AddNewBlockToChain(newBlock);
-                    Console.WriteLine("Added new block with hash:");
-                    Console.WriteLine(newBlock.BlockHash);
-                    Console.WriteLine("Block hash inputs:");
+                    Console.WriteLine("Mine: Block hash inputs:");
                     previousHashAndTransactions.ToList().ForEach(x => Console.Write(x + ","));
                     Console.WriteLine();
                     Console.WriteLine(nonce);
@@ -167,8 +157,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
 
-            Console.WriteLine($"PoW: Previous:       {previousBlock.BlockHash}");
-            Console.WriteLine($"PoW: New's previous: {newBlock.PreviousBlockHash}");
 
             if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
             {
@@ -187,7 +175,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
             if (intersection.Count() == newBlock.Transactions.Count) { return true; }
             else
             {
-                Console.WriteLine($"PoW: The new block created by node {newBlock.OwnerNodeID} does not have a matching subset of transactions.");
                 return false;
             }
         }
@@ -196,14 +183,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
 
-            Console.WriteLine("\n------------------\n");
-            Console.WriteLine(newBlock.BlockHash);
-            Console.WriteLine("\n------------------\n");
-
             // broke
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
-            Console.WriteLine("Block hash inputs:");
+            Console.WriteLine("Validate: Block hash inputs:");
             previousHashAndTransactions.ToList().ForEach(x => Console.Write(x + ","));
             Console.WriteLine();
             Console.WriteLine(newBlock.Nonce);
@@ -211,10 +194,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 return true;
             }
-            Console.WriteLine($"PoW: The recieved block from node {newBlock.OwnerNodeID} should be valid, but its hash does not conform to the difficulty.");
-
-            Console.WriteLine($"PoW: newBlocksHash !!:  {newBlocksHash}");
-            Console.WriteLine($"PoW: New blocks's hash: {newBlock.BlockHash}");
 
             return false;
         }

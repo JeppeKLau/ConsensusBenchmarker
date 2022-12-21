@@ -88,9 +88,6 @@ namespace ConsensusBenchmarker.Consensus
                 Blocks.Add(newBlock);
                 TotalBlocksInChain++;
 
-
-                Console.WriteLine("CD: Added a new block to my chain. I am Node: " + NodeID + ". Block creator is: " + newBlock.OwnerNodeID + ". Current blocks in chain: " + TotalBlocksInChain);
-
                 MaintainBlockChainSize();
 
                 blocksMutex.Release();
@@ -114,21 +111,7 @@ namespace ConsensusBenchmarker.Consensus
             List<Transaction> transactionsToBeRemoved = new();
             transactionsToBeRemoved.AddRange(RecievedTransactionsSinceLastBlock.Intersect(newBlock.Transactions));
 
-            Console.WriteLine("New block transactions:");
-            newBlock.Transactions.ForEach(t => Console.Write($"({t.NodeID}, {t.TransactionId}) "));
-            Console.WriteLine();
-
-            Console.WriteLine("Transactions since last block:");
-            RecievedTransactionsSinceLastBlock.ForEach(t => Console.Write($"({t.NodeID}, {t.TransactionId}) "));
-            Console.WriteLine();
-
-            Console.WriteLine("Transaction to be removed:");
-            transactionsToBeRemoved.ForEach(t => Console.Write($"({t.NodeID}, {t.TransactionId}) "));
-            Console.WriteLine();
-
             _ = RecievedTransactionsSinceLastBlock.RemoveAll(transactionsToBeRemoved.Contains);
-
-            Console.WriteLine("CD: Number of current transactions after adding a new block and removing its transactions is: " + RecievedTransactionsSinceLastBlock.Count);
 
             recievedTransactionsMutex.Release();
         }

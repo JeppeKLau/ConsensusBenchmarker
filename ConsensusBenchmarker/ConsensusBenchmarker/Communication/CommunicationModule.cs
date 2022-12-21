@@ -65,7 +65,6 @@ namespace ConsensusBenchmarker.Communication
                 }
             });
 
-            Console.WriteLine("Communication ready.");
             return new List<Thread>() { eventThread, messageThread };
         }
 
@@ -129,14 +128,12 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task BroadcastTransaction(Transaction transaction)
         {
-            Console.WriteLine("Broadcasts new transaction to this many known nodes:" + knownNodes.Count);
             string messageToSend = Messages.CreateTRAMessage(transaction);
             await BroadcastMessageAndDontWaitForAnswer(messageToSend);
         }
 
         private async Task BroadcastBlock(Models.Blocks.Block block)
         {
-            Console.WriteLine("Broadcasts new block to this many known nodes:" + knownNodes.Count);
             string messageToSend = Messages.CreateBLOMessage(block);
             await BroadcastMessageAndDontWaitForAnswer(messageToSend);
         }
@@ -226,7 +223,6 @@ namespace ConsensusBenchmarker.Communication
                         break;
                     case OperationType.DIS:
                         SaveNewIPAddresses(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.DIS));
-                        Console.WriteLine($"Comms: Recieved a discover message from the network manager. I now know {knownNodes.Count} other nodes.");
                         break;
                     case OperationType.TRA:
                         RecieveTransaction(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.TRA));
@@ -267,7 +263,6 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Transaction could not be deserialized correctly", nameof(message));
             }
-            Console.WriteLine($"Recieved transaction from: " + recievedTransaction.NodeID + ". with transaction index: " + recievedTransaction.TransactionId);
             eventQueue.Enqueue(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction));
         }
 
@@ -278,7 +273,6 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
-            Console.WriteLine($"Recieved block from: " + recievedBlock.OwnerNodeID);
             eventQueue.Enqueue(new ConsensusEvent(recievedBlock, ConsensusEventType.RecieveBlock));
         }
 
