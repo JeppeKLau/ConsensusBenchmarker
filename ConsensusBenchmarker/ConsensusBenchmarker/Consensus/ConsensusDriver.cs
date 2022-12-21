@@ -7,14 +7,17 @@ namespace ConsensusBenchmarker.Consensus
     public abstract class ConsensusDriver
     {
         public int NodeID;
+
         public int CreatedTransactionsByThisNode { get; set; } = 0;
+
         public int TotalBlocksInChain { get; set; } = 0;
-        public List<Transaction> RecievedTransactionsSinceLastBlock { get; set; } = new List<Transaction>();
-        public List<Models.Blocks.Block> Blocks { get; set; } = new List<Models.Blocks.Block>();
+
+        public List<Transaction> RecievedTransactionsSinceLastBlock { get; set; } = new();
+
+        public List<Block> Blocks { get; set; } = new List<Block>();
 
         private readonly SemaphoreSlim recievedTransactionsMutex = new(1, 1);
         private readonly SemaphoreSlim blocksMutex = new(1, 1);
-
         private readonly int maxBlocksInChainAtOnce = 10;
 
         /// <summary>
@@ -61,16 +64,22 @@ namespace ConsensusBenchmarker.Consensus
         public Transaction GenerateNextTransaction()
         {
             var newTransaction = new Transaction(NodeID, CreatedTransactionsByThisNode, DateTime.Now.ToLocalTime());
-            RecievedTransactionsSinceLastBlock.Add(newTransaction);
+            AddNewTransaction(newTransaction);
             CreatedTransactionsByThisNode++;
             return newTransaction;
+        }
+
+        public void AddNewTransaction(Transaction transaction)
+        {
+            RecievedTransactionsSinceLastBlock.Add(transaction);
+            RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList();
         }
 
         /// <summary>
         /// Adds a new block to the chain as well as cleaning up the global chain and transactions.
         /// </summary>
         /// <param name="newBlock"></param>
-        protected void AddNewBlockToChain(Models.Blocks.Block newBlock)
+        protected void AddNewBlockToChain(Block newBlock)
         {
             if (!Blocks.Contains(newBlock))
             {
@@ -79,7 +88,7 @@ namespace ConsensusBenchmarker.Consensus
                 Blocks.Add(newBlock);
                 TotalBlocksInChain++;
 
-                Console.WriteLine("ConsensusDriver: Added a new block to my chain. I am Node: " + NodeID + ". Block creator is: " + newBlock.OwnerNodeID + ". Current blocks in chain: " + TotalBlocksInChain);
+                Console.WriteLine("CD: Added a new block to my chain. I am Node: " + NodeID + ". Block creator is: " + newBlock.OwnerNodeID + ". Current blocks in chain: " + TotalBlocksInChain);
 
                 MaintainBlockChainSize();
 
@@ -100,22 +109,14 @@ namespace ConsensusBenchmarker.Consensus
         private void RemoveNewBlockTransactions(Block newBlock)
         {
             recievedTransactionsMutex.Wait();
-            List<Transaction> transactionsToBeRemoved = new();
 
-            foreach (Transaction blockTransaction in newBlock.Transactions)
-            {
-                foreach (Transaction nodeTransaction in RecievedTransactionsSinceLastBlock)
-                {
-                    if (blockTransaction.Equals(nodeTransaction))
-                    {
-                        transactionsToBeRemoved.Add(nodeTransaction);
-                    }
-                }
-            }
+            List<Transaction> transactionsToBeRemoved = new();
+            transactionsToBeRemoved.AddRange(RecievedTransactionsSinceLastBlock.Intersect(newBlock.Transactions));
             _ = RecievedTransactionsSinceLastBlock.RemoveAll(transactionsToBeRemoved.Contains);
 
+            Console.WriteLine("CD: Number of current transactions after adding a new block and removing its transactions is: " + RecievedTransactionsSinceLastBlock.Count);
+
             recievedTransactionsMutex.Release();
-            Console.WriteLine("ConsensusDriver: Number of current transactions after adding a new block and removing its transactions is: " + RecievedTransactionsSinceLastBlock.Count);
         }
     }
 }

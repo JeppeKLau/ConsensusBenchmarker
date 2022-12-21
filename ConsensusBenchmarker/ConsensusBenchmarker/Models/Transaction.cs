@@ -1,6 +1,6 @@
 ﻿namespace ConsensusBenchmarker.Models
 {
-    public class Transaction
+    public class Transaction : IEquatable<Transaction>
     {
         public Transaction(int nodeID, int transactionId, DateTime createdAt)
         {
@@ -13,12 +13,13 @@
         public int TransactionId { get; set; }
         public DateTime CreatedAt { get; set; }
 
-        public override bool Equals(object? obj)
+        public bool Equals(Transaction? other)
         {
-            return obj is Transaction transaction &&
-                   NodeID == transaction.NodeID &&
-                   TransactionId == transaction.TransactionId &&
-                   CreatedAt.Equals(transaction.CreatedAt);
+            return other is not null &&
+                   NodeID == other.NodeID &&
+                   TransactionId == other.TransactionId;
         }
+
+        public override int GetHashCode() => (NodeID, TransactionId).GetHashCode();
     }
 }

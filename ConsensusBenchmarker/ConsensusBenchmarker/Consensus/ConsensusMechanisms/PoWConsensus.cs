@@ -45,7 +45,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 }
                 else
                 {
-                    Console.WriteLine("Recieved a block which was NOT valid, from:" + block.OwnerNodeID);
+                    Console.WriteLine("PoW: Recieved a block which was NOT valid, from:" + block.OwnerNodeID);
                 }
             }
 
@@ -60,10 +60,14 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override void RecieveTransaction(Transaction transaction)
         {
-            if (!RecievedTransactionsSinceLastBlock.Contains(transaction))
+            if (!RecievedTransactionsSinceLastBlock.Any(x => x.Equals(transaction)))
             {
-                RecievedTransactionsSinceLastBlock.Add(transaction);
+                AddNewTransaction(transaction);
                 restartMining = true;
+            }
+            else
+            {
+                Console.WriteLine($"PoW: Tried to add a new recieved transaction(owner: {transaction.NodeID}, id: {transaction.TransactionId}), but it already existed.");
             }
         }
 
@@ -88,7 +92,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 previousBlockHash = previousBlock.BlockHash;
             }
 
-            RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ToList();
             string transactionsAsString = string.Join(",", RecievedTransactionsSinceLastBlock.Select(x => x.ToString()));
             byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
             byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlockHash);
@@ -121,7 +124,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return Convert.ToHexString(byteHash);
         }
 
-        private byte[] CombineByteArrays(byte[] first, byte[] second)
+        private static byte[] CombineByteArrays(byte[] first, byte[] second)
         {
             byte[] ret = new byte[first.Length + second.Length];
             Buffer.BlockCopy(first, 0, ret, 0, first.Length);
@@ -156,8 +159,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
 
-            Console.WriteLine($"Previous: {previousBlock.BlockHash}");
-            Console.WriteLine($"New:      {newBlock.PreviousBlockHash}");
+            Console.WriteLine($"PoW: Previous: {previousBlock.BlockHash}");
+            Console.WriteLine($"PoW: New:      {newBlock.PreviousBlockHash}");
 
             if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
             {
@@ -171,22 +174,19 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private bool IsNodeAwareOfNewBlocksTransactions(PoWBlock newBlock)
         {
-            bool hasSameTransactions = true;
-            foreach (Transaction transaction in newBlock.Transactions)
+            var intersection = RecievedTransactionsSinceLastBlock.Intersect(newBlock.Transactions);
+
+            if (intersection.Count() == newBlock.Transactions.Count) { return true; }
+            else
             {
-                if (!RecievedTransactionsSinceLastBlock.Contains(transaction))
-                {
-                    Console.WriteLine($"Node is unaware of this transaction, owner: {transaction.NodeID} and id: {transaction.TransactionId}");
-                    hasSameTransactions = false;
-                }
+                Console.WriteLine($"PoW: The new block created by node {newBlock.OwnerNodeID} does not have a matching subset of transactions.");
+                return false;
             }
-            return hasSameTransactions;
         }
 
         private bool ValidateNewBlockHash(PoWBlock previousBlock, PoWBlock newBlock)
         {
-            var transactions = newBlock.Transactions.OrderBy(x => x.NodeID).ToList();
-            var transactionsAsString = string.Join(",", transactions.Select(x => x.ToString()));
+            var transactionsAsString = string.Join(",", newBlock.Transactions.Select(x => x.ToString()));
             byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
             byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlock.BlockHash);
             byte[] previousHashAndTransactions = CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
