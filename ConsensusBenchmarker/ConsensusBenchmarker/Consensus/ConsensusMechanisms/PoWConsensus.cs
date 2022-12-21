@@ -107,7 +107,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     Console.WriteLine("Added new block with hash:");
                     Console.WriteLine(newBlock.BlockHash);
                     Console.WriteLine("Block hash inputs:");
-                    previousHashAndTransactions.ToList().ForEach(x => Console.Write(x));
+                    previousHashAndTransactions.ToList().ForEach(x => Console.Write(x + ","));
                     Console.WriteLine();
                     Console.WriteLine(nonce);
                 }
@@ -204,7 +204,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
             Console.WriteLine("Block hash inputs:");
-            previousHashAndTransactions.ToList().ForEach(x => Console.Write(x));
+            previousHashAndTransactions.ToList().ForEach(x => Console.Write(x + ","));
             Console.WriteLine();
             Console.WriteLine(newBlock.Nonce);
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
