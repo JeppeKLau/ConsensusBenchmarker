@@ -17,7 +17,7 @@
         {
             return nameof(OwnerNodeID) + " : " + OwnerNodeID + "\n" +
                 nameof(BlockCreatedAt) + " : " + BlockCreatedAt.ToString() + "\n" +
-                nameof(Transactions) + " : " + string.Join("\n", Transactions).Replace("\n", "\n\t") + "\n";
+                nameof(Transactions) + " : " + string.Join(",", Transactions).Replace("\n", "\n\t") + "\n";
         }
 
     }

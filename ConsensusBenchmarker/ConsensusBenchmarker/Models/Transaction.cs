@@ -29,8 +29,8 @@
 
         public override string ToString()
         {
-            return nameof(NodeID) + " : " + NodeID.ToString() + "\n" +
-                nameof(TransactionId) + " : " + TransactionId.ToString() + "\n" +
+            return nameof(NodeID) + " : " + NodeID.ToString() + "," +
+                nameof(TransactionId) + " : " + TransactionId.ToString() + "," +
                 nameof(CreatedAt) + " : " + CreatedAt.ToString();
         }
     }
