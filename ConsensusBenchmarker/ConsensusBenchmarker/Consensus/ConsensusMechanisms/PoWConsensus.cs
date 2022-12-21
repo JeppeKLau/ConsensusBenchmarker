@@ -12,6 +12,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private readonly uint DifficultyLeadingZeroes = 6;
         private bool allowMining;
         private bool restartMining;
+        private bool validateBlock;
         private readonly Random random;
         private readonly SHA256 sha256;
         private SemaphoreSlim consoleSemaphore = new(1, 1);
@@ -126,7 +127,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             byte[] byteHash = sha256.ComputeHash(wholeBlock);
             string hashString = Convert.ToBase64String(byteHash);
 
-            if (HashConformsToDifficulty(hashString))
+            if (HashConformsToDifficulty(hashString) || validateBlock)
             {
                 consoleSemaphore.Wait();
                 Console.WriteLine("Whole block array:");
@@ -180,6 +181,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash))
             {
+                validateBlock = true;
                 if (ValidateNewBlockHash(newBlock))
                 {
                     return true;
