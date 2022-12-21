@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 7;
+        private readonly uint DifficultyLeadingZeroes = 6;
         private bool allowMining;
         private bool restartMining;
         private readonly Random random;
@@ -73,7 +73,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override PoWBlock GenerateNextBlock(ref Stopwatch Stopwatch)
         {
-            while (!allowMining && RecievedTransactionsSinceLastBlock.Count == 0) { Console.WriteLine("Short circuited mining using allowMining"); }
+            while (allowMining == false || RecievedTransactionsSinceLastBlock.Count == 0) { Console.WriteLine("Short circuited mining using allowMining"); }
 
             return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
         }
@@ -94,7 +94,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 if (restartMining || allowMining == false)
                 {
-                    Console.WriteLine($"PoW: node {NodeID} was interrupted in its mining due to {(restartMining ? nameof(restartMining) : nameof(allowMining))}.");
                     stopwatch.Restart();
                     return null;
                 }
@@ -188,8 +187,12 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private bool ValidateNewBlockHash(PoWBlock newBlock)
         {
-            var sortedTransactions = newBlock.Transactions.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList(); // TEMP
-            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, sortedTransactions);
+            //var sortedTransactions = newBlock.Transactions.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList(); // TEMP
+            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
+
+            Console.WriteLine("\n------------------\n");
+            Console.WriteLine(newBlock.ToString());
+            Console.WriteLine("\n------------------\n");
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))

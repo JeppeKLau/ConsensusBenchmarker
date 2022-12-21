@@ -22,7 +22,7 @@
 
         public override int GetHashCode() => (NodeID, TransactionId).GetHashCode();
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as Transaction);
         }
