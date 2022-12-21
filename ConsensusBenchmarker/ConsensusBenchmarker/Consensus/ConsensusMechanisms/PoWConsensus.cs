@@ -31,6 +31,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
 
+            Console.WriteLine("Recieved block:");
             Console.WriteLine(recievedBlock.ToString());
 
             bool addBlock = false;
@@ -49,7 +50,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             if (addBlock)
             {
-                Console.WriteLine("Adding block:");
                 allowMining = false;
                 AddNewBlockToChain(block);
             }
@@ -156,9 +156,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
 
-            Console.WriteLine($"Previous block hash: {previousBlock.BlockHash}");
-            Console.WriteLine($"New blokc previous hash: {newBlock.PreviousBlockHash}");
-
             if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && IsNodeAwareOfNewBlocksTransactions(newBlock))
             {
                 if (ValidateNewBlockHash(newBlock))
@@ -183,8 +180,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private bool ValidateNewBlockHash(PoWBlock newBlock)
         {
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
-
-            // broke
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
             Console.WriteLine("Validate: Block hash inputs:");
