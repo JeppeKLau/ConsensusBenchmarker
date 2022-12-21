@@ -13,5 +13,12 @@
         public DateTime BlockCreatedAt { get; set; }
         public List<Transaction> Transactions { get; set; }
 
+        public override string ToString()
+        {
+            return nameof(OwnerNodeID) + " : " + OwnerNodeID + "\n" +
+                nameof(BlockCreatedAt) + " : " + BlockCreatedAt.ToString() + "\n" +
+                nameof(Transaction) + " : " + string.Join(", ", Transactions) + "\n";
+        }
+
     }
 }

@@ -14,5 +14,13 @@
         public string PreviousBlockHash { get; set; }
         public long Nonce { get; set; } = 0;
 
+        public override string ToString()
+        {
+            return base.ToString() +
+                nameof(BlockHash) + " : " + BlockHash + "\n" +
+                nameof(PreviousBlockHash) + " : " + PreviousBlockHash + "\n" +
+                nameof(Nonce) + " : " + Nonce.ToString();
+        }
+
     }
 }

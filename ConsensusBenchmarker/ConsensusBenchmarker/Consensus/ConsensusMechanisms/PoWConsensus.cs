@@ -31,6 +31,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
 
+            Console.WriteLine(recievedBlock.ToString());
+
             bool addBlock = false;
             PoWBlock? previousBlock = GetLastValidBlock();
             if (previousBlock == null) // Genesis Block
@@ -51,7 +53,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 allowMining = false;
                 AddNewBlockToChain(block);
             }
-            Console.WriteLine("Not adding block");
             allowMining = true;
             return addBlock;
         }
@@ -187,8 +188,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
             Console.WriteLine("Validate: Block hash inputs:");
-            previousHashAndTransactions.ToList().ForEach(x => Console.Write(x + ","));
-            Console.WriteLine();
+            Console.WriteLine(Encoding.UTF8.GetString(previousHashAndTransactions));
             Console.WriteLine(newBlock.Nonce);
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
             {
