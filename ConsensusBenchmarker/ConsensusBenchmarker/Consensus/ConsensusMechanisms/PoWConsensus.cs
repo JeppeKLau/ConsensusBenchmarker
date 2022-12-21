@@ -108,7 +108,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private static byte[] GetPreviousHashAndTransactionByteArray(string previousBlockHash, List<Transaction> transactions)
         {
-            var transactionsAsString = string.Join(",", transactions.Select(x => x.ToString()));
+            var transactionsAsString = string.Join(",", transactions);
             byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
             byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlockHash);
             return CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
@@ -188,6 +188,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
             consoleSemaphore.Wait();
+            Console.WriteLine("newBlock previous hash and transactions:");
+            Console.WriteLine(newBlock.PreviousBlockHash);
+            Console.WriteLine(newBlock.Transactions);
+            Console.WriteLine();
+
             Console.WriteLine("Validate: Block hash inputs:");
             Console.WriteLine(Encoding.UTF8.GetString(previousHashAndTransactions));
             Console.WriteLine(newBlock.Nonce);
