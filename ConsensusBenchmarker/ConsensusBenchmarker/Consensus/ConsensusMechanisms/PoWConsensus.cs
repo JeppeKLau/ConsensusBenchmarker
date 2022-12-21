@@ -121,6 +121,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private string HashNewBlock(byte[] previousHashAndTransactions, long nonce)
         {
+            // this is broke
+            Console.WriteLine("Block hash inputs:");
+            Console.WriteLine(previousHashAndTransactions);
+            Console.WriteLine(nonce);
             byte[] encodedNonce = Encoding.UTF8.GetBytes(nonce.ToString());
             byte[] wholeBlock = CombineByteArrays(previousHashAndTransactions, encodedNonce);
             byte[] byteHash = sha256.ComputeHash(wholeBlock);
@@ -189,12 +193,13 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private bool ValidateNewBlockHash(PoWBlock newBlock)
         {
-            //var sortedTransactions = newBlock.Transactions.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList(); // TEMP
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
 
             Console.WriteLine("\n------------------\n");
             Console.WriteLine(newBlock.BlockHash);
             Console.WriteLine("\n------------------\n");
+
+            // broke
 
             string newBlocksHash = HashNewBlock(previousHashAndTransactions, newBlock.Nonce);
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
