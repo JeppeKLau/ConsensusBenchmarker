@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 6;
+        private readonly uint DifficultyLeadingZeroes = 7;
         private bool allowMining;
         private bool restartMining;
         private readonly Random random;
