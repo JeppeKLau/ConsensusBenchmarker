@@ -189,11 +189,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
             consoleSemaphore.Wait();
             Console.WriteLine("newBlock previous hash and transactions:");
             Console.WriteLine(newBlock.PreviousBlockHash);
-            Console.WriteLine(newBlock.Transactions);
+            Console.WriteLine(newBlock.Transactions.Select(x => x.ToString()));
             Console.WriteLine();
 
             Console.WriteLine("Validate: Block hash inputs:");
-            Console.WriteLine(Encoding.UTF8.GetString(previousHashAndTransactions));
+            Console.WriteLine(string.Join(',', previousHashAndTransactions));
             Console.WriteLine(newBlock.Nonce);
             consoleSemaphore.Release();
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
