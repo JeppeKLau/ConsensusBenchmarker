@@ -31,10 +31,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
-            //consoleSemaphore.Wait();
-            //Console.WriteLine("Recieved block:");
-            //Console.WriteLine(recievedBlock.ToString());
-            //consoleSemaphore.Release();
 
             bool addBlock = false;
             PoWBlock? previousBlock = GetLastValidBlock();
@@ -103,6 +99,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     AddNewBlockToChain(newBlock);
                 }
             }
+            consoleSemaphore.Wait();
+            Console.WriteLine("New block mined, hash input:");
+            Console.WriteLine(string.Join(',', previousHashAndTransactions));
+            Console.WriteLine(newBlock.Nonce);
+            consoleSemaphore.Release();
             return newBlock;
         }
 
