@@ -109,9 +109,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private static byte[] GetPreviousHashAndTransactionByteArray(string previousBlockHash, List<Transaction> transactions)
         {
             var transactionsAsString = string.Join(",", transactions);
-            byte[] encodedTransactions = Encoding.UTF8.GetBytes(transactionsAsString);
-            byte[] previousBlockHashInBytes = Encoding.UTF8.GetBytes(previousBlockHash);
-            return CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
+            return Encoding.UTF8.GetBytes(previousBlockHash + transactionsAsString);
         }
 
         private static string HashNewBlock(SHA256 sha256, byte[] previousHashAndTransactions, long nonce)
@@ -125,8 +123,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private static byte[] CombineByteArrays(byte[] first, byte[] second)
         {
             byte[] ret = new byte[first.Length + second.Length];
-            Buffer.BlockCopy(first, 0, ret, 0, first.Length);
-            Buffer.BlockCopy(second, 0, ret, first.Length, second.Length);
+            first.CopyTo(ret, 0);
+            second.CopyTo(ret, first.Length);
             return ret;
         }
 

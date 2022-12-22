@@ -68,6 +68,7 @@ namespace ConsensusBenchmarker.DataCollection
             while (executionFlag)
             {
                 HandleEvents();
+                Thread.Sleep(10);
             }
 
             ReadCpuValue(out int cpuTime);

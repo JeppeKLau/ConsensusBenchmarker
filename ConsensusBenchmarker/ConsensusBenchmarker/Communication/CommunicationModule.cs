@@ -54,15 +54,13 @@ namespace ConsensusBenchmarker.Communication
                 while (ExecutionFlag)
                 {
                     HandleEventQueue().GetAwaiter().GetResult();
+                    Thread.Sleep(10);
                 }
             });
 
             var messageThread = new Thread(() =>
             {
-                while (ExecutionFlag)
-                {
-                    WaitForMessage().GetAwaiter().GetResult();
-                }
+                WaitForMessage().GetAwaiter().GetResult();
             });
 
             return new List<Thread>() { eventThread, messageThread };

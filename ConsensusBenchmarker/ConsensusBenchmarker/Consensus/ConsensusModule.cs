@@ -36,6 +36,7 @@ namespace ConsensusBenchmarker.Consensus
                     while (executionFlag)
                     {
                         HandleEventQueue();
+                        Thread.Sleep(10);
                     }
                 })
             };
