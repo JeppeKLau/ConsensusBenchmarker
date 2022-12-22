@@ -54,7 +54,7 @@ namespace ConsensusBenchmarker.Communication
                 while (ExecutionFlag)
                 {
                     HandleEventQueue().GetAwaiter().GetResult();
-                    Thread.Sleep(10);
+                    Thread.Sleep(1);
                 }
             });
 
@@ -126,7 +126,6 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task BroadcastTransaction(Transaction transaction)
         {
-            Console.WriteLine("Broadcasting transaction: {0}", transaction);
             string messageToSend = Messages.CreateTRAMessage(transaction);
             await BroadcastMessageAndDontWaitForAnswer(messageToSend);
         }

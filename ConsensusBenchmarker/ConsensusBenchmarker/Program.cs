@@ -28,11 +28,12 @@ class Program
         int totalBlocksToCreate = RetrieveNumberOfBlocksToCreate();
         int nodeID = RetrieveNodeName();
         var executionFlag = true;
+        var startTime = DateTime.UtcNow;
 
         var influxDBService = serviceProvider.GetRequiredService<InfluxDBService>();
         var eventQueue = new ConcurrentQueue<IEvent>();
 
-        var dataCollectionModule = new DataCollectionModule(ref eventQueue, nodeID, influxDBService, ref executionFlag);
+        var dataCollectionModule = new DataCollectionModule(ref eventQueue, nodeID, influxDBService, ref executionFlag, startTime);
         var communicationModule = new CommunicationModule(ref eventQueue, nodeID);
         var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID, ref eventQueue);
         // ask for blockchain ?
@@ -43,20 +44,17 @@ class Program
         moduleThreads.AddRange(consensusModule.SpawnThreads());
 
         // Start communication thread first, so nodes can discover each other before it begins:
-        Console.WriteLine("Starting the communication thread.");
         moduleThreads[3].Start();
         await communicationModule.AnnounceOwnIP();
-        Thread.Sleep(10_000);
 
         // Start threads:
-        Console.WriteLine("Starting threads.");
         foreach (Thread moduleThread in moduleThreads.Where(t => t.ThreadState == ThreadState.Unstarted))
         {
             moduleThread.Start();
         }
 
         // Wait for threads to finish:
-        Console.WriteLine("Waiting for threads to finish.");
+        Console.WriteLine("Waiting test to finish.");
         foreach (Thread moduleThread in moduleThreads)
         {
             moduleThread.Join();
