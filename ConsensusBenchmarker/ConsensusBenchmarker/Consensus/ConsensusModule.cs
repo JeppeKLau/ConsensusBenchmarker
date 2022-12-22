@@ -73,7 +73,7 @@ namespace ConsensusBenchmarker.Consensus
 
             if (assemblyType == null) throw new Exception("Was not able to instantiate any Consensus class.");
 
-            var consensusCtor = assemblyType.GetConstructor(new[] { typeof(int) });
+            var consensusCtor = assemblyType.GetConstructor(new[] { typeof(int), typeof(int) });
 
             if (consensusCtor == null) throw new Exception("Consensus class does not have the required constructor");
 
