@@ -6,13 +6,33 @@ namespace ConsensusBenchmarker.Consensus
 {
     public abstract class ConsensusDriver
     {
-        public int NodeID;
+        protected ConsensusDriver(int nodeID, int maxBlocksToCreate)
+        {
+            NodeID  = nodeID;
+            MaxBlocksToCreate = maxBlocksToCreate;
+        }
 
-        public int CreatedTransactionsByThisNode { get; set; } = 0;
+        public readonly int NodeID;
 
-        public int TotalBlocksInChain { get; set; } = 0;
+        public readonly int MaxBlocksToCreate;
 
-        public bool ExecutionFlag { get; set; } = true;
+        private int blocksInChain = 0;
+        public int BlocksInChain 
+        {
+            get => blocksInChain;
+            set
+            {
+                blocksInChain = value;
+                if(blocksInChain >= MaxBlocksToCreate)
+                {
+                    ExecutionFlag = false; // Shutdowns node
+                }
+            }
+        }
+
+        public int CreatedTransactionsByThisNode { get; private set; } = 0;
+
+        public bool ExecutionFlag { get; private set; } = true;
 
         public List<Transaction> RecievedTransactionsSinceLastBlock { get; set; } = new();
 
@@ -27,7 +47,7 @@ namespace ConsensusBenchmarker.Consensus
         /// </summary>
         /// <param name="serializedBlock"></param>
         /// <returns><see cref="bool"/></returns>
-        public virtual bool RecieveBlock(Models.Blocks.Block block)
+        public virtual bool RecieveBlock(Block block)
         {
             throw new NotImplementedException();
         }
@@ -88,9 +108,9 @@ namespace ConsensusBenchmarker.Consensus
                 blocksMutex.Wait();
 
                 Blocks.Add(newBlock);
-                TotalBlocksInChain++;
+                BlocksInChain++;
 
-                Console.WriteLine($"CD: Added block from owner: {newBlock.OwnerNodeID}, current blocks in chain: {TotalBlocksInChain}");
+                Console.WriteLine($"CD: Added block from owner: {newBlock.OwnerNodeID}, current blocks in chain: {BlocksInChain}");
 
                 MaintainBlockChainSize();
 

@@ -17,7 +17,7 @@ namespace ConsensusBenchmarkerTest.Tests
         public void HashNewBlock()
         {
             // Arrange
-            var consensus = new PoWConsensus(1);
+            var consensus = new PoWConsensus(1, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
             string previousBlockHash = "ABC";
             string transactions = "5;1;2022-01-01:00:00:00,6;1;2022-01-01:00:00:00"; // Two transactions
@@ -38,8 +38,8 @@ namespace ConsensusBenchmarkerTest.Tests
         public void HashNewBlock_UseTwoDifferentInstances()
         {
             // Arrange
-            var consensus1 = new PoWConsensus(1);
-            var consensus2 = new PoWConsensus(2);
+            var consensus1 = new PoWConsensus(1, 10);
+            var consensus2 = new PoWConsensus(2, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
             string previousBlockHash = "ABC";
             string transactions = "5;1;2022-01-01:00:00:00,6;1;2022-01-01:00:00:00"; // Two transactions
@@ -69,7 +69,7 @@ namespace ConsensusBenchmarkerTest.Tests
         public void HashConformsToDifficulty_ReturnsTrue()
         {
             // Arrange
-            var consensus = new PoWConsensus(1);
+            var consensus = new PoWConsensus(1, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashConformsToDifficulty", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             string hash = "0000000001BFA03384B2B3093E269E916DBDB5CC1168DF5ED148B88978609775";
             object[] parameters = { hash };
@@ -85,7 +85,7 @@ namespace ConsensusBenchmarkerTest.Tests
         public void HashConformsToDifficulty_ReturnsFalse()
         {
             // Arrange
-            var consensus = new PoWConsensus(1);
+            var consensus = new PoWConsensus(1, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashConformsToDifficulty", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             string hash = "00FBBF0E41BFA03384B2B3093E269E916DBDB5CC1168DF5ED148B88978609775";
             object[] parameters = { hash };
@@ -101,7 +101,7 @@ namespace ConsensusBenchmarkerTest.Tests
         public void HashConformsToDifficulty_ReturnsTrue2()
         {
             // Arrange
-            var consensus = new PoWConsensus(1);
+            var consensus = new PoWConsensus(1, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashConformsToDifficulty", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             string hash = "0000000000000000000000093E269E916DBDB5CC1168DF5ED148B88978609775";
             object[] parameters = { hash };
@@ -122,7 +122,7 @@ namespace ConsensusBenchmarkerTest.Tests
             ref var stopWatchRef = ref stopWatch;
             object[] parameters = { stopWatchRef };
 
-            var consensus = new PoWConsensus(1);
+            var consensus = new PoWConsensus(1, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             var transactions = new List<Transaction>()
             {
@@ -140,6 +140,75 @@ namespace ConsensusBenchmarkerTest.Tests
         }
 
         [TestMethod]
+        public void MineNewBlock_CheckIfExecutionFlagChanges()
+        {
+            // Arrange
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            ref var stopWatchRef = ref stopWatch;
+            object[] parameters = { stopWatchRef };
+
+            var consensus = new PoWConsensus(1, 2);
+            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
+            var transactions1 = new List<Transaction>()
+            {
+                { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
+            };
+            var transactions2 = new List<Transaction>()
+            {
+                { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
+            };
+
+            // Act
+            consensus.RecievedTransactionsSinceLastBlock = transactions1;
+            _ = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
+
+            consensus.RecievedTransactionsSinceLastBlock = transactions2;
+            _ = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
+
+            // Assert
+            Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
+            Assert.AreEqual(false, consensus.ExecutionFlag);
+        }
+
+        [TestMethod]
+        public void MineNewBlock_TryToAddOneMoreBlockThanTotal()
+        {
+            // Arrange
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            ref var stopWatchRef = ref stopWatch;
+            object[] parameters = { stopWatchRef };
+
+            var consensus = new PoWConsensus(1, 1);
+            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
+            var transactions1 = new List<Transaction>()
+            {
+                { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
+            };
+            var transactions2 = new List<Transaction>()
+            {
+                { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
+            };
+
+            // Act
+            consensus.RecievedTransactionsSinceLastBlock = transactions1;
+            _ = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
+
+            consensus.RecievedTransactionsSinceLastBlock = transactions2;
+            PoWBlock? block = (PoWBlock?)methodInfo!.Invoke(consensus, parameters);
+
+            // Assert
+            Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
+            Assert.AreEqual(false, consensus.ExecutionFlag);
+            Assert.AreEqual(null, block);
+        }
+
+        [TestMethod]
         public void RecieveBlock_AddGenesisBlockAndTheNextBlock()
         {
             // Arrange
@@ -148,7 +217,7 @@ namespace ConsensusBenchmarkerTest.Tests
             ref var stopWatchRef = ref stopWatch;
             object[] parameters = { stopWatchRef };
 
-            var consensus = new PoWConsensus(1);
+            var consensus = new PoWConsensus(1, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:
@@ -169,7 +238,7 @@ namespace ConsensusBenchmarkerTest.Tests
             consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
             PoWBlock blocked2 = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
             consensus.Blocks.Remove(blocked2); // It is added in "MineNewBlock" when it is 'mined'.
-            consensus.TotalBlocksInChain--;
+            consensus.BlocksInChain--;
             consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList(); // Simulates that it recieves a 'mined block'.
 
             // Act
@@ -190,7 +259,7 @@ namespace ConsensusBenchmarkerTest.Tests
             ref var stopWatchRef = ref stopWatch;
             object[] parameters = { stopWatchRef };
 
-            var consensus = new PoWConsensus(1);
+            var consensus = new PoWConsensus(1, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:
@@ -229,7 +298,7 @@ namespace ConsensusBenchmarkerTest.Tests
             ref var stopWatchRef = ref stopWatch;
             object[] parameters = { stopWatchRef };
 
-            var consensus = new PoWConsensus(1);
+            var consensus = new PoWConsensus(1, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:
@@ -250,7 +319,7 @@ namespace ConsensusBenchmarkerTest.Tests
             consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
             PoWBlock blocked2 = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
             consensus.Blocks.Remove(blocked2); // It is added in "MineNewBlock" when it is 'mined'.
-            consensus.TotalBlocksInChain--;
+            consensus.BlocksInChain--;
             consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList(); // Simulates that it recieves a 'mined block'.
             consensus.AddNewTransaction(new Transaction(42, 3, DateTime.Now.ToLocalTime()));
 
@@ -272,7 +341,7 @@ namespace ConsensusBenchmarkerTest.Tests
             ref var stopWatchRef = ref stopWatch;
             object[] parameters = { stopWatchRef };
 
-            var consensus = new PoWConsensus(1);
+            var consensus = new PoWConsensus(1, 10);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:

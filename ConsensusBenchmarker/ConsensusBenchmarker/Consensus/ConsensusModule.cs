@@ -12,18 +12,14 @@ namespace ConsensusBenchmarker.Consensus
         private readonly string consensusType;
         private readonly ConsensusDriver consensusMechanism;
         private readonly ConcurrentQueue<IEvent> eventQueue;
-        private bool executionFlag;
-        private readonly int totalBlocksToCreate = 0;
         private readonly int NodeID;
 
-        public ConsensusModule(string consensusType, int totalBlocksToCreate, int nodeID, ref ConcurrentQueue<IEvent> eventQueue)
+        public ConsensusModule(string consensusType, int maxBlocksToCreate, int nodeID, ref ConcurrentQueue<IEvent> eventQueue)
         {
-            this.totalBlocksToCreate = totalBlocksToCreate;
             this.consensusType = consensusType;
-            consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID);
+            consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID, maxBlocksToCreate);
             this.eventQueue = eventQueue;
             NodeID = nodeID;
-            executionFlag = true;
         }
 
         public List<Thread> SpawnThreads()
@@ -33,7 +29,7 @@ namespace ConsensusBenchmarker.Consensus
             {
                 new Thread(() =>
                 {
-                    while (executionFlag)
+                    while (consensusMechanism.ExecutionFlag)
                     {
                         HandleEventQueue();
                         Thread.Sleep(1);
@@ -50,7 +46,7 @@ namespace ConsensusBenchmarker.Consensus
 
         private void HandleMiningOperation()
         {
-            while (executionFlag)
+            while (consensusMechanism.ExecutionFlag)
             {
                 var stopWatch = new Stopwatch();
                 stopWatch.Start();
@@ -69,7 +65,7 @@ namespace ConsensusBenchmarker.Consensus
             }
         }
 
-        private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID)
+        private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID, int totalBlocksToCreate)
         {
             var executingAssembly = Assembly.GetExecutingAssembly();
             var assemblyTypes = executingAssembly.GetTypes();
@@ -81,16 +77,15 @@ namespace ConsensusBenchmarker.Consensus
 
             if (consensusCtor == null) throw new Exception("Consensus class does not have the required constructor");
 
-            return consensusCtor.Invoke(new object[] { nodeID }) as ConsensusDriver ?? throw new Exception("Construction invokation failed");
+            return consensusCtor.Invoke(new object[] { nodeID, totalBlocksToCreate }) as ConsensusDriver ?? throw new Exception("Construction invokation failed");
         }
 
         private void HandleEventQueue()
         {
-            if (consensusMechanism.TotalBlocksInChain >= totalBlocksToCreate)
+            if (!consensusMechanism.ExecutionFlag)
             {
                 eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.End));
                 eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.End, null));
-                executionFlag = false;
                 Console.WriteLine("Test finished, saving data.");
             }
 

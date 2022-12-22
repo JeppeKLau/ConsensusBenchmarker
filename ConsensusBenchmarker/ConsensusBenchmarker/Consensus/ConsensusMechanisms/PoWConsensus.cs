@@ -14,9 +14,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private bool restartMining;
         private readonly Random random;
 
-        public PoWConsensus(int nodeID)
+        public PoWConsensus(int nodeID, int maxBlocksToCreate) : base(nodeID, maxBlocksToCreate)
         {
-            NodeID = nodeID;
             random = new Random(NodeID * new Random().Next());
             allowMining = true;
             restartMining = false;
