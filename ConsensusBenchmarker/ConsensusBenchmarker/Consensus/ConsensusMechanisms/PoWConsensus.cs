@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 6;
+        private readonly uint DifficultyLeadingZeroes = 3;
         private bool allowMining;
         private bool restartMining;
         private readonly Random random;
@@ -28,6 +28,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
+
+            if (!ExecutionFlag) return false;
 
             Console.WriteLine($"PoW: Recieved block from {recievedBlock.OwnerNodeID}, created at: {recievedBlock.BlockCreatedAt.ToString("HH:mm:ss")}.\n");
 
@@ -63,8 +65,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
             }
         }
 
-        public override PoWBlock GenerateNextBlock(ref Stopwatch Stopwatch)
+        public override PoWBlock? GenerateNextBlock(ref Stopwatch Stopwatch)
         {
+            if (!ExecutionFlag) return null;
+
             while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0) ;
 
             return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
@@ -86,7 +90,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 while (newBlock == null)
                 {
-                    if (restartMining || allowMining == false)
+                    if (restartMining || allowMining == false || !ExecutionFlag)
                     {
                         stopwatch.Restart();
                         return null;

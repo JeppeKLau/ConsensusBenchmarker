@@ -12,6 +12,8 @@ namespace ConsensusBenchmarker.Consensus
 
         public int TotalBlocksInChain { get; set; } = 0;
 
+        public bool ExecutionFlag { get; set; } = true;
+
         public List<Transaction> RecievedTransactionsSinceLastBlock { get; set; } = new();
 
         public List<Block> Blocks { get; set; } = new List<Block>();
@@ -52,7 +54,7 @@ namespace ConsensusBenchmarker.Consensus
         /// Generates and returns a new valid block.
         /// </summary>
         /// <returns><see cref="Block"/></returns>
-        public virtual Block GenerateNextBlock(ref Stopwatch Stopwatch)
+        public virtual Block? GenerateNextBlock(ref Stopwatch Stopwatch)
         {
             throw new NotImplementedException();
         }

@@ -55,9 +55,12 @@ namespace ConsensusBenchmarker.Consensus
                 var stopWatch = new Stopwatch();
                 stopWatch.Start();
 
-                Block block = consensusMechanism.GenerateNextBlock(ref stopWatch);
+                Block? block = consensusMechanism.GenerateNextBlock(ref stopWatch);
 
                 stopWatch.Stop();
+
+                if (block == null) continue;
+
                 Console.WriteLine($"CM: It took {stopWatch.Elapsed.Seconds} seconds to mine the new block.");
 
                 eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
