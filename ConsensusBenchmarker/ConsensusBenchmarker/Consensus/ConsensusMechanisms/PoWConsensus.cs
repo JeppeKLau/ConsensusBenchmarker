@@ -28,8 +28,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
 
-            if (!ExecutionFlag) return false;
-
             Console.WriteLine($"PoW: Recieved block from {recievedBlock.OwnerNodeID}, created at: {recievedBlock.BlockCreatedAt.ToString("HH:mm:ss")}.\n");
 
             bool addBlock = false;

@@ -54,7 +54,7 @@ class Program
         }
 
         // Wait for threads to finish:
-        Console.WriteLine("Waiting test to finish.");
+        Console.WriteLine("Waiting for test to finish.");
         foreach (Thread moduleThread in moduleThreads)
         {
             moduleThread.Join();

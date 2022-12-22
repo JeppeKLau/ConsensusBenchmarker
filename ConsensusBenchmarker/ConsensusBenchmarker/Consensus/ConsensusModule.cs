@@ -34,6 +34,7 @@ namespace ConsensusBenchmarker.Consensus
                         HandleEventQueue();
                         Thread.Sleep(1);
                     }
+                    Console.WriteLine("Consensus event loop has been stopped.");
                 })
             };
 
@@ -55,13 +56,14 @@ namespace ConsensusBenchmarker.Consensus
 
                 stopWatch.Stop();
 
-                if (block == null) continue;
+                if (block != null)
+                {
+                    Console.WriteLine($"CM: It took {stopWatch.Elapsed.Seconds} seconds to mine the new block.");
 
-                Console.WriteLine($"CM: It took {stopWatch.Elapsed.Seconds} seconds to mine the new block.");
-
-                eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
-                eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
-                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
+                    eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
+                    eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
+                    eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
+                }
             }
             Console.WriteLine("Mining has been stopped.");
         }
