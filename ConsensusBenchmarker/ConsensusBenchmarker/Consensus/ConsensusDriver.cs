@@ -88,6 +88,8 @@ namespace ConsensusBenchmarker.Consensus
                 Blocks.Add(newBlock);
                 TotalBlocksInChain++;
 
+                Console.WriteLine($"CD: Added block from owner: {newBlock.OwnerNodeID}, current blocks in chain: {TotalBlocksInChain}");
+
                 MaintainBlockChainSize();
 
                 blocksMutex.Release();
