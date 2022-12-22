@@ -95,6 +95,8 @@ namespace ConsensusBenchmarker.Consensus
                 blocksMutex.Release();
 
                 RemoveNewBlockTransactions(newBlock);
+
+                Console.WriteLine($"CD: Current transactions after adding a new block is: {RecievedTransactionsSinceLastBlock.Count}.\n");
             }
         }
 

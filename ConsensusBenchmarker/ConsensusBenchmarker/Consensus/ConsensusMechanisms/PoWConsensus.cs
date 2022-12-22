@@ -43,7 +43,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 if (IsBlockValid(previousBlock, recievedBlock)) // Next Block
                 {
-                    Console.WriteLine("%%%%%%%%%%\nBlock is valid\n%%%%%%%%%%");
+                    Console.WriteLine("++++++++++++\nBlock is valid\n++++++++++++");
                     addBlock = true;
                 }
             }
