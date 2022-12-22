@@ -43,7 +43,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 if (IsBlockValid(previousBlock, recievedBlock)) // Next Block
                 {
-                    Console.WriteLine("++++++++++++\nBlock is valid\n++++++++++++");
                     addBlock = true;
                 }
             }
@@ -83,7 +82,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             long nonce;
             restartMining = false;
 
-            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(previousBlockHash, RecievedTransactionsSinceLastBlock);
+            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(previousBlockHash, RecievedTransactionsSinceLastBlock.ToList());
 
             using (SHA256 sha256 = SHA256.Create())
             {
@@ -96,8 +95,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     }
 
                     nonce = random.NextInt64(0, int.MaxValue);
-                    var (blockByteArray, wholeBlock) = HashNewBlock(sha256, previousHashAndTransactions, nonce);
-                    string blockHash = Convert.ToHexString(blockByteArray);
+                    string blockHash = HashNewBlock(sha256, previousHashAndTransactions, nonce);
                     if (HashConformsToDifficulty(blockHash))
                     {
                         newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
@@ -116,13 +114,12 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return CombineByteArrays(previousBlockHashInBytes, encodedTransactions);
         }
 
-        private (byte[], byte[]) HashNewBlock(SHA256 sha256, byte[] previousHashAndTransactions, long nonce)
+        private static string HashNewBlock(SHA256 sha256, byte[] previousHashAndTransactions, long nonce)
         {
-            // this is broke
             byte[] encodedNonce = Encoding.UTF8.GetBytes(nonce.ToString());
             byte[] wholeBlock = CombineByteArrays(previousHashAndTransactions, encodedNonce);
             byte[] byteHash = sha256.ComputeHash(wholeBlock);
-            return (byteHash, wholeBlock); //{ byteHash, wholeBlock }; // Convert.ToHexString(byteHash);
+            return Convert.ToHexString(byteHash);
         }
 
         private static byte[] CombineByteArrays(byte[] first, byte[] second)
@@ -160,13 +157,9 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
 
-            if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash))
+            if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && ValidateNewBlockHash(newBlock))
             {
-                if (ValidateNewBlockHash(newBlock))
-                {
-                    return true;
-                }
-                Console.WriteLine("%%%%%%%%%%\nBlock hash not valid\n%%%%%%%%%%");
+                return true;
             }
             return false;
         }
@@ -176,14 +169,12 @@ namespace ConsensusBenchmarker.Consensus.PoW
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
 
             using SHA256 sha256 = SHA256.Create();
-            var (blockByteArray, wholeBlock) = HashNewBlock(sha256, previousHashAndTransactions, newBlock.Nonce);
+            string newBlocksHash = HashNewBlock(sha256, previousHashAndTransactions, newBlock.Nonce);
 
-            string newBlocksHash = Convert.ToHexString(blockByteArray);
             if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
             {
                 return true;
             }
-
             return false;
         }
 

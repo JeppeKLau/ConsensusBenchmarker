@@ -5,6 +5,7 @@ using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ConsensusBenchmarkerTest.Tests
@@ -17,19 +18,20 @@ namespace ConsensusBenchmarkerTest.Tests
         {
             // Arrange
             var consensus = new PoWConsensus(1);
-            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
             string previousBlockHash = "ABC";
             string transactions = "5;1;2022-01-01:00:00:00,6;1;2022-01-01:00:00:00"; // Two transactions
             byte[] previousHashAndTransactions = Encoding.UTF8.GetBytes(previousBlockHash + transactions);
-            int nonce = 0;
-            object[] parameters = { previousHashAndTransactions, nonce };
+            long nonce = 0;
+
+            using SHA256 sha256 = SHA256.Create();
+            object[] parameters = { sha256, previousHashAndTransactions, nonce };
 
             // Act
-            var (result, _) = ((byte[], byte[]))methodInfo!.Invoke(consensus, parameters)!;
-            string stringres = Convert.ToHexString(result);
+            var result = (string)methodInfo!.Invoke(consensus, parameters)!;
 
             // Assert
-            Assert.AreEqual(((256 / 8) * 2), stringres.Length);
+            Assert.AreEqual(((256 / 8) * 2), result.Length);
         }
 
         [TestMethod]
@@ -38,22 +40,29 @@ namespace ConsensusBenchmarkerTest.Tests
             // Arrange
             var consensus1 = new PoWConsensus(1);
             var consensus2 = new PoWConsensus(2);
-            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
             string previousBlockHash = "ABC";
             string transactions = "5;1;2022-01-01:00:00:00,6;1;2022-01-01:00:00:00"; // Two transactions
             byte[] previousHashAndTransactions = Encoding.UTF8.GetBytes(previousBlockHash + transactions);
-            int nonce = 0;
-            object[] parameters = { previousHashAndTransactions, nonce };
+            long nonce = 0;
+            string result1;
+            string result2;
 
             // Act
-            var (result1, _) = ((byte[], byte[]))methodInfo!.Invoke(consensus1, parameters)!;
-            string stringres1 = Convert.ToHexString(result1);
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                object[] parameters = { sha256, previousHashAndTransactions, nonce };
+                result1 = (string)methodInfo!.Invoke(consensus1, parameters)!;
+            }
 
-            var (result2, _) = ((byte[], byte[]))methodInfo!.Invoke(consensus2, parameters)!;
-            string stringres2 = Convert.ToHexString(result2);
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                object[] parameters = { sha256, previousHashAndTransactions, nonce };
+                result2 = (string)methodInfo!.Invoke(consensus2, parameters)!;
+            }
 
             // Assert
-            Assert.AreEqual(stringres1, stringres2);
+            Assert.AreEqual(result1, result2);
         }
 
         [TestMethod]
