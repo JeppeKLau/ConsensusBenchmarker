@@ -82,12 +82,12 @@ namespace ConsensusBenchmarker.Consensus
 
         private void HandleEventQueue()
         {
-            if (consensusMechanism.TotalBlocksInChain > totalBlocksToCreate)
+            if (consensusMechanism.TotalBlocksInChain >= totalBlocksToCreate)
             {
                 eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.End));
                 eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.End, null));
                 executionFlag = false;
-                Console.WriteLine("Test finished, saving data");
+                Console.WriteLine("Test finished, saving data.");
             }
 
             if (!eventQueue.TryPeek(out var @event)) return;
