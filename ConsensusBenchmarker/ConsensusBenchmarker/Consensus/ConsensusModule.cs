@@ -63,6 +63,7 @@ namespace ConsensusBenchmarker.Consensus
                 eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
                 eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
             }
+            Console.WriteLine("Mining has been stopped.");
         }
 
         private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID, int totalBlocksToCreate)

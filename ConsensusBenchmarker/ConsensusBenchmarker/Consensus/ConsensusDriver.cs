@@ -26,6 +26,7 @@ namespace ConsensusBenchmarker.Consensus
                 if(blocksInChain >= MaxBlocksToCreate)
                 {
                     ExecutionFlag = false; // Shutdowns node
+                    Console.WriteLine("---ExecutionFlag is now set to false\n");
                 }
             }
         }
