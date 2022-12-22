@@ -64,11 +64,16 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override PoWBlock? GenerateNextBlock(ref Stopwatch Stopwatch)
         {
-            if (!ExecutionFlag) return null;
+            //if (!ExecutionFlag) return null; // the nodes that don't mine the last block is stuck here.
 
-            while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0) ;
+            if (ExecutionFlag)
+            {
+                while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0) ;
 
-            return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
+                return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
+            }
+            PoWBlock? nullBlock = null;
+            return nullBlock;
         }
 
         #region MineNewBlock
