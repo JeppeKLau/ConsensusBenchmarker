@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 7;
+        private readonly uint DifficultyLeadingZeroes;
         private volatile bool allowMining;
         private volatile bool restartMining;
         private readonly Random random;
@@ -19,6 +19,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             random = new Random(NodeID * new Random().Next());
             allowMining = true;
             restartMining = false;
+            DifficultyLeadingZeroes = uint.Parse(Environment.GetEnvironmentVariable("POW_DIFFICULTY") ?? "");
         }
 
         public override bool RecieveBlock(Block block)
@@ -183,7 +184,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 return true;
             }
-            Console.WriteLine($"The block from {newBlock.OwnerNodeID} was NOT valid.");
+            Console.WriteLine($"The block from {newBlock.OwnerNodeID} created at {newBlock.BlockCreatedAt} was NOT valid.");
             return false;
         }
 
