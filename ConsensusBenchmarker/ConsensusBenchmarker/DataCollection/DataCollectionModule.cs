@@ -64,7 +64,7 @@ namespace ConsensusBenchmarker.DataCollection
              *  Total time spent verifying blocks and block creation time. 
              */
 
-            while (executionFlag && eventQueue.Count == 0)
+            while (executionFlag || eventQueue.Count > 0)
             {
                 HandleEvents();
                 Thread.Sleep(1);

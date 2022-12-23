@@ -59,7 +59,7 @@ namespace ConsensusBenchmarker.Communication
 
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
             {
-                while (executionFlag && eventQueue.Count == 0)
+                while (executionFlag || eventQueue.Count > 0)
                 {
                     HandleEventQueue().GetAwaiter().GetResult();
                     Thread.Sleep(1);
