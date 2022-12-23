@@ -59,7 +59,6 @@ namespace ConsensusBenchmarker.Communication
                     Thread.Sleep(1);
                 }
                 messageThread!.Interrupt(); // It will be stuck in its waitformessage step at this point.
-                messageThread!.Join();
             }));
 
             moduleThreads.Add("Communication_WaitForMessage", new Thread(() =>

@@ -38,13 +38,9 @@ class Program
         // ask for blockchain ?
 
         // Create threads:
-        Console.WriteLine($"Creating threads. Current threads in dictionary: {moduleThreads.Count}");
         dataCollectionModule.SpawnThreads(moduleThreads);
-        Console.WriteLine($"Created first batch of threads. Current threads in dictionary: {moduleThreads.Count}");
         communicationModule.SpawnThreads(moduleThreads);
-        Console.WriteLine($"Created second batch of threads. Current threads in dictionary: {moduleThreads.Count}");
         consensusModule.SpawnThreads(moduleThreads);
-        Console.WriteLine($"Created third batch of threads. Current threads in dictionary: {moduleThreads.Count}");
 
         // For thread debugging:
         PrintActiveThreads(moduleThreads);
@@ -88,9 +84,9 @@ class Program
                     {
                         stoppedThreads++;
                     }
-                    Console.WriteLine($"Thread, {moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState.ToString()}");
+                    Console.WriteLine($"{moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState}");
                 }
-                Console.WriteLine($"{stoppedThreads} active threads is currently running.\n\n");
+                Console.WriteLine($"{stoppedThreads} threads has stopped.\n\n");
                 if (stoppedThreads == moduleThreads.Count) break;
                 Thread.Sleep(5_000);
             }
