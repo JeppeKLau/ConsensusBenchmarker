@@ -68,6 +68,12 @@ class Program
             Console.WriteLine($"Main: {moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState}");
         }
 
+        Console.WriteLine("Everything has finished.");
+        while (true)
+        {
+            if (debuggingThreadsThread.ThreadState == ThreadState.Stopped) break;
+            Thread.Sleep(1);
+        }
         debuggingThreadsThread.Join();
         Console.WriteLine("Test complete, terminating execution.");
     }
