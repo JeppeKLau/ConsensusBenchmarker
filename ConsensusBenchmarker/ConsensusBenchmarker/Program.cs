@@ -25,9 +25,9 @@ class Program
 
         var moduleThreads = new List<Thread>();
         string consensus = RetrieveConsensusMechanismType();
-        int totalBlocksToCreate = RetrieveNumberOfBlocksToCreate();
+        int maxBlocksToCreate = RetrieveMaxBlocksToCreate();
         int nodeID = RetrieveNodeName();
-        var executionFlag = true;
+        var executionFlag = true; // Could this be moved to data collection?
         var startTime = DateTime.UtcNow;
 
         var influxDBService = serviceProvider.GetRequiredService<InfluxDBService>();
@@ -35,7 +35,7 @@ class Program
 
         var dataCollectionModule = new DataCollectionModule(ref eventQueue, nodeID, influxDBService, ref executionFlag, startTime);
         var communicationModule = new CommunicationModule(ref eventQueue, nodeID);
-        var consensusModule = new ConsensusModule(consensus, totalBlocksToCreate, nodeID, ref eventQueue);
+        var consensusModule = new ConsensusModule(consensus, maxBlocksToCreate, nodeID, ref eventQueue);
         // ask for blockchain ?
 
         // Create threads:
@@ -54,7 +54,7 @@ class Program
         }
 
         // Wait for threads to finish:
-        Console.WriteLine("Waiting test to finish.");
+        Console.WriteLine("Waiting for test to finish.");
         foreach (Thread moduleThread in moduleThreads)
         {
             moduleThread.Join();
@@ -80,7 +80,7 @@ class Program
         return ConsensusTypes.Single(x => x.ToLower().Equals(envString.ToLower()));
     }
 
-    private static int RetrieveNumberOfBlocksToCreate()
+    private static int RetrieveMaxBlocksToCreate()
     {
         var envString = Environment.GetEnvironmentVariable("TOTAL_BLOCKS");
         if (envString == null)

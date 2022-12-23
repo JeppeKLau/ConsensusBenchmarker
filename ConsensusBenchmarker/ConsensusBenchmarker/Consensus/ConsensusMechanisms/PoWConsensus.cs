@@ -9,16 +9,13 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 7;
+        private readonly uint DifficultyLeadingZeroes = 6;
         private bool allowMining;
         private bool restartMining;
         private readonly Random random;
-        //private readonly SHA256 sha256;
 
-        public PoWConsensus(int nodeID)
+        public PoWConsensus(int nodeID, int maxBlocksToCreate) : base(nodeID, maxBlocksToCreate)
         {
-            NodeID = nodeID;
-            //sha256 = SHA256.Create();
             random = new Random(NodeID * new Random().Next());
             allowMining = true;
             restartMining = false;
@@ -31,7 +28,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
 
-            Console.WriteLine($"PoW: Recieved a block from {recievedBlock.OwnerNodeID}.\n");
+            Console.WriteLine($"PoW: Recieved block from {recievedBlock.OwnerNodeID}, created at: {recievedBlock.BlockCreatedAt.ToString("HH:mm:ss")}.\n");
 
             bool addBlock = false;
             PoWBlock? previousBlock = GetLastValidBlock();
@@ -65,11 +62,17 @@ namespace ConsensusBenchmarker.Consensus.PoW
             }
         }
 
-        public override PoWBlock GenerateNextBlock(ref Stopwatch Stopwatch)
+        public override PoWBlock? GenerateNextBlock(ref Stopwatch Stopwatch)
         {
-            while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0) ;
+            // the nodes that don't mine the last block is stuck here.  -------------------------------------------------------
 
-            return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
+            if (ExecutionFlag)
+            {
+                while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0) ;
+
+                return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
+            }
+            return null;
         }
 
         #region MineNewBlock
@@ -88,7 +91,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 while (newBlock == null)
                 {
-                    if (restartMining || allowMining == false)
+                    if (restartMining || allowMining == false || !ExecutionFlag)
                     {
                         stopwatch.Restart();
                         return null;
@@ -98,7 +101,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     string blockHash = HashNewBlock(sha256, previousHashAndTransactions, nonce);
                     if (HashConformsToDifficulty(blockHash))
                     {
-                        newBlock = new PoWBlock(NodeID, DateTime.Now.ToLocalTime(), RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
+                        newBlock = new PoWBlock(NodeID, DateTime.UtcNow, RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
                         AddNewBlockToChain(newBlock);
                     }
                 }
@@ -149,8 +152,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
         /// <summary>
         /// Determines whether or not a new block is valid to be added as the next block in the chain. Throws exception if the current chain is empty.
         /// </summary>
+        /// <param name="previousBlock"></param>
         /// <param name="newBlock"></param>
-        /// <returns></returns>
+        /// <returns><see cref="bool"/></returns>
+        /// <exception cref="Exception"></exception>
         private bool IsBlockValid(PoWBlock previousBlock, PoWBlock newBlock)
         {
             if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
@@ -159,6 +164,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 return true;
             }
+            Console.WriteLine($"The block from {newBlock.OwnerNodeID} was NOT valid.");
             return false;
         }
 
@@ -186,6 +192,5 @@ namespace ConsensusBenchmarker.Consensus.PoW
             }
             return null;
         }
-
     }
 }

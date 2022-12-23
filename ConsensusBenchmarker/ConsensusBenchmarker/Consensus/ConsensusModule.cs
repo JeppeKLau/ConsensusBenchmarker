@@ -12,18 +12,14 @@ namespace ConsensusBenchmarker.Consensus
         private readonly string consensusType;
         private readonly ConsensusDriver consensusMechanism;
         private readonly ConcurrentQueue<IEvent> eventQueue;
-        private bool executionFlag;
-        private readonly int totalBlocksToCreate = 0;
         private readonly int NodeID;
 
-        public ConsensusModule(string consensusType, int totalBlocksToCreate, int nodeID, ref ConcurrentQueue<IEvent> eventQueue)
+        public ConsensusModule(string consensusType, int maxBlocksToCreate, int nodeID, ref ConcurrentQueue<IEvent> eventQueue)
         {
-            this.totalBlocksToCreate = totalBlocksToCreate;
             this.consensusType = consensusType;
-            consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID);
+            consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID, maxBlocksToCreate);
             this.eventQueue = eventQueue;
             NodeID = nodeID;
-            executionFlag = true;
         }
 
         public List<Thread> SpawnThreads()
@@ -33,11 +29,12 @@ namespace ConsensusBenchmarker.Consensus
             {
                 new Thread(() =>
                 {
-                    while (executionFlag)
+                    while (consensusMechanism.ExecutionFlag)
                     {
                         HandleEventQueue();
                         Thread.Sleep(1);
                     }
+                    Console.WriteLine("Consensus event loop has been stopped.");
                 })
             };
 
@@ -50,23 +47,28 @@ namespace ConsensusBenchmarker.Consensus
 
         private void HandleMiningOperation()
         {
-            while (executionFlag)
+            while (consensusMechanism.ExecutionFlag)
             {
                 var stopWatch = new Stopwatch();
                 stopWatch.Start();
 
-                Block block = consensusMechanism.GenerateNextBlock(ref stopWatch);
+                Block? block = consensusMechanism.GenerateNextBlock(ref stopWatch);
 
                 stopWatch.Stop();
-                Console.WriteLine($"CM: It took {stopWatch.Elapsed.Seconds} seconds to mine the new block.");
 
-                eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
-                eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
-                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
+                if (block != null)
+                {
+                    Console.WriteLine($"CM: It took {stopWatch.Elapsed.Seconds} seconds to mine the new block.");
+
+                    eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
+                    eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
+                    eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
+                }
             }
+            Console.WriteLine("Mining has been stopped.");
         }
 
-        private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID)
+        private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID, int totalBlocksToCreate)
         {
             var executingAssembly = Assembly.GetExecutingAssembly();
             var assemblyTypes = executingAssembly.GetTypes();
@@ -74,20 +76,19 @@ namespace ConsensusBenchmarker.Consensus
 
             if (assemblyType == null) throw new Exception("Was not able to instantiate any Consensus class.");
 
-            var consensusCtor = assemblyType.GetConstructor(new[] { typeof(int) });
+            var consensusCtor = assemblyType.GetConstructor(new[] { typeof(int), typeof(int) });
 
             if (consensusCtor == null) throw new Exception("Consensus class does not have the required constructor");
 
-            return consensusCtor.Invoke(new object[] { nodeID }) as ConsensusDriver ?? throw new Exception("Construction invokation failed");
+            return consensusCtor.Invoke(new object[] { nodeID, totalBlocksToCreate }) as ConsensusDriver ?? throw new Exception("Construction invokation failed");
         }
 
         private void HandleEventQueue()
         {
-            if (consensusMechanism.TotalBlocksInChain >= totalBlocksToCreate)
+            if (!consensusMechanism.ExecutionFlag)
             {
                 eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.End));
                 eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.End, null));
-                executionFlag = false;
                 Console.WriteLine("Test finished, saving data.");
             }
 
