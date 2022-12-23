@@ -47,11 +47,11 @@ namespace ConsensusBenchmarker.Communication
             throw new ApplicationException("Node has no ip address setup. Try restarting client");
         }
 
-        public List<Thread> SpawnThreads()
+        public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
         {
             while (!DataCollectionReady()) ;
 
-            var eventThread = new Thread(() =>
+            moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
             {
                 while (ExecutionFlag)
                 {
@@ -60,15 +60,13 @@ namespace ConsensusBenchmarker.Communication
                 }
                 messageThread!.Interrupt(); // It will be stuck in its waitformessage step at this point.
                 messageThread!.Join();
-            });
+            }));
 
-            messageThread = new Thread(() =>
+            moduleThreads.Add("Communication_WaitForMessage", new Thread(() =>
             {
                 WaitForMessage().GetAwaiter().GetResult();
                 Console.WriteLine("Message thread has ended.");
-            });
-
-            return new List<Thread>() { eventThread, messageThread };
+            }));
         }
 
         private bool DataCollectionReady()

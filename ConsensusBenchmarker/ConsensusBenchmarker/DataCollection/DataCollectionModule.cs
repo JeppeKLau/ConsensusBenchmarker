@@ -33,9 +33,9 @@ namespace ConsensusBenchmarker.DataCollection
             executionFlag = true;
         }
 
-        public List<Thread> SpawnThreads()
+        public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
         {
-            var collectDataThread = new Thread(CollectData);
+            moduleThreads.Add("DataCollection_CollectData", new Thread(CollectData));
             memThread = new Thread(() =>
             {
                 while (executionFlag)
@@ -45,9 +45,9 @@ namespace ConsensusBenchmarker.DataCollection
                     Thread.Sleep(1000);
                 }
             });
+            moduleThreads.Add("DataCollection_ReadMemory", memThread);
 
             eventQueue.Enqueue(new DataCollectionEvent(nodeID, DataCollectionEventType.CollectionReady, null));
-            return new List<Thread>() { collectDataThread, memThread };
         }
 
         private void CollectData()

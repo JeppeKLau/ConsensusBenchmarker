@@ -23,7 +23,7 @@ class Program
 
         JsonConvert.DefaultSettings = () => new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
 
-        var moduleThreads = new List<Thread>();
+        var moduleThreads = new Dictionary<string, Thread>();
         string consensus = RetrieveConsensusMechanismType();
         int maxBlocksToCreate = RetrieveMaxBlocksToCreate();
         int nodeID = RetrieveNodeName();
@@ -38,34 +38,64 @@ class Program
         // ask for blockchain ?
 
         // Create threads:
-        Console.WriteLine("Creating threads.");
-        moduleThreads.AddRange(dataCollectionModule.SpawnThreads());
-        Console.WriteLine("Created first batch of threads.");
-        moduleThreads.AddRange(communicationModule.SpawnThreads());
-        Console.WriteLine("Created second batch of threads.");
-        moduleThreads.AddRange(consensusModule.SpawnThreads());
-        Console.WriteLine("Created third batch of threads.");
+        Console.WriteLine($"Creating threads. Current threads in dictionary: {moduleThreads.Count()}");
+        dataCollectionModule.SpawnThreads(moduleThreads);
+        Console.WriteLine($"Created first batch of threads. Current threads in dictionary: {moduleThreads.Count()}");
+        communicationModule.SpawnThreads(moduleThreads);
+        Console.WriteLine($"Created second batch of threads. Current threads in dictionary: {moduleThreads.Count()}");
+        consensusModule.SpawnThreads(moduleThreads);
+        Console.WriteLine($"Created third batch of threads. Current threads in dictionary: {moduleThreads.Count()}");
+
+        // For thread debugging:
+        PrintActiveThreads(moduleThreads);
 
         // Start communication thread first, so nodes can discover each other before it begins:
-        moduleThreads[3].Start();
+        if (moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
+        {
+            Console.WriteLine("Found and started communication_waitformsg thread.");
+            waitForMessageThread.Start();
+        }
         await communicationModule.AnnounceOwnIP();
         Thread.Sleep(10_000);
 
         // Start threads:
-        foreach (Thread moduleThread in moduleThreads.Where(t => t.ThreadState == ThreadState.Unstarted))
+        foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads.Where(t => t.Value.ThreadState == ThreadState.Unstarted))
         {
-            moduleThread.Start();
+            moduleThread.Value.Start();
         }
 
         // Wait for threads to finish:
         Console.WriteLine("Waiting for test to finish.");
-        foreach (Thread moduleThread in moduleThreads)
+        foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads)
         {
-            moduleThread.Join();
+            moduleThread.Value.Join();
         }
 
         Console.WriteLine("Test complete, terminating execution.");
         Environment.Exit(0);
+    }
+
+    private static void PrintActiveThreads(Dictionary<string, Thread> moduleThreads)
+    {
+        var printActiveThreadsThread = new Thread(() =>
+        {
+            while(true)
+            {
+                int activeThreads = 0;
+                foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads)
+                {
+                    if(moduleThread.Value.ThreadState == ThreadState.Running)
+                    {
+                        activeThreads++;
+                        Console.WriteLine($"Thread, {moduleThread.Key} is currently running.");
+                    }
+                }
+                Console.WriteLine($"{activeThreads} active threads is currently running.\n\n");
+                if (activeThreads == 0) break;
+                Thread.Sleep(5_000);
+            }
+        });
+        printActiveThreadsThread.Start();
     }
 
     private static readonly string[] ConsensusTypes = { "PoW", "PoS", "PoC", "PoET", "Raft", "PBFT", "RapidChain" };

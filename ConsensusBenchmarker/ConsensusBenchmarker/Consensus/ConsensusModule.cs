@@ -22,25 +22,21 @@ namespace ConsensusBenchmarker.Consensus
             NodeID = nodeID;
         }
 
-        public List<Thread> SpawnThreads()
+        public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
         {
             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
-            var consensusThreads = new List<Thread>
+            moduleThreads.Add("Consensus_HandleEventLoop", new Thread(() =>
             {
-                new Thread(() =>
+                while (consensusMechanism.ExecutionFlag)
                 {
-                    while (consensusMechanism.ExecutionFlag)
-                    {
-                        HandleEventQueue();
-                        Thread.Sleep(1);
-                    }
-                    NotifyModulesOfTestEnd();
-                })
-            };
-
+                    HandleEventQueue();
+                    Thread.Sleep(1);
+                }
+                NotifyModulesOfTestEnd();
+            }));
             if (consensusType == "PoW") // Could probably be prettier
             {
-                consensusThreads.Add(new Thread(() =>
+                moduleThreads.Add("Consensus_PoWMining", new Thread(() =>
                 {
                     while (consensusMechanism.ExecutionFlag)
                     {
@@ -49,10 +45,6 @@ namespace ConsensusBenchmarker.Consensus
                     Console.WriteLine("Mining has been stopped.");
                 }));
             }
-
-            Console.WriteLine("Finished setting up consensus threads.");
-
-            return consensusThreads;
         }
 
         private void HandleMiningOperation()
