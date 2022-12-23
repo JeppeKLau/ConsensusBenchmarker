@@ -6,9 +6,9 @@ using System.Net;
 namespace ConsensusBenchmarker.Communication
 {
     /// <summary>
-    /// DEF = Default, DIS = Discover, TRA = Transaction, BLK = Block, ReqBC = RequestBlockChain, RecBC = RecieveBlockChain, ACK = Acknoledgement, EOM = End of Message,
+    /// DEF = Default, DIS = Discover, TRA = Transaction, BLK = Block, QBC = RequestBlockChain, RBC = RecieveBlockChain, ACK = Acknoledgement, EOM = End of Message,
     /// </summary>
-    public enum OperationType { DEF = 0, DIS, TRA, BLK, ReqBC, RecBC, ACK, EOM };
+    public enum OperationType { DEF = 0, DIS, TRA, BLK, QBC, RBC, ACK, EOM };
 
     public static class Messages
     {
@@ -86,13 +86,13 @@ namespace ConsensusBenchmarker.Communication
 
         public static string CreateReqBCMessage(IPAddress ipAddress)
         {
-            return $"{CreateTag(OperationType.ReqBC)}IP:{ipAddress}{CreateTag(OperationType.EOM)}";
+            return $"{CreateTag(OperationType.QBC)}IP:{ipAddress}{CreateTag(OperationType.EOM)}";
         }
 
         public static string CreateRecBCMessage(List<Block> blocks)
         {
             string serializedBlocks = JsonConvert.SerializeObject(blocks);
-            return $"{CreateTag(OperationType.RecBC)}{serializedBlocks}{CreateTag(OperationType.EOM)}";
+            return $"{CreateTag(OperationType.RBC)}{serializedBlocks}{CreateTag(OperationType.EOM)}";
         }
 
     }

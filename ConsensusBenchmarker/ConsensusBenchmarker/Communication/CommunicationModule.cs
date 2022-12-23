@@ -53,7 +53,6 @@ namespace ConsensusBenchmarker.Communication
             moduleThreads.Add("Communication_WaitForMessage", new Thread(() =>
             {
                 WaitForMessage().GetAwaiter().GetResult();
-                Console.WriteLine("Message thread has ended.");
             }));
 
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
@@ -162,7 +161,7 @@ namespace ConsensusBenchmarker.Communication
                 return;
             }
 
-            Console.WriteLine($"I (node {nodeId}) requests recipient {firstNetworkNode} blockchain.");
+            Console.WriteLine($"I (node {nodeId}) requests recipient {firstNetworkNode}'s blockchain.");
             string messageToSend = Messages.CreateReqBCMessage(ipAddress!);
             await SendMessageAndDontWaitForAnswer(firstNetworkNode, messageToSend);
         }
@@ -266,11 +265,12 @@ namespace ConsensusBenchmarker.Communication
                     case OperationType.BLK:
                         ReceiveBlock(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.BLK));
                         break;
-                    case OperationType.ReqBC:
-                        RequestBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.ReqBC));
+                    case OperationType.QBC:
+                        Console.WriteLine("---" + Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.QBC) + "\n");
+                        RequestBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.QBC));
                         break;
-                    case OperationType.RecBC:
-                        RecieveBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RecBC));
+                    case OperationType.RBC:
+                        RecieveBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RBC));
                         break;
                 }
             }
