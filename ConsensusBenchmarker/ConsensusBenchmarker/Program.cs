@@ -40,8 +40,11 @@ class Program
         // Create threads:
         Console.WriteLine("Creating threads.");
         moduleThreads.AddRange(dataCollectionModule.SpawnThreads());
+        Console.WriteLine("Created first batch of threads.");
         moduleThreads.AddRange(communicationModule.SpawnThreads());
+        Console.WriteLine("Created second batch of threads.");
         moduleThreads.AddRange(consensusModule.SpawnThreads());
+        Console.WriteLine("Created third batch of threads.");
 
         // Start communication thread first, so nodes can discover each other before it begins:
         moduleThreads[3].Start();
