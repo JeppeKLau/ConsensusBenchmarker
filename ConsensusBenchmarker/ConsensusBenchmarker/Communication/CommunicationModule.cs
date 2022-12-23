@@ -22,6 +22,8 @@ namespace ConsensusBenchmarker.Communication
         private bool ExecutionFlag;
         private readonly SemaphoreSlim knownNodesMutex = new(1, 1);
 
+        private Thread? messageThread;
+
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
             ipAddress = GetLocalIPAddress();
@@ -58,7 +60,7 @@ namespace ConsensusBenchmarker.Communication
                 }
             });
 
-            var messageThread = new Thread(() =>
+            messageThread = new Thread(() =>
             {
                 WaitForMessage().GetAwaiter().GetResult();
                 Console.WriteLine("Wait for message thread ended.");
@@ -89,6 +91,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 case CommunicationEventType.End:
                     ExecutionFlag = false;
+                    messageThread!.Interrupt(); // It will be stuck in its waitformessage step at this point.
                     Console.WriteLine("Communication was signalled to end."); // TEMP
                     break;
                 case CommunicationEventType.SendTransaction:

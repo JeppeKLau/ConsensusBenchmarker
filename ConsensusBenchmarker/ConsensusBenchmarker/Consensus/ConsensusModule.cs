@@ -35,7 +35,7 @@ namespace ConsensusBenchmarker.Consensus
                         Thread.Sleep(1);
                     }
                     HandleEventQueue(); // Handle last time.
-                    Console.WriteLine("Consensus event loop has been stopped.");
+                    Console.WriteLine("Consensus event loop has been stopped."); // TEMP
                 })
             };
 
