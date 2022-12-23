@@ -46,6 +46,7 @@ class Program
         // Start communication thread first, so nodes can discover each other before it begins:
         moduleThreads[3].Start();
         await communicationModule.AnnounceOwnIP();
+        Thread.Sleep(10_000);
 
         // Start threads:
         foreach (Thread moduleThread in moduleThreads.Where(t => t.ThreadState == ThreadState.Unstarted))

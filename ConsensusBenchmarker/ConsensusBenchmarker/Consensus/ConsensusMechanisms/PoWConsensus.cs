@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 6;
+        private readonly uint DifficultyLeadingZeroes = 7;
         private bool allowMining;
         private bool restartMining;
         private readonly Random random;
@@ -105,6 +105,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     if (HashConformsToDifficulty(blockHash))
                     {
                         newBlock = new PoWBlock(NodeID, DateTime.UtcNow, RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
+                        Console.WriteLine($"PoW: Mined a new block, owner is me node {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt.ToString("HH:mm:ss")}.\n");
                         AddNewBlockToChain(newBlock);
                     }
                 }
