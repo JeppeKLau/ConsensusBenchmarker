@@ -1,6 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using ConsensusBenchmarker.Communication;
+﻿using ConsensusBenchmarker.Communication;
 using ConsensusBenchmarker.Consensus;
 using ConsensusBenchmarker.DataCollection;
 using ConsensusBenchmarker.Models.Events;
@@ -43,8 +41,8 @@ class Program
         consensusModule.SpawnThreads(moduleThreads);
 
         // For thread debugging:
-        Thread debuggingThreadsThread = PrintActiveThreads(moduleThreads);
-        debuggingThreadsThread.Start();
+        //Thread debuggingThreadsThread = PrintActiveThreads(moduleThreads);
+        //debuggingThreadsThread.Start();
 
         // Start communication thread first, so nodes can discover each other before it begins:
         if (moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
@@ -61,10 +59,9 @@ class Program
         }
 
         // Wait for threads to finish:
-        Console.WriteLine("Waiting for test to finish.");
         HoldMainThreadUntilAllThreadsIsFinished(moduleThreads);
 
-        debuggingThreadsThread.Join();
+        //debuggingThreadsThread.Join();
         Console.WriteLine("Test complete, terminating execution.");
     }
 
@@ -85,6 +82,7 @@ class Program
                 if(moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
                 {
                     Thread.Sleep(5_000);
+                    Console.WriteLine("Closing the incoming communication thread.");
                     waitForMessageThread.Interrupt();
                     break;
                 }
