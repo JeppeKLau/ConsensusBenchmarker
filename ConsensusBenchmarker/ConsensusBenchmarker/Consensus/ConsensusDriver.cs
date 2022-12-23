@@ -79,6 +79,20 @@ namespace ConsensusBenchmarker.Consensus
             throw new NotImplementedException();
         }
 
+        public virtual List<Block> RequestBlockChain()
+        {
+            return Blocks;
+        }
+
+        public virtual void RecieveBlockChain(List<Block> blocks)
+        {
+            // This node could, if its lucky, be able to add its own block while waiting for a response for another node's blockchain, just fyi
+            foreach(Block block in blocks)
+            {
+                AddNewBlockToChain(block);
+            }
+        }
+
         /// <summary>
         /// Generate and return a new transaction.
         /// </summary>

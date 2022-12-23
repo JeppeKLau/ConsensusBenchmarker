@@ -20,7 +20,8 @@ namespace ConsensusBenchmarker.Communication
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeId;
         private bool executionFlag;
-        private readonly SemaphoreSlim knownNodesMutex = new(1, 1);
+        private readonly SemaphoreSlim knownNodesSemaphore = new(1, 1);
+        private readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
 
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
@@ -57,6 +58,7 @@ namespace ConsensusBenchmarker.Communication
 
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
             {
+                eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null)); // Correct place to do this?
                 while (executionFlag || eventQueue.Count > 0)
                 {
                     HandleEventQueue().GetAwaiter().GetResult();
@@ -95,6 +97,13 @@ namespace ConsensusBenchmarker.Communication
                     break;
                 case CommunicationEventType.SendBlock:
                     await BroadcastBlock(nextEvent.Data as Models.Blocks.Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
+                    break;
+                case CommunicationEventType.RequestBlockChain:
+                    await SendRequestBlockChain();
+                    break;
+                case CommunicationEventType.RecieveBlockChain:
+                    await SendRecieveBlockChain(nextEvent.Data as List<Models.Blocks.Block> ?? throw new ArgumentException("Blocks missing from event", nameof(nextEvent.Data)),
+                    nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient)));
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -136,14 +145,37 @@ namespace ConsensusBenchmarker.Communication
             await BroadcastMessageAndDontWaitForAnswer(messageToSend);
         }
 
+        private async Task SendRequestBlockChain()
+        {
+            IPAddress? firstNetworkNode = null;
+
+            knownNodesSemaphore.Wait();
+            if (knownNodes.Count > 0)
+            {
+                firstNetworkNode = knownNodes.First();
+            }
+            knownNodesSemaphore.Release();
+
+            if (firstNetworkNode == null) return;
+
+            string messageToSend = Messages.CreateReqBCMessage(ipAddress!);
+            await SendMessageAndDontWaitForAnswer(firstNetworkNode, messageToSend);
+        }
+
+        private async Task SendRecieveBlockChain(List<Models.Blocks.Block> blocks, IPAddress recipient)
+        {
+            string messageToSend = Messages.CreateRecBCMessage(blocks);
+            await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
+        }
+
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)
         {
-            knownNodesMutex.Wait();
+            knownNodesSemaphore.Wait();
             foreach (var otherNode in knownNodes)
             {
                 await SendMessageAndDontWaitForAnswer(otherNode, messageToSend);
             }
-            knownNodesMutex.Release();
+            knownNodesSemaphore.Release();
         }
 
         /// <summary>
@@ -228,6 +260,12 @@ namespace ConsensusBenchmarker.Communication
                     case OperationType.BLK:
                         ReceiveBlock(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.BLK));
                         break;
+                    case OperationType.ReqBC:
+                        RequestBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.ReqBC));
+                        break;
+                    case OperationType.RecBC:
+                        RecieveBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RecBC));
+                        break;
                 }
             }
         }
@@ -248,9 +286,9 @@ namespace ConsensusBenchmarker.Communication
                 IPAddress newIP = Messages.ParseIpAddress(DiscoverMessage);
                 if (!knownNodes.Contains(newIP) && !newIP.Equals(ipAddress))
                 {
-                    knownNodesMutex.Wait();
+                    knownNodesSemaphore.Wait();
                     knownNodes.Add(newIP);
-                    knownNodesMutex.Release();
+                    knownNodesSemaphore.Release();
                 }
             }
         }
@@ -261,17 +299,31 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Transaction could not be deserialized correctly", nameof(message));
             }
-            eventQueue.Enqueue(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction));
+            eventQueue.Enqueue(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction, null));
         }
 
         private void ReceiveBlock(string message)
         {
-            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
-            if (JsonConvert.DeserializeObject<Models.Blocks.Block>(message, settings) is not Models.Blocks.Block recievedBlock)
+            if (JsonConvert.DeserializeObject<Models.Blocks.Block>(message, jsonSettings) is not Models.Blocks.Block recievedBlock)
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
-            eventQueue.Enqueue(new ConsensusEvent(recievedBlock, ConsensusEventType.RecieveBlock));
+            eventQueue.Enqueue(new ConsensusEvent(recievedBlock, ConsensusEventType.RecieveBlock, null));
+        }
+
+        private void RequestBlockChain(string message)
+        {
+            IPAddress recipientNode = Messages.ParseIpAddress(message);
+            eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.RequestBlockchain, recipientNode));
+        }
+
+        private void RecieveBlockChain(string message)
+        {
+            if (JsonConvert.DeserializeObject<List<Models.Blocks.Block>>(message, jsonSettings) is not List<Models.Blocks.Block> recievedBlocks)
+            {
+                throw new ArgumentException("Blocks could not be deserialized correctly", nameof(message));
+            }
+            eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
         }
 
         #endregion

@@ -3,6 +3,7 @@ using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Events;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Net;
 using System.Reflection;
 
 namespace ConsensusBenchmarker.Consensus
@@ -24,7 +25,7 @@ namespace ConsensusBenchmarker.Consensus
 
         public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
         {
-            eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
+            eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
             moduleThreads.Add("Consensus_HandleEventLoop", new Thread(() =>
             {
                 while (consensusMechanism.ExecutionFlag || eventQueue.Count > 0)
@@ -57,8 +58,8 @@ namespace ConsensusBenchmarker.Consensus
 
             if (block != null)
             {
-                eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock));
-                eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
+                eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock, null));
+                eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
                 eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
             }
         }
@@ -93,21 +94,27 @@ namespace ConsensusBenchmarker.Consensus
                     var blockWasAdded = consensusMechanism.RecieveBlock(nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data)));
                     if (blockWasAdded)
                     {
-                        eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
+                        eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
                     }
                     break;
                 case ConsensusEventType.CreateTransaction:
                     if(consensusMechanism.ExecutionFlag)
                     {
-                        eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.GenerateNextTransaction(), CommunicationEventType.SendTransaction));
+                        eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.GenerateNextTransaction(), CommunicationEventType.SendTransaction, null));
                     }
                     break;
                 case ConsensusEventType.RecieveTransaction:
                     consensusMechanism.RecieveTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case ConsensusEventType.RequestBlockchain:
+                    var blocks = consensusMechanism.RequestBlockChain();
+                    if(blocks.Count > 0)
+                    {
+                        eventQueue.Enqueue(new CommunicationEvent(blocks, CommunicationEventType.RecieveBlockChain, nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient))));
+                    }
                     break;
                 case ConsensusEventType.RecieveBlockchain:
+                    consensusMechanism.RecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data)));
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -119,9 +126,9 @@ namespace ConsensusBenchmarker.Consensus
         {
             if (consensusMechanism.ExecutionFlag == false)
             {
-                eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.End));
+                eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.End, null));
                 eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.End, null));
-                Console.WriteLine("Test finished, saving data.");
+                Console.WriteLine("Test is finished, modules has been signalled to stop.");
             }
         }
     }

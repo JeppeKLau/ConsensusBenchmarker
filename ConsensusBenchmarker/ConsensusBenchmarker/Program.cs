@@ -79,7 +79,8 @@ class Program
             }
             if (stoppedThreads == (moduleThreads.Count - 1))
             {
-                if(moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
+                // Communication_WaitForMessage thread is stuck in waiting for an incoming message, we have to interrupt it to stop.
+                if (moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
                 {
                     Thread.Sleep(5_000);
                     Console.WriteLine("Closing the incoming communication thread.");
@@ -108,7 +109,7 @@ class Program
                     Console.WriteLine($"{moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState}");
                 }
                 Console.WriteLine($"{stoppedThreads} threads has stopped.\n\n");
-                if (stoppedThreads == moduleThreads.Count)
+                if (stoppedThreads == moduleThreads.Count - 1)
                 {
                     Console.WriteLine("Debugging thread is finished.");
                     break;

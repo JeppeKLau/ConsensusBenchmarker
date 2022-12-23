@@ -70,8 +70,6 @@ namespace ConsensusBenchmarker.DataCollection
                 Thread.Sleep(1);
             }
 
-            Console.WriteLine("Exited the data colletion event handling loop."); // TEMP
-
             var endTime = DateTime.UtcNow;
             ReadCpuValue(out int cpuTime);
             WriteInformationToDB(new CPUMeasurement(nodeID, DateTime.UtcNow, cpuTime));
@@ -79,8 +77,6 @@ namespace ConsensusBenchmarker.DataCollection
             WriteInformationToDB(new TransactionMeasurement(nodeID, DateTime.UtcNow, transactionCount));
             WriteInformationToDB(new MessageMeasurement(nodeID, DateTime.UtcNow, messageCount));
             memThread?.Join();
-
-            Console.WriteLine("All threads in data collection has finished.");
         }
 
         private void WriteInformationToDB(BaseMeasurement measurement)

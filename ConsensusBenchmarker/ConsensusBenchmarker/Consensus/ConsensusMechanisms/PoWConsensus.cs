@@ -10,8 +10,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
     public class PoWConsensus : ConsensusDriver
     {
         private readonly uint DifficultyLeadingZeroes = 6;
-        private bool allowMining;
-        private bool restartMining;
+        private volatile bool allowMining;
+        private volatile bool restartMining;
         private readonly Random random;
 
         public PoWConsensus(int nodeID, int maxBlocksToCreate) : base(nodeID, maxBlocksToCreate)
@@ -78,6 +78,19 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 return miningResult;
             }
             return null;
+        }
+
+        public override void RecieveBlockChain(List<Block> blocks)
+        {
+            if(blocks.Count > 0 && Blocks.Count == 0)
+            {
+                allowMining = false;
+                foreach (Block block in blocks)
+                {
+                    AddNewBlockToChain(block);
+                }
+                allowMining = true;
+            }
         }
 
         #region MineNewBlock
