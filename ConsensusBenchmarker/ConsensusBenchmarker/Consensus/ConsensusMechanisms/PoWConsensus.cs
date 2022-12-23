@@ -66,6 +66,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0)
                 {
+                    if(ExecutionFlag == false) break;
                     Thread.Sleep(1);
                 }
 
@@ -95,7 +96,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 while (newBlock == null)
                 {
-                    if (restartMining || allowMining == false || !ExecutionFlag)
+                    if (restartMining || allowMining == false || ExecutionFlag == false)
                     {
                         stopwatch.Restart();
                         return null;
