@@ -68,7 +68,7 @@ class Program
 
         debuggingThreadsThread.Join();
         Console.WriteLine("Test complete, terminating execution.");
-        Environment.Exit(0);
+        //Environment.Exit(0);
     }
 
     private static Thread PrintActiveThreads(Dictionary<string, Thread> moduleThreads)
@@ -88,7 +88,11 @@ class Program
                     Console.WriteLine($"{moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState}");
                 }
                 Console.WriteLine($"{stoppedThreads} threads has stopped.\n\n");
-                if (stoppedThreads == moduleThreads.Count) break;
+                if (stoppedThreads == moduleThreads.Count)
+                {
+                    Console.WriteLine("Debugging thread is finished.");
+                    break;
+                }
                 Thread.Sleep(5_000);
             }
         });

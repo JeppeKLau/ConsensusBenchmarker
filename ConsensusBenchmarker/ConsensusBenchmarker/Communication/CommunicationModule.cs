@@ -59,12 +59,12 @@ namespace ConsensusBenchmarker.Communication
 
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
             {
-                while (executionFlag)
+                while (executionFlag && eventQueue.Count == 0)
                 {
                     HandleEventQueue().GetAwaiter().GetResult();
                     Thread.Sleep(1);
                 }
-                messageThread!.Interrupt(); // It will be stuck in its waitformessage step at this point.
+                //messageThread!.Interrupt(); // It will be stuck in its waitformessage step at this point.
             }));
 
             moduleThreads.Add("Communication_WaitForMessage", messageThread);

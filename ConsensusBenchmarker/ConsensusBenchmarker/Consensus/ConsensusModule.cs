@@ -27,16 +27,12 @@ namespace ConsensusBenchmarker.Consensus
             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
             moduleThreads.Add("Consensus_HandleEventLoop", new Thread(() =>
             {
-                while (consensusMechanism.ExecutionFlag)
+                while (consensusMechanism.ExecutionFlag && eventQueue.Count == 0)
                 {
                     HandleEventQueue();
                     Thread.Sleep(1);
                 }
-                HandleEventQueue(); // Handle the last transaction.
-                HandleEventQueue(); // Handle the last transaction.
-                HandleEventQueue(); // Handle the last transaction.
-                HandleEventQueue(); // Handle the last transaction.
-
+                //HandleEventQueue(); // Handle the last transaction.
                 NotifyModulesOfTestEnd();
             }));
             if (consensusType == "PoW") // Could probably be prettier
