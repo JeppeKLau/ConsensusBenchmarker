@@ -266,7 +266,6 @@ namespace ConsensusBenchmarker.Communication
                         ReceiveBlock(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.BLK));
                         break;
                     case OperationType.QBC:
-                        Console.WriteLine("---" + Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.QBC) + "\n");
                         RequestBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.QBC));
                         break;
                     case OperationType.RBC:
