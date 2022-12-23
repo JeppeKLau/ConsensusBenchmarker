@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 6;
+        private readonly uint DifficultyLeadingZeroes = 3;
         private bool allowMining;
         private bool restartMining;
         private readonly Random random;
@@ -64,13 +64,16 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override PoWBlock? GenerateNextBlock(ref Stopwatch Stopwatch)
         {
-            // the nodes that don't mine the last block is stuck here.  -------------------------------------------------------
-
             if (ExecutionFlag)
             {
                 while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0) ;
 
-                return MineNewBlock(ref Stopwatch) ?? GenerateNextBlock(ref Stopwatch);
+                PoWBlock? miningResult = MineNewBlock(ref Stopwatch); 
+                if(miningResult == null)
+                {
+                    return GenerateNextBlock(ref Stopwatch);
+                }
+                return miningResult;
             }
             return null;
         }

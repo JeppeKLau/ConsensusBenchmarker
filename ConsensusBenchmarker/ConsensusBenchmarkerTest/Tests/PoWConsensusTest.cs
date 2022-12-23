@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Security.Policy;
 using System.Text;
 
 namespace ConsensusBenchmarkerTest.Tests
@@ -63,6 +64,39 @@ namespace ConsensusBenchmarkerTest.Tests
 
             // Assert
             Assert.AreEqual(result1, result2);
+        }
+
+        [TestMethod]
+        public void GenerateNextBlock_UseTwoDifferentInstances()
+        {
+            // Arrange
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            var consensus = new PoWConsensus(1, 1);
+
+            // Mine block 1 and reach maxBlocksToMine
+            var transactions1 = new List<Transaction>()
+            {
+                { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
+            };
+            consensus.RecievedTransactionsSinceLastBlock = transactions1;
+            PoWBlock? result1 = consensus.GenerateNextBlock(ref stopWatch);
+
+            var transactions2 = new List<Transaction>()
+            {
+                { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
+                { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
+            };
+            consensus.RecievedTransactionsSinceLastBlock = transactions2;
+
+            // Act
+            PoWBlock? result2 = consensus.GenerateNextBlock(ref stopWatch);
+
+            // Assert
+            Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
+            Assert.AreEqual(true, result1 != null);
+            Assert.AreEqual(true, result2 == null);
         }
 
         [TestMethod]
