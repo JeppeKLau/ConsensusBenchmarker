@@ -59,9 +59,9 @@ namespace ConsensusBenchmarker.Consensus
 
                 if (block != null)
                 {
-                    Console.WriteLine($"CM: It took {stopWatch.Elapsed.Seconds} seconds to mine the new block.");
+                    //Console.WriteLine($"CM: It took {stopWatch.Elapsed.Seconds} seconds to mine the new block.");
 
-                    eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock)); // should another node validate a newly found block before this node adds it to its chain and creates a new transaction?
+                    eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock));
                     eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
                     eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
                 }
@@ -103,14 +103,17 @@ namespace ConsensusBenchmarker.Consensus
                 case ConsensusEventType.CreateBlock:
                     break;
                 case ConsensusEventType.RecieveBlock:
-                    var valid = consensusMechanism.RecieveBlock(nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data)));
-                    if (valid)
+                    var blockWasAdded = consensusMechanism.RecieveBlock(nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data)));
+                    if (blockWasAdded)
                     {
                         eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
                     }
                     break;
                 case ConsensusEventType.CreateTransaction:
-                    eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.GenerateNextTransaction(), CommunicationEventType.SendTransaction));
+                    if(consensusMechanism.ExecutionFlag)
+                    {
+                        eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.GenerateNextTransaction(), CommunicationEventType.SendTransaction));
+                    }
                     break;
                 case ConsensusEventType.RecieveTransaction:
                     consensusMechanism.RecieveTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));

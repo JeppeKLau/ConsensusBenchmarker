@@ -110,7 +110,7 @@ namespace ConsensusBenchmarker.Consensus
                 Blocks.Add(newBlock);
                 BlocksInChain++;
 
-                Console.WriteLine($"\nCD: Added block from owner: {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt}, current blocks in chain: {BlocksInChain}");
+                Console.WriteLine($"\nCD: Added block from owner: {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt.ToString("HH:mm:ss")}, current blocks in chain: {BlocksInChain}");
 
                 MaintainBlockChainSize();
 
