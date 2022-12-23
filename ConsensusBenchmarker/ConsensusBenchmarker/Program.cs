@@ -43,7 +43,7 @@ class Program
         consensusModule.SpawnThreads(moduleThreads);
 
         // For thread debugging:
-        PrintActiveThreads(moduleThreads);
+        var debuggingThreadsThread = PrintActiveThreads(moduleThreads);
 
         // Start communication thread first, so nodes can discover each other before it begins:
         if (moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
@@ -66,11 +66,12 @@ class Program
             moduleThread.Value.Join();
         }
 
+        debuggingThreadsThread.Join();
         Console.WriteLine("Test complete, terminating execution.");
         Environment.Exit(0);
     }
 
-    private static void PrintActiveThreads(Dictionary<string, Thread> moduleThreads)
+    private static Thread PrintActiveThreads(Dictionary<string, Thread> moduleThreads)
     {
         var printActiveThreadsThread = new Thread(() =>
         {
@@ -92,6 +93,7 @@ class Program
             }
         });
         printActiveThreadsThread.Start();
+        return printActiveThreadsThread;
     }
 
     private static readonly string[] ConsensusTypes = { "PoW", "PoS", "PoC", "PoET", "Raft", "PBFT", "RapidChain" };
