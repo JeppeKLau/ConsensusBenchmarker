@@ -22,8 +22,6 @@ namespace ConsensusBenchmarker.Communication
         private bool executionFlag;
         private readonly SemaphoreSlim knownNodesMutex = new(1, 1);
 
-        private Thread? messageThread;
-
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
             ipAddress = GetLocalIPAddress();
@@ -51,11 +49,11 @@ namespace ConsensusBenchmarker.Communication
         {
             while (!DataCollectionReady()) ;
 
-            messageThread = new Thread(() =>
+            moduleThreads.Add("Communication_WaitForMessage", new Thread(() =>
             {
                 WaitForMessage().GetAwaiter().GetResult();
                 Console.WriteLine("Message thread has ended.");
-            });
+            }));
 
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
             {
@@ -64,10 +62,7 @@ namespace ConsensusBenchmarker.Communication
                     HandleEventQueue().GetAwaiter().GetResult();
                     Thread.Sleep(1);
                 }
-                //messageThread!.Interrupt(); // It will be stuck in its waitformessage step at this point.
             }));
-
-            moduleThreads.Add("Communication_WaitForMessage", messageThread);
         }
 
         private bool DataCollectionReady()

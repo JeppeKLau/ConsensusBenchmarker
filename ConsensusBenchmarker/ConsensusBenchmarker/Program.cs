@@ -62,20 +62,35 @@ class Program
 
         // Wait for threads to finish:
         Console.WriteLine("Waiting for test to finish.");
-        foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads)
-        {
-            moduleThread.Value.Join();
-            Console.WriteLine($"Main: {moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState}");
-        }
+        HoldMainThreadUntilAllThreadsIsFinished(moduleThreads);
 
-        Console.WriteLine("Everything has finished.");
-        while (true)
-        {
-            if (debuggingThreadsThread.ThreadState == ThreadState.Stopped) break;
-            Thread.Sleep(1);
-        }
         debuggingThreadsThread.Join();
         Console.WriteLine("Test complete, terminating execution.");
+    }
+
+    private static void HoldMainThreadUntilAllThreadsIsFinished(Dictionary<string, Thread> moduleThreads)
+    {
+        while (true)
+        {
+            int stoppedThreads = 0;
+            foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads)
+            {
+                if (moduleThread.Value.ThreadState == ThreadState.Stopped || moduleThread.Value.ThreadState == ThreadState.StopRequested)
+                {
+                    stoppedThreads++;
+                }
+            }
+            if (stoppedThreads == (moduleThreads.Count - 1))
+            {
+                if(moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
+                {
+                    Thread.Sleep(5_000);
+                    waitForMessageThread.Interrupt();
+                    break;
+                }
+            }
+            Thread.Sleep(1000);
+        }
     }
 
     private static Thread PrintActiveThreads(Dictionary<string, Thread> moduleThreads)
