@@ -77,17 +77,17 @@ class Program
                     stoppedThreads++;
                 }
             }
-            if (stoppedThreads == (moduleThreads.Count - 1))
-            {
-                // Communication_WaitForMessage thread is stuck in waiting for an incoming message, we have to interrupt it to stop.
-                if (moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
-                {
-                    Thread.Sleep(5_000);
-                    Console.WriteLine("Closing the incoming communication thread.");
-                    waitForMessageThread.Interrupt();
-                    break;
-                }
-            }
+            //if (stoppedThreads == (moduleThreads.Count - 1))
+            //{
+            //    // Communication_WaitForMessage thread is stuck in waiting for an incoming message, we have to interrupt it to stop.
+            //    if (moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
+            //    {
+            //        Thread.Sleep(5_000);
+            //        Console.WriteLine("Closing the incoming communication thread.");
+            //        waitForMessageThread.Interrupt();
+            //        break;
+            //    }
+            //}
             Thread.Sleep(1000);
         }
     }
@@ -96,13 +96,13 @@ class Program
     {
         var printActiveThreadsThread = new Thread(() =>
         {
-            while(true)
+            while (true)
             {
                 Console.WriteLine($"There are {moduleThreads.Count} threads in the dictionary.");
                 int stoppedThreads = 0;
                 foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads)
                 {
-                    if(moduleThread.Value.ThreadState == ThreadState.Stopped || moduleThread.Value.ThreadState == ThreadState.StopRequested)
+                    if (moduleThread.Value.ThreadState == ThreadState.Stopped || moduleThread.Value.ThreadState == ThreadState.StopRequested)
                     {
                         stoppedThreads++;
                     }
