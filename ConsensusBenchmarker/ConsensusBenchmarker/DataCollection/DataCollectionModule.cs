@@ -70,7 +70,7 @@ namespace ConsensusBenchmarker.DataCollection
                 Thread.Sleep(1);
             }
 
-            Console.WriteLine("Exited the data colletion ecent handling loop."); // TEMP
+            Console.WriteLine("Exited the data colletion event handling loop."); // TEMP
 
             var endTime = DateTime.UtcNow;
             ReadCpuValue(out int cpuTime);

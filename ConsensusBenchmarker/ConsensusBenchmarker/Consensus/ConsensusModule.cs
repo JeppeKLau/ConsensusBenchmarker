@@ -32,7 +32,6 @@ namespace ConsensusBenchmarker.Consensus
                     HandleEventQueue();
                     Thread.Sleep(1);
                 }
-                //HandleEventQueue(); // Handle the last transaction.
                 NotifyModulesOfTestEnd();
             }));
             if (consensusType == "PoW") // Could probably be prettier
@@ -83,12 +82,6 @@ namespace ConsensusBenchmarker.Consensus
         {
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not ConsensusEvent nextEvent) return;
-
-            if (consensusMechanism.ExecutionFlag == false)
-            {
-                Console.WriteLine("code 1.");
-                Console.WriteLine(nextEvent.EventType);
-            }
 
             switch (nextEvent.EventType)
             {
