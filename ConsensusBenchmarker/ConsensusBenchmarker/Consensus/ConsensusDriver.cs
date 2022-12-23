@@ -1,4 +1,5 @@
-﻿using ConsensusBenchmarker.Models;
+﻿using ConsensusBenchmarker.Extensions;
+using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
 using System.Diagnostics;
 
@@ -122,7 +123,7 @@ namespace ConsensusBenchmarker.Consensus
             {
                 blocksMutex.Wait();
 
-                Blocks.Add(newBlock);
+                Blocks.AddSorted(newBlock);
                 BlocksInChain++;
 
                 Console.WriteLine($"\nCD: Added block from owner: {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt.ToString("HH:mm:ss")}, current blocks in chain: {BlocksInChain}");
