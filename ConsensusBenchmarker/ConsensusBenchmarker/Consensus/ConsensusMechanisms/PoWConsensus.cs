@@ -28,8 +28,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
             }
 
-            //Console.WriteLine($"PoW: Recieved block from {recievedBlock.OwnerNodeID}, created at: {recievedBlock.BlockCreatedAt.ToString("HH:mm:ss")}.\n");
-
             bool addBlock = false;
             PoWBlock? previousBlock = GetLastValidBlock();
             if (previousBlock == null) // Genesis Block
@@ -108,7 +106,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     if (HashConformsToDifficulty(blockHash))
                     {
                         newBlock = new PoWBlock(NodeID, DateTime.UtcNow, RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
-                        Console.WriteLine($"PoW: Mined a new block, owner is me node {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt.ToString("HH:mm:ss")}.\n");
                         AddNewBlockToChain(newBlock);
                     }
                 }

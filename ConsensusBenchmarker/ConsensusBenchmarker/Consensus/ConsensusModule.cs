@@ -34,39 +34,36 @@ namespace ConsensusBenchmarker.Consensus
                         HandleEventQueue();
                         Thread.Sleep(1);
                     }
-                    HandleEventQueue(); // Handle last time.
-                    Console.WriteLine("Consensus event loop has been stopped."); // TEMP
+                    NotifyModulesOfTestEnd();
                 })
             };
 
             if (consensusType == "PoW") // Could probably be prettier
             {
-                consensusThreads.Add(new Thread(HandleMiningOperation));
+                while (consensusMechanism.ExecutionFlag)
+                {
+                    consensusThreads.Add(new Thread(HandleMiningOperation));
+                }
+                Console.WriteLine("Mining has been stopped.");
             }
             return consensusThreads;
         }
 
         private void HandleMiningOperation()
         {
-            while (consensusMechanism.ExecutionFlag)
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+
+            Block? block = consensusMechanism.GenerateNextBlock(ref stopWatch);
+
+            stopWatch.Stop();
+
+            if (block != null)
             {
-                var stopWatch = new Stopwatch();
-                stopWatch.Start();
-
-                Block? block = consensusMechanism.GenerateNextBlock(ref stopWatch);
-
-                stopWatch.Stop();
-
-                if (block != null)
-                {
-                    //Console.WriteLine($"CM: It took {stopWatch.Elapsed.Seconds} seconds to mine the new block.");
-
-                    eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock));
-                    eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
-                    eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
-                }
+                eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock));
+                eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction));
+                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
             }
-            Console.WriteLine("Mining has been stopped.");
         }
 
         private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID, int totalBlocksToCreate)
@@ -86,13 +83,6 @@ namespace ConsensusBenchmarker.Consensus
 
         private void HandleEventQueue()
         {
-            if (!consensusMechanism.ExecutionFlag)
-            {
-                eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.End));
-                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.End, null));
-                Console.WriteLine("Test finished, saving data.");
-            }
-
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not ConsensusEvent nextEvent) return;
 
@@ -126,6 +116,16 @@ namespace ConsensusBenchmarker.Consensus
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
             }
             eventQueue.TryDequeue(out _);
+        }
+
+        private void NotifyModulesOfTestEnd()
+        {
+            if (consensusMechanism.ExecutionFlag == false)
+            {
+                eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.End));
+                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.End, null));
+                Console.WriteLine("Test finished, saving data.");
+            }
         }
     }
 }

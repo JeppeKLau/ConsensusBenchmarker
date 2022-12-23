@@ -58,12 +58,14 @@ namespace ConsensusBenchmarker.Communication
                     HandleEventQueue().GetAwaiter().GetResult();
                     Thread.Sleep(1);
                 }
+                messageThread!.Interrupt(); // It will be stuck in its waitformessage step at this point.
+                messageThread!.Join();
             });
 
             messageThread = new Thread(() =>
             {
                 WaitForMessage().GetAwaiter().GetResult();
-                Console.WriteLine("Wait for message thread ended.");
+                Console.WriteLine("Message thread has ended.");
             });
 
             return new List<Thread>() { eventThread, messageThread };
@@ -91,7 +93,6 @@ namespace ConsensusBenchmarker.Communication
             {
                 case CommunicationEventType.End:
                     ExecutionFlag = false;
-                    messageThread!.Interrupt(); // It will be stuck in its waitformessage step at this point.
                     Console.WriteLine("Communication was signalled to end."); // TEMP
                     break;
                 case CommunicationEventType.SendTransaction:
