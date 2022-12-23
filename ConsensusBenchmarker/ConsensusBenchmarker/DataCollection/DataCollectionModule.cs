@@ -16,7 +16,6 @@ namespace ConsensusBenchmarker.DataCollection
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeID;
         private readonly InfluxDBService influxDBService;
-        private bool mainExecutionFlag;
         private readonly DateTime startTime;
         private Thread? memThread;
         private bool executionFlag;
@@ -24,13 +23,12 @@ namespace ConsensusBenchmarker.DataCollection
         private int transactionCount = 0;
         private int messageCount;
 
-        public DataCollectionModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeID, InfluxDBService influxDBService, ref bool mainExecutionFlag, DateTime startTime)
+        public DataCollectionModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeID, InfluxDBService influxDBService, DateTime startTime)
         {
             currentProcess = Process.GetCurrentProcess();
             this.eventQueue = eventQueue;
             this.nodeID = nodeID;
             this.influxDBService = influxDBService;
-            this.mainExecutionFlag = mainExecutionFlag;
             this.startTime = startTime;
             executionFlag = true;
         }
@@ -71,6 +69,9 @@ namespace ConsensusBenchmarker.DataCollection
                 HandleEvents();
                 Thread.Sleep(1);
             }
+
+            Console.WriteLine("Exited the data colletion ecent handling loop."); // TEMP
+
             var endTime = DateTime.UtcNow;
             ReadCpuValue(out int cpuTime);
             WriteInformationToDB(new CPUMeasurement(nodeID, DateTime.UtcNow, cpuTime));
@@ -78,7 +79,8 @@ namespace ConsensusBenchmarker.DataCollection
             WriteInformationToDB(new TransactionMeasurement(nodeID, DateTime.UtcNow, transactionCount));
             WriteInformationToDB(new MessageMeasurement(nodeID, DateTime.UtcNow, messageCount));
             memThread?.Join();
-            mainExecutionFlag = false;
+
+            Console.WriteLine("All threads in data collection has finished.");
         }
 
         private void WriteInformationToDB(BaseMeasurement measurement)
@@ -108,6 +110,7 @@ namespace ConsensusBenchmarker.DataCollection
             {
                 case DataCollectionEventType.End:
                     executionFlag = false;
+                    Console.WriteLine("Data collection was signalled to end."); // TEMP
                     break;
                 case DataCollectionEventType.IncBlock:
                     blockCount++;

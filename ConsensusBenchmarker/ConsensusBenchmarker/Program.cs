@@ -27,13 +27,12 @@ class Program
         string consensus = RetrieveConsensusMechanismType();
         int maxBlocksToCreate = RetrieveMaxBlocksToCreate();
         int nodeID = RetrieveNodeName();
-        var executionFlag = true; // Could this be moved to data collection?
         var startTime = DateTime.UtcNow;
 
         var influxDBService = serviceProvider.GetRequiredService<InfluxDBService>();
         var eventQueue = new ConcurrentQueue<IEvent>();
 
-        var dataCollectionModule = new DataCollectionModule(ref eventQueue, nodeID, influxDBService, ref executionFlag, startTime);
+        var dataCollectionModule = new DataCollectionModule(ref eventQueue, nodeID, influxDBService, startTime);
         var communicationModule = new CommunicationModule(ref eventQueue, nodeID);
         var consensusModule = new ConsensusModule(consensus, maxBlocksToCreate, nodeID, ref eventQueue);
         // ask for blockchain ?
@@ -62,6 +61,7 @@ class Program
         }
 
         Console.WriteLine("Test complete, terminating execution.");
+        Environment.Exit(0);
     }
 
     private static readonly string[] ConsensusTypes = { "PoW", "PoS", "PoC", "PoET", "Raft", "PBFT", "RapidChain" };

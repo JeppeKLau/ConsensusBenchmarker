@@ -25,8 +25,7 @@ namespace ConsensusBenchmarker.Consensus
                 blocksInChain = value;
                 if(blocksInChain >= MaxBlocksToCreate)
                 {
-                    ExecutionFlag = false; // Shutdowns node
-                    Console.WriteLine("CD:---ExecutionFlag is now set to false\n");
+                    ExecutionFlag = false; // Triggers Shutdown of whole node.
                 }
             }
         }
@@ -111,7 +110,7 @@ namespace ConsensusBenchmarker.Consensus
                 Blocks.Add(newBlock);
                 BlocksInChain++;
 
-                Console.WriteLine($"CD: Added block from owner: {newBlock.OwnerNodeID}, current blocks in chain: {BlocksInChain}");
+                Console.WriteLine($"\nCD: Added block from owner: {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt}, current blocks in chain: {BlocksInChain}");
 
                 MaintainBlockChainSize();
 

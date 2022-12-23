@@ -61,6 +61,7 @@ namespace ConsensusBenchmarker.Communication
             var messageThread = new Thread(() =>
             {
                 WaitForMessage().GetAwaiter().GetResult();
+                Console.WriteLine("Wait for message thread ended.");
             });
 
             return new List<Thread>() { eventThread, messageThread };
@@ -77,6 +78,30 @@ namespace ConsensusBenchmarker.Communication
                 return true;
             }
             return false;
+        }
+
+        private async Task HandleEventQueue()
+        {
+            if (!eventQueue.TryPeek(out var @event)) return;
+            if (@event is not CommunicationEvent nextEvent) return;
+
+            switch (nextEvent.EventType)
+            {
+                case CommunicationEventType.End:
+                    ExecutionFlag = false;
+                    Console.WriteLine("Communication was signalled to end."); // TEMP
+                    break;
+                case CommunicationEventType.SendTransaction:
+                    eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncTransaction, nextEvent.Data));
+                    await BroadcastTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
+                    break;
+                case CommunicationEventType.SendBlock:
+                    await BroadcastBlock(nextEvent.Data as Models.Blocks.Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
+                    break;
+                default:
+                    throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
+            }
+            eventQueue.TryDequeue(out _);
         }
 
         #region HandleOutputMessages
@@ -99,29 +124,6 @@ namespace ConsensusBenchmarker.Communication
                 Console.WriteLine("No ACK from Network Manager. Retrying");
                 await AnnounceOwnIP();
             }
-        }
-
-        private async Task HandleEventQueue()
-        {
-            if (!eventQueue.TryPeek(out var @event)) return;
-            if (@event is not CommunicationEvent nextEvent) return;
-
-            switch (nextEvent.EventType)
-            {
-                case CommunicationEventType.End:
-                    ExecutionFlag = false;
-                    break;
-                case CommunicationEventType.SendTransaction:
-                    eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncTransaction, nextEvent.Data));
-                    await BroadcastTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
-                    break;
-                case CommunicationEventType.SendBlock:
-                    await BroadcastBlock(nextEvent.Data as Models.Blocks.Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
-                    break;
-                default:
-                    throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
-            }
-            eventQueue.TryDequeue(out _);
         }
 
         private async Task BroadcastTransaction(Transaction transaction)
