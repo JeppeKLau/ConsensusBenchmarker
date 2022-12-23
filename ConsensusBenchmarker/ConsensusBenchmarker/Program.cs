@@ -38,6 +38,7 @@ class Program
         // ask for blockchain ?
 
         // Create threads:
+        Console.WriteLine("Creating threads.");
         moduleThreads.AddRange(dataCollectionModule.SpawnThreads());
         moduleThreads.AddRange(communicationModule.SpawnThreads());
         moduleThreads.AddRange(consensusModule.SpawnThreads());
