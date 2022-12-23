@@ -98,7 +98,7 @@ namespace ConsensusBenchmarker.Consensus
                     }
                     break;
                 case ConsensusEventType.CreateTransaction:
-                    if(consensusMechanism.ExecutionFlag)
+                    if (consensusMechanism.ExecutionFlag)
                     {
                         eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.GenerateNextTransaction(), CommunicationEventType.SendTransaction, null));
                     }
@@ -108,11 +108,15 @@ namespace ConsensusBenchmarker.Consensus
                     break;
                 case ConsensusEventType.RequestBlockchain:
                     var blocks = consensusMechanism.RequestBlockChain();
-                    if(blocks.Count > 0)
+                    if (blocks.Count > 0)
                     {
                         eventQueue.Enqueue(new CommunicationEvent(blocks, CommunicationEventType.RecieveBlockChain, nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient))));
                     }
-                    else { Console.WriteLine($"A node requested my blockchain, but my blockchain is empty."); }
+                    else
+                    {
+                        Console.WriteLine($"A node requested my blockchain, but my blockchain is empty.");
+                        consensusMechanism.BeginConsensus();
+                    }
                     break;
                 case ConsensusEventType.RecieveBlockchain:
                     consensusMechanism.RecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data)));

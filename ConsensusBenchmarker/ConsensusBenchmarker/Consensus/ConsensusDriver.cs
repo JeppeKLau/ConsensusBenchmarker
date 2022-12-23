@@ -43,6 +43,11 @@ namespace ConsensusBenchmarker.Consensus
         private readonly SemaphoreSlim blocksMutex = new(1, 1);
         private readonly int maxBlocksInChainAtOnce = 10;
 
+        public virtual void BeginConsensus()
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Handles the recieving of a new block from another node.
         /// </summary>

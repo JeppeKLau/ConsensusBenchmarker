@@ -17,9 +17,14 @@ namespace ConsensusBenchmarker.Consensus.PoW
         public PoWConsensus(int nodeID, int maxBlocksToCreate) : base(nodeID, maxBlocksToCreate)
         {
             random = new Random(NodeID * new Random().Next());
-            allowMining = true;
+            allowMining = false;
             restartMining = false;
             DifficultyLeadingZeroes = uint.Parse(Environment.GetEnvironmentVariable("POW_DIFFICULTY") ?? "");
+        }
+
+        public override void BeginConsensus()
+        {
+            allowMining = true;
         }
 
         public override bool RecieveBlock(Block block)
