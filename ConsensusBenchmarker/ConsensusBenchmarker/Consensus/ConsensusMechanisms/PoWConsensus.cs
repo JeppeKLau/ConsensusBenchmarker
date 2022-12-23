@@ -84,6 +84,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if(blocks.Count > 0 && Blocks.Count == 0)
             {
+                Console.WriteLine($"Recieved a requested blockchain with {Blocks.Count} in it.");
                 allowMining = false;
                 foreach (Block block in blocks)
                 {

@@ -156,14 +156,20 @@ namespace ConsensusBenchmarker.Communication
             }
             knownNodesSemaphore.Release();
 
-            if (firstNetworkNode == null) return;
+            if (firstNetworkNode == null)
+            {
+                Console.WriteLine($"I (node {nodeId}) want to request a blockchain, but I don't know any nodes.");
+                return;
+            }
 
+            Console.WriteLine($"I (node {nodeId}) requests recipient {firstNetworkNode} blockchain.");
             string messageToSend = Messages.CreateReqBCMessage(ipAddress!);
             await SendMessageAndDontWaitForAnswer(firstNetworkNode, messageToSend);
         }
 
         private async Task SendRecieveBlockChain(List<Models.Blocks.Block> blocks, IPAddress recipient)
         {
+            Console.WriteLine($"I (node {nodeId}) is sending my blockchain to {recipient}.");
             string messageToSend = Messages.CreateRecBCMessage(blocks);
             await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
         }
@@ -314,6 +320,7 @@ namespace ConsensusBenchmarker.Communication
         private void RequestBlockChain(string message)
         {
             IPAddress recipientNode = Messages.ParseIpAddress(message);
+            Console.WriteLine($"Node {recipientNode} requested my (node {nodeId}) blockchain.");
             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.RequestBlockchain, recipientNode));
         }
 
@@ -323,7 +330,11 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Blocks could not be deserialized correctly", nameof(message));
             }
-            eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
+            if(recievedBlocks.Count > 0)
+            {
+                eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
+            }
+            else { Console.WriteLine($"Recieved a blockchain from another node, but it was empty."); }
         }
 
         #endregion
