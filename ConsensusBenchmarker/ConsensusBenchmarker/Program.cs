@@ -43,7 +43,8 @@ class Program
         consensusModule.SpawnThreads(moduleThreads);
 
         // For thread debugging:
-        var debuggingThreadsThread = PrintActiveThreads(moduleThreads);
+        Thread debuggingThreadsThread = PrintActiveThreads(moduleThreads);
+        debuggingThreadsThread.Start();
 
         // Start communication thread first, so nodes can discover each other before it begins:
         if (moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
@@ -64,11 +65,11 @@ class Program
         foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads)
         {
             moduleThread.Value.Join();
+            Console.WriteLine($"Main: {moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState}");
         }
 
         debuggingThreadsThread.Join();
         Console.WriteLine("Test complete, terminating execution.");
-        //Environment.Exit(0);
     }
 
     private static Thread PrintActiveThreads(Dictionary<string, Thread> moduleThreads)
@@ -96,7 +97,6 @@ class Program
                 Thread.Sleep(5_000);
             }
         });
-        printActiveThreadsThread.Start();
         return printActiveThreadsThread;
     }
 
