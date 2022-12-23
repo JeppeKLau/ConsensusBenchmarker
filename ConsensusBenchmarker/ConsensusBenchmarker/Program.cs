@@ -38,13 +38,13 @@ class Program
         // ask for blockchain ?
 
         // Create threads:
-        Console.WriteLine($"Creating threads. Current threads in dictionary: {moduleThreads.Count()}");
+        Console.WriteLine($"Creating threads. Current threads in dictionary: {moduleThreads.Count}");
         dataCollectionModule.SpawnThreads(moduleThreads);
-        Console.WriteLine($"Created first batch of threads. Current threads in dictionary: {moduleThreads.Count()}");
+        Console.WriteLine($"Created first batch of threads. Current threads in dictionary: {moduleThreads.Count}");
         communicationModule.SpawnThreads(moduleThreads);
-        Console.WriteLine($"Created second batch of threads. Current threads in dictionary: {moduleThreads.Count()}");
+        Console.WriteLine($"Created second batch of threads. Current threads in dictionary: {moduleThreads.Count}");
         consensusModule.SpawnThreads(moduleThreads);
-        Console.WriteLine($"Created third batch of threads. Current threads in dictionary: {moduleThreads.Count()}");
+        Console.WriteLine($"Created third batch of threads. Current threads in dictionary: {moduleThreads.Count}");
 
         // For thread debugging:
         PrintActiveThreads(moduleThreads);
@@ -52,7 +52,6 @@ class Program
         // Start communication thread first, so nodes can discover each other before it begins:
         if (moduleThreads.TryGetValue("Communication_WaitForMessage", out var waitForMessageThread))
         {
-            Console.WriteLine("Found and started communication_waitformsg thread.");
             waitForMessageThread.Start();
         }
         await communicationModule.AnnounceOwnIP();
@@ -81,17 +80,18 @@ class Program
         {
             while(true)
             {
-                int activeThreads = 0;
+                Console.WriteLine($"There are {moduleThreads.Count} threads in the dictionary.");
+                int stoppedThreads = 0;
                 foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads)
                 {
-                    if(moduleThread.Value.ThreadState == ThreadState.Running)
+                    if(moduleThread.Value.ThreadState == ThreadState.Stopped || moduleThread.Value.ThreadState == ThreadState.StopRequested)
                     {
-                        activeThreads++;
-                        Console.WriteLine($"Thread, {moduleThread.Key} is currently running.");
+                        stoppedThreads++;
                     }
+                    Console.WriteLine($"Thread, {moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState.ToString()}");
                 }
-                Console.WriteLine($"{activeThreads} active threads is currently running.\n\n");
-                if (activeThreads == 0) break;
+                Console.WriteLine($"{stoppedThreads} active threads is currently running.\n\n");
+                if (stoppedThreads == moduleThreads.Count) break;
                 Thread.Sleep(5_000);
             }
         });
