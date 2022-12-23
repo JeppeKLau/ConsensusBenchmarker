@@ -331,6 +331,7 @@ namespace ConsensusBenchmarker.Communication
             }
             if(recievedBlocks.Count > 0)
             {
+                Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().OwnerNodeID}");
                 eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
             }
             else { Console.WriteLine($"Recieved a blockchain from another node, but it was empty."); }
