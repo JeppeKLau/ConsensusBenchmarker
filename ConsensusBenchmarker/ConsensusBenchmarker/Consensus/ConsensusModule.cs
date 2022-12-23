@@ -40,12 +40,18 @@ namespace ConsensusBenchmarker.Consensus
 
             if (consensusType == "PoW") // Could probably be prettier
             {
-                while (consensusMechanism.ExecutionFlag)
+                consensusThreads.Add(new Thread(() =>
                 {
-                    consensusThreads.Add(new Thread(HandleMiningOperation));
-                }
-                Console.WriteLine("Mining has been stopped.");
+                    while (consensusMechanism.ExecutionFlag)
+                    {
+                        HandleMiningOperation();
+                    }
+                    Console.WriteLine("Mining has been stopped.");
+                }));
             }
+
+            Console.WriteLine("Finished setting up consensus threads.");
+
             return consensusThreads;
         }
 
