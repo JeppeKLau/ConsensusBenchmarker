@@ -21,7 +21,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly int nodeId;
         private bool executionFlag;
         private readonly SemaphoreSlim knownNodesSemaphore = new(1, 1);
-        private readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
+        private readonly JsonSerializerSettings jsonSettings = new() { TypeNameHandling = TypeNameHandling.All };
 
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
@@ -168,7 +168,7 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task SendRecieveBlockChain(List<Models.Blocks.Block> blocks, IPAddress recipient)
         {
-            Console.WriteLine($"I (node {nodeId}) is sending my blockchain to {recipient}.");
+            Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
             string messageToSend = Messages.CreateRecBCMessage(blocks);
             await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
         }
@@ -329,7 +329,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Blocks could not be deserialized correctly", nameof(message));
             }
-            if(recievedBlocks.Count > 0)
+            if (recievedBlocks.Count > 0)
             {
                 Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().OwnerNodeID}");
                 eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));

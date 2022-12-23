@@ -9,7 +9,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 {
     public class PoWConsensus : ConsensusDriver
     {
-        private readonly uint DifficultyLeadingZeroes = 6;
+        private readonly uint DifficultyLeadingZeroes = 7;
         private volatile bool allowMining;
         private volatile bool restartMining;
         private readonly Random random;
@@ -66,12 +66,12 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0)
                 {
-                    if(ExecutionFlag == false) break;
+                    if (ExecutionFlag == false) break;
                     Thread.Sleep(1);
                 }
 
-                PoWBlock? miningResult = MineNewBlock(ref Stopwatch); 
-                if(miningResult == null)
+                PoWBlock? miningResult = MineNewBlock(ref Stopwatch);
+                if (miningResult == null)
                 {
                     return GenerateNextBlock(ref Stopwatch);
                 }
@@ -82,7 +82,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override void RecieveBlockChain(List<Block> blocks)
         {
-            if(blocks.Count > 0 && Blocks.Count == 0)
+            if (blocks.Count > 0 && Blocks.Count == 0)
             {
                 Console.WriteLine($"Recieved a requested blockchain with {Blocks.Count} in it.");
                 allowMining = false;
