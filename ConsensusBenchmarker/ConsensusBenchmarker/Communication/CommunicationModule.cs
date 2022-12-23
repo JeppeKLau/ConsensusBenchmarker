@@ -28,6 +28,7 @@ namespace ConsensusBenchmarker.Communication
             ipAddress = GetLocalIPAddress();
             rxEndpoint = new(ipAddress!, sharedPortNumber);
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
             this.eventQueue = eventQueue;
             this.nodeId = nodeId;
             executionFlag = true;
@@ -57,6 +58,7 @@ namespace ConsensusBenchmarker.Communication
 
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
             {
+                // block mining while retrieving blockchain from others.
                 eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null)); // Correct place to do this?
                 while (executionFlag || eventQueue.Count > 0)
                 {
