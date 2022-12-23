@@ -19,7 +19,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly List<IPAddress> knownNodes = new();
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeId;
-        private bool ExecutionFlag;
+        private bool executionFlag;
         private readonly SemaphoreSlim knownNodesMutex = new(1, 1);
 
         private Thread? messageThread;
@@ -31,7 +31,7 @@ namespace ConsensusBenchmarker.Communication
             server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             this.eventQueue = eventQueue;
             this.nodeId = nodeId;
-            ExecutionFlag = true;
+            executionFlag = true;
         }
 
         private static IPAddress GetLocalIPAddress()
@@ -51,9 +51,15 @@ namespace ConsensusBenchmarker.Communication
         {
             while (!DataCollectionReady()) ;
 
+            messageThread = new Thread(() =>
+            {
+                WaitForMessage().GetAwaiter().GetResult();
+                Console.WriteLine("Message thread has ended.");
+            });
+
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
             {
-                while (ExecutionFlag)
+                while (executionFlag)
                 {
                     HandleEventQueue().GetAwaiter().GetResult();
                     Thread.Sleep(1);
@@ -61,11 +67,7 @@ namespace ConsensusBenchmarker.Communication
                 messageThread!.Interrupt(); // It will be stuck in its waitformessage step at this point.
             }));
 
-            moduleThreads.Add("Communication_WaitForMessage", new Thread(() =>
-            {
-                WaitForMessage().GetAwaiter().GetResult();
-                Console.WriteLine("Message thread has ended.");
-            }));
+            moduleThreads.Add("Communication_WaitForMessage", messageThread);
         }
 
         private bool DataCollectionReady()
@@ -89,7 +91,7 @@ namespace ConsensusBenchmarker.Communication
             switch (nextEvent.EventType)
             {
                 case CommunicationEventType.End:
-                    ExecutionFlag = false;
+                    executionFlag = false;
                     Console.WriteLine("Communication was signalled to end."); // TEMP
                     break;
                 case CommunicationEventType.SendTransaction:
@@ -198,7 +200,7 @@ namespace ConsensusBenchmarker.Communication
             server!.Listen(1000);
             Console.WriteLine($"Node listening on {rxEndpoint!.Address}:{rxEndpoint.Port}");
 
-            while (ExecutionFlag)
+            while (executionFlag)
             {
                 var handler = await server!.AcceptAsync(cancellationToken);
                 var rxBuffer = new byte[receivableByteSize];
