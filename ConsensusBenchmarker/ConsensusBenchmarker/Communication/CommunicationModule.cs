@@ -237,7 +237,7 @@ namespace ConsensusBenchmarker.Communication
             }
             if (nodeManager.Connected)
             {
-                nodeManager.Shutdown(SocketShutdown.Both); // this threw an error for me
+                nodeManager.Shutdown(SocketShutdown.Both);
             }
         }
 
