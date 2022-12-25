@@ -19,7 +19,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             random = new Random(NodeID * new Random().Next());
             allowMining = false;
             restartMining = false;
-            DifficultyLeadingZeroes = uint.Parse(Environment.GetEnvironmentVariable("POW_DIFFICULTY") ?? "");
+            DifficultyLeadingZeroes = uint.Parse(Environment.GetEnvironmentVariable("POW_DIFFICULTY") ?? "3"); // 3 for testing
         }
 
         public override void BeginConsensus()
@@ -95,12 +95,11 @@ namespace ConsensusBenchmarker.Consensus.PoW
             }
             if (blocks.Count > 0 && Blocks.Count == 0)
             {
-                Console.WriteLine($"Recieved a requested blockchain with {Blocks.Count} in it.");
+                Console.WriteLine($"PoW: Recieved a requested blockchain with {Blocks.Count} in it, will now validate and add them.");
                 foreach (Block block in blocks)
                 {
                     RecieveBlock(block);
                 }
-                allowMining = true;
             }
         }
 

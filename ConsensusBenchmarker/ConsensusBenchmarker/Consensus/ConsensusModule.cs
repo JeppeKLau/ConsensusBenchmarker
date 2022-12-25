@@ -25,6 +25,7 @@ namespace ConsensusBenchmarker.Consensus
 
         public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
         {
+            eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null)); // Correct place to do this?
             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
             moduleThreads.Add("Consensus_HandleEventLoop", new Thread(() =>
             {
@@ -107,20 +108,11 @@ namespace ConsensusBenchmarker.Consensus
                     consensusMechanism.RecieveTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case ConsensusEventType.RequestBlockchain:
-                    var blocks = consensusMechanism.RequestBlockChain();
-                    if (blocks.Any())
-                    {
-                        eventQueue.Enqueue(new CommunicationEvent(blocks, CommunicationEventType.RecieveBlockChain, nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient))));
-                    }
-                    else
-                    {
-                        Console.WriteLine($"A node requested my blockchain, but my blockchain is empty.");
-                        eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RecieveBlockChain, nextEvent.Recipient!));
-                        consensusMechanism.BeginConsensus();
-                    }
+                    eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.RequestBlockChain(), CommunicationEventType.RecieveBlockChain, nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient))));
                     break;
                 case ConsensusEventType.RecieveBlockchain:
-                    consensusMechanism.RecieveBlockChain(nextEvent.Data as List<Block>);
+                    consensusMechanism.RecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data)));
+                    consensusMechanism.BeginConsensus();
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));

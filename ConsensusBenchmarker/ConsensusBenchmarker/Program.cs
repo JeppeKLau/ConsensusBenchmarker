@@ -33,7 +33,6 @@ class Program
         var dataCollectionModule = new DataCollectionModule(ref eventQueue, nodeID, influxDBService, startTime);
         var communicationModule = new CommunicationModule(ref eventQueue, nodeID);
         var consensusModule = new ConsensusModule(consensus, maxBlocksToCreate, nodeID, ref eventQueue);
-        // ask for blockchain ?
 
         // Create threads:
         dataCollectionModule.SpawnThreads(moduleThreads);
@@ -59,7 +58,12 @@ class Program
         }
 
         // Wait for threads to finish:
-        HoldMainThreadUntilAllThreadsIsFinished(moduleThreads);
+        foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads.Where(t => t.Value.ThreadState == ThreadState.Unstarted))
+        {
+            moduleThread.Value.Join();
+            Console.WriteLine($"{moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState}");
+        }
+        // HoldMainThreadUntilAllThreadsIsFinished(moduleThreads);
 
         //debuggingThreadsThread.Join();
         Console.WriteLine("Test complete, terminating execution.");
