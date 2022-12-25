@@ -244,10 +244,11 @@ namespace ConsensusBenchmarker.Communication
             Console.WriteLine($"Node listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
 
             using Socket server = new(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            server.Bind(rxEndpoint);
+
 
             while (executionFlag)
             {
-                server.Bind(rxEndpoint);
                 server.Listen(1000);
                 server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
                 var handler = await server.AcceptAsync(cancellationToken);
