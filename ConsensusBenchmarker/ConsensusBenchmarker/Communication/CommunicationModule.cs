@@ -249,7 +249,6 @@ namespace ConsensusBenchmarker.Communication
             using Socket server = new(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             server.Bind(rxEndpoint);
 
-
             while (executionFlag)
             {
                 server.Listen(1000);
