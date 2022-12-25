@@ -90,10 +90,15 @@ namespace ConsensusBenchmarker.Consensus
             return Blocks;
         }
 
-        public virtual void RecieveBlockChain(List<Block> blocks)
+        public virtual void RecieveBlockChain(List<Block>? blocks)
         {
             // This node could, if its lucky, be able to add its own block while waiting for a response for another node's blockchain, just fyi
             //      The fact this comment exists, implies the implemented solution is not sound - j
+            if (blocks is null)
+            {
+                return;
+            }
+
             foreach (Block block in blocks)
             {
                 RecieveBlock(block);
@@ -131,7 +136,7 @@ namespace ConsensusBenchmarker.Consensus
                 Blocks.AddSorted(newBlock);
                 BlocksInChain++;
 
-                Console.WriteLine($"\nCD: Added block from owner: {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt.ToString("HH:mm:ss")}, current blocks in chain: {BlocksInChain}");
+                Console.WriteLine($"\nCD: Added block from owner: {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt:HH:mm:ss}, current blocks in chain: {BlocksInChain}");
 
                 MaintainBlockChainSize();
 

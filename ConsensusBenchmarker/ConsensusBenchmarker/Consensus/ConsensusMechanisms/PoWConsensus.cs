@@ -86,15 +86,19 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return null;
         }
 
-        public override void RecieveBlockChain(List<Block> blocks)
+        public override void RecieveBlockChain(List<Block>? blocks)
         {
+            if (blocks is null)
+            {
+                allowMining = true;
+                return;
+            }
             if (blocks.Count > 0 && Blocks.Count == 0)
             {
                 Console.WriteLine($"Recieved a requested blockchain with {Blocks.Count} in it.");
-                allowMining = false;
                 foreach (Block block in blocks)
                 {
-                    AddNewBlockToChain(block);
+                    RecieveBlock(block);
                 }
                 allowMining = true;
             }

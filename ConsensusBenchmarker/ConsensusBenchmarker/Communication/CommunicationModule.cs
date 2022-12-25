@@ -100,8 +100,7 @@ namespace ConsensusBenchmarker.Communication
                     await SendRequestBlockChain();
                     break;
                 case CommunicationEventType.RecieveBlockChain:
-                    await SendRecieveBlockChain(nextEvent.Data as List<Models.Blocks.Block> ?? throw new ArgumentException("Blocks missing from event", nameof(nextEvent.Data)),
-                    nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient)));
+                    await SendRecieveBlockChain(nextEvent.Data as List<Models.Blocks.Block>, nextEvent.Recipient!);
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -165,10 +164,14 @@ namespace ConsensusBenchmarker.Communication
             await SendMessageAndDontWaitForAnswer(firstNetworkNode, messageToSend);
         }
 
-        private async Task SendRecieveBlockChain(List<Models.Blocks.Block> blocks, IPAddress recipient)
+        private async Task SendRecieveBlockChain(List<Models.Blocks.Block>? blocks, IPAddress recipient)
         {
             Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
-            string messageToSend = Messages.CreateRecBCMessage(blocks);
+            string messageToSend = string.Empty;
+            if (blocks is not null)
+            {
+                messageToSend = Messages.CreateRecBCMessage(blocks);
+            }
             await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
         }
 
@@ -335,7 +338,11 @@ namespace ConsensusBenchmarker.Communication
                 Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().OwnerNodeID}");
                 eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
             }
-            else { Console.WriteLine($"Recieved a blockchain from another node, but it was empty."); }
+            else
+            {
+                Console.WriteLine($"Recieved a blockchain from another node, but it was empty.");
+                eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
+            }
         }
 
         #endregion
