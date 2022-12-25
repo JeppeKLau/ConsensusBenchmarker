@@ -14,7 +14,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly int sharedPortNumber = 11_000;
         private readonly IPAddress ipAddress;
         private readonly IPEndPoint rxEndpoint;
-        private readonly uint receivableByteSize = 4096;
+        private readonly uint receivableByteSize = 10240;
 
         private readonly List<IPAddress> knownNodes = new();
         private readonly ConcurrentQueue<IEvent> eventQueue;
@@ -173,7 +173,7 @@ namespace ConsensusBenchmarker.Communication
             //Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
             var messageToSend = Messages.CreateRecBCMessage(blocks);
 
-            Console.WriteLine($"Sending: {messageToSend}");
+            //Console.WriteLine($"Sending: {messageToSend}");
             await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
         }
 
