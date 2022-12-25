@@ -14,7 +14,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly int sharedPortNumber = 11_000;
         private readonly IPAddress ipAddress;
         private readonly IPEndPoint rxEndpoint;
-        private readonly uint receivableByteSize = 10240;
+        private readonly uint receivableByteSize = 50 * 1024;
 
         private readonly List<IPAddress> knownNodes = new();
         private readonly ConcurrentQueue<IEvent> eventQueue;
