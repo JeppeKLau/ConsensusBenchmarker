@@ -243,9 +243,10 @@ namespace ConsensusBenchmarker.Communication
         {
             Console.WriteLine($"Node listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
 
+            using Socket server = new(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
             while (executionFlag)
             {
-                using Socket server = new(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 server.Bind(rxEndpoint);
                 server.Listen(1000);
                 server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
@@ -260,7 +261,6 @@ namespace ConsensusBenchmarker.Communication
 
         private void HandleMessage(string message)
         {
-            Console.WriteLine($"Handling message: {message}");
             if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
             {
                 string cleanMessageWithoutEOM = Messages.RemoveOperationTypeTag(Messages.TrimUntillTag(message), OperationType.EOM);
