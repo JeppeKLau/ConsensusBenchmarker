@@ -3,7 +3,7 @@
     public class PoWBlock : Block
     {
         public PoWBlock(int ownerNodeID, DateTime blockCreatedAt, List<Transaction> transactions, string blockHash, string previousBlockHash, long nonce)
-            : base(ownerNodeID, blockCreatedAt, transactions)
+            : base(BlockTypes.PoWBlock, ownerNodeID, blockCreatedAt, transactions)
         {
             BlockHash = blockHash;
             PreviousBlockHash = previousBlockHash;

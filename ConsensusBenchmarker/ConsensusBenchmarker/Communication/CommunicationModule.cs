@@ -151,7 +151,7 @@ namespace ConsensusBenchmarker.Communication
             knownNodesSemaphore.Wait();
             if (knownNodes.Count > 0)
             {
-                firstNetworkNode = knownNodes.First();
+                firstNetworkNode = knownNodes.Last();
             }
             knownNodesSemaphore.Release();
 
@@ -299,7 +299,6 @@ namespace ConsensusBenchmarker.Communication
                         RequestBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.QBC));
                         break;
                     case OperationType.RBC:
-                        Console.WriteLine("Comms: Recieved a blockchain type operation msg.");
                         RecieveBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RBC));
                         break;
                 }
@@ -362,6 +361,7 @@ namespace ConsensusBenchmarker.Communication
         {
             if (message == string.Empty)
             {
+                Console.WriteLine($"I (node {nodeId}) recieved a blockchain with 0 blocks.");
                 eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null));
             }
             else
