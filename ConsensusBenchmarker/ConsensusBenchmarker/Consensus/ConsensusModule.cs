@@ -29,7 +29,7 @@ namespace ConsensusBenchmarker.Consensus
             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
             moduleThreads.Add("Consensus_HandleEventLoop", new Thread(() =>
             {
-                while (consensusMechanism.ExecutionFlag || eventQueue.Count > 0)
+                while (consensusMechanism.ExecutionFlag || !eventQueue.IsEmpty)
                 {
                     HandleEventQueue();
                     Thread.Sleep(1);

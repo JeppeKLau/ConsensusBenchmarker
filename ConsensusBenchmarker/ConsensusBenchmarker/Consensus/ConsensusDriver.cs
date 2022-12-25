@@ -90,7 +90,7 @@ namespace ConsensusBenchmarker.Consensus
             return Blocks;
         }
 
-        public virtual void RecieveBlockChain(List<Block> blocks)
+        public virtual void RecieveBlockChain(List<Block>? blocks)
         {
             foreach (Block block in blocks)
             {
@@ -129,7 +129,7 @@ namespace ConsensusBenchmarker.Consensus
                 Blocks.AddSorted(newBlock);
                 BlocksInChain++;
 
-                Console.WriteLine($"\nCD: Added block from owner: {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt.ToString("HH:mm:ss")}, current blocks in chain: {BlocksInChain}");
+                Console.WriteLine($"\nCD: Added block from owner: {newBlock.OwnerNodeID}, created at: {newBlock.BlockCreatedAt:HH:mm:ss}, current blocks in chain: {BlocksInChain}");
 
                 MaintainBlockChainSize();
 

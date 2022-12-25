@@ -12,9 +12,8 @@ namespace ConsensusBenchmarker.Communication
     public class CommunicationModule
     {
         private readonly int sharedPortNumber = 11_000;
-        private readonly IPAddress? ipAddress;
-        private readonly IPEndPoint? rxEndpoint;
-        private readonly Socket? server;
+        private readonly IPAddress ipAddress;
+        private readonly IPEndPoint rxEndpoint;
         private readonly uint receivableByteSize = 4096;
 
         private readonly List<IPAddress> knownNodes = new();
@@ -27,9 +26,7 @@ namespace ConsensusBenchmarker.Communication
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
             ipAddress = GetLocalIPAddress();
-            rxEndpoint = new(ipAddress!, sharedPortNumber);
-            server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
+            rxEndpoint = new(ipAddress, sharedPortNumber);
             this.eventQueue = eventQueue;
             this.nodeId = nodeId;
             executionFlag = true;
@@ -102,8 +99,7 @@ namespace ConsensusBenchmarker.Communication
                     await SendRequestBlockChain();
                     break;
                 case CommunicationEventType.RecieveBlockChain:
-                    await SendRecieveBlockChain(nextEvent.Data as List<Models.Blocks.Block> ?? throw new ArgumentException("Blocks missing from event", nameof(nextEvent.Data)),
-                    nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient)));
+                    await SendRecieveBlockChain(nextEvent.Data as List<Models.Blocks.Block>, nextEvent.Recipient!);
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -172,7 +168,11 @@ namespace ConsensusBenchmarker.Communication
         private async Task SendRecieveBlockChain(List<Block> blocks, IPAddress recipient)
         {
             Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
-            string messageToSend = Messages.CreateRecBCMessage(blocks);
+            string messageToSend = string.Empty;
+            if (blocks is not null)
+            {
+                messageToSend = Messages.CreateRecBCMessage(blocks);
+            }
             await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
         }
 
@@ -231,13 +231,15 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task WaitForMessage(CancellationToken cancellationToken = default)
         {
-            server!.Bind(rxEndpoint!);
-            server!.Listen(1000);
-            Console.WriteLine($"Node listening on {rxEndpoint!.Address}:{rxEndpoint.Port}");
+            Console.WriteLine($"Node listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
 
             while (executionFlag)
             {
-                var handler = await server!.AcceptAsync(cancellationToken);
+                using Socket server = new(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                server.Bind(rxEndpoint);
+                server.Listen(1000);
+                server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
+                var handler = await server.AcceptAsync(cancellationToken);
                 var rxBuffer = new byte[receivableByteSize];
                 var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
                 string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
