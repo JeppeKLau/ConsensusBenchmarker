@@ -58,7 +58,7 @@ class Program
         }
 
         // Wait for threads to finish:
-        foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads.Where(t => t.Value.ThreadState == ThreadState.Unstarted))
+        foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads)
         {
             moduleThread.Value.Join();
             Console.WriteLine($"{moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState}");

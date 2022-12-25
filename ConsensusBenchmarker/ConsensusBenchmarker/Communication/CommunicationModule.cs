@@ -20,6 +20,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeId;
         private bool executionFlag;
+        private CancellationTokenSource cancellationTokenSource;
         private readonly SemaphoreSlim knownNodesSemaphore = new(1, 1);
         private readonly JsonSerializerSettings jsonSettings = new() { TypeNameHandling = TypeNameHandling.All };
 
@@ -30,6 +31,7 @@ namespace ConsensusBenchmarker.Communication
             this.eventQueue = eventQueue;
             this.nodeId = nodeId;
             executionFlag = true;
+            cancellationTokenSource = new CancellationTokenSource();
         }
 
         private static IPAddress GetLocalIPAddress()
@@ -51,7 +53,7 @@ namespace ConsensusBenchmarker.Communication
 
             moduleThreads.Add("Communication_WaitForMessage", new Thread(() =>
             {
-                WaitForMessage().GetAwaiter().GetResult();
+                WaitForMessage(cancellationTokenSource.Token).GetAwaiter().GetResult();
             }));
 
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
@@ -61,6 +63,7 @@ namespace ConsensusBenchmarker.Communication
                     HandleEventQueue().GetAwaiter().GetResult();
                     Thread.Sleep(1);
                 }
+                cancellationTokenSource.Cancel();
             }));
         }
 
@@ -148,7 +151,7 @@ namespace ConsensusBenchmarker.Communication
             knownNodesSemaphore.Wait();
             if (knownNodes.Count > 0)
             {
-                firstNetworkNode = knownNodes.Last();
+                firstNetworkNode = knownNodes.First();
             }
             knownNodesSemaphore.Release();
 
@@ -252,6 +255,7 @@ namespace ConsensusBenchmarker.Communication
                 server.Listen(1000);
                 server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
                 var handler = await server.AcceptAsync(cancellationToken);
+
                 var rxBuffer = new byte[receivableByteSize];
                 var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
                 string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
