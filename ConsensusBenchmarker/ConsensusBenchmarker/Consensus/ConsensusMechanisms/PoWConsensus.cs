@@ -95,7 +95,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             }
             if (blocks.Count > 0 && Blocks.Count == 0)
             {
-                Console.WriteLine($"PoW: Recieved a requested blockchain with {Blocks.Count} in it, will now validate and add them.");
+                Console.WriteLine($"PoW: Recieved a requested blockchain with {blocks.Count} in it, will now validate and add them.");
                 foreach (Block block in blocks)
                 {
                     RecieveBlock(block);

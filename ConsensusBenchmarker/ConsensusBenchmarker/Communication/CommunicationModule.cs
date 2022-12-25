@@ -167,12 +167,9 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task SendRecieveBlockChain(List<Block> blocks, IPAddress recipient)
         {
-            string messageToSend = string.Empty;
-            if (blocks.Any())
-            {
-                Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
-                messageToSend = Messages.CreateRecBCMessage(blocks);
-            }
+            Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
+            var messageToSend = Messages.CreateRecBCMessage(blocks);
+
             await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
         }
 

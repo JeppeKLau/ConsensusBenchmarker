@@ -91,7 +91,11 @@ namespace ConsensusBenchmarker.Communication
 
         public static string CreateRecBCMessage(List<Block> blocks)
         {
-            string serializedBlocks = JsonConvert.SerializeObject(blocks);
+            string serializedBlocks = string.Empty;
+            if (blocks.Any())
+            {
+                serializedBlocks = JsonConvert.SerializeObject(blocks);
+            }
             return $"{CreateTag(OperationType.RBC)}{serializedBlocks}{CreateTag(OperationType.EOM)}";
         }
 

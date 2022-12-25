@@ -92,10 +92,7 @@ namespace ConsensusBenchmarker.Consensus
 
         public virtual void RecieveBlockChain(List<Block>? blocks)
         {
-            foreach (Block block in blocks)
-            {
-                RecieveBlock(block);
-            }
+            throw new NotImplementedException();
         }
 
         /// <summary>
