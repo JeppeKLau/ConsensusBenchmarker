@@ -253,13 +253,22 @@ namespace ConsensusBenchmarker.Communication
             {
                 server.Listen(1000);
                 server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
-                var handler = await server.AcceptAsync(cancellationToken);
+                try
+                {
 
-                var rxBuffer = new byte[receivableByteSize];
-                var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
-                string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
+                    var handler = await server.AcceptAsync(cancellationToken);
 
-                HandleMessage(message);
+                    var rxBuffer = new byte[receivableByteSize];
+                    var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
+                    string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
+
+                    HandleMessage(message);
+                }
+                catch (OperationCanceledException)
+                {
+                    Console.WriteLine("Terminating messaging");
+                    continue;
+                }
             }
         }
 
