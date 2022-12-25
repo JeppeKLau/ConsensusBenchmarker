@@ -5,7 +5,7 @@ namespace ConsensusBenchmarker.Models.Blocks
 {
     public enum BlockTypes { PoWBlock = 1 }
 
-    //[JsonConverter(typeof(BlockConverter))]
+    [JsonConverter(typeof(BlockConverter))]
     public class Block : IComparable<Block>
     {
         public Block(BlockTypes blockType, int ownerNodeID, DateTime blockCreatedAt, List<Transaction> transactions)

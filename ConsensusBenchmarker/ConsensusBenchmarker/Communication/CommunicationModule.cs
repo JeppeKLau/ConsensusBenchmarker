@@ -22,7 +22,7 @@ namespace ConsensusBenchmarker.Communication
         private bool executionFlag;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly SemaphoreSlim knownNodesSemaphore = new(1, 1);
-        private readonly JsonSerializerSettings jsonSettings = new() { TypeNameHandling = TypeNameHandling.All };
+        //private readonly JsonSerializerSettings jsonSettings = new() { TypeNameHandling = TypeNameHandling.All };
 
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
@@ -266,7 +266,6 @@ namespace ConsensusBenchmarker.Communication
                 }
                 catch (OperationCanceledException)
                 {
-                    Console.WriteLine("Terminating messaging");
                     continue;
                 }
             }
@@ -343,7 +342,7 @@ namespace ConsensusBenchmarker.Communication
 
         private void ReceiveBlock(string message)
         {
-            if (JsonConvert.DeserializeObject<Block>(message, jsonSettings) is not Block recievedBlock)
+            if (JsonConvert.DeserializeObject<Block>(message) is not Block recievedBlock)
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
@@ -366,7 +365,7 @@ namespace ConsensusBenchmarker.Communication
             }
             else
             {
-                if (JsonConvert.DeserializeObject<List<Block>>(message, jsonSettings) is not List<Block> recievedBlocks)
+                if (JsonConvert.DeserializeObject<List<Block>>(message) is not List<Block> recievedBlocks)
                 {
                     throw new ArgumentException("Blocks could not be deserialized correctly", nameof(message));
                 }

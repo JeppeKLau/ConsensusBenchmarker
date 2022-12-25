@@ -92,7 +92,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
             
             if (blocks.Count > 0)
             {
-                Console.WriteLine($"PoW: Recieved a requested blockchain with {blocks.Count} in it, will now validate and add them.");
                 foreach (Block block in blocks)
                 {
                     RecieveBlock(block);
@@ -163,6 +162,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             catch { }
             throw new Exception($"Copy byte array failed. First array length: {first.Length}, second: {second.Length}, combined: {retLength}");
 
+            // Only got this exception ONE time
             // Unhandled exception. System.ArgumentException: Destination array was not long enough. Check the destination index, length, and the array's lower bounds. (Parameter 'destinationArray')
             // at System.Array.Copy(Array sourceArray, Int32 sourceIndex, Array destinationArray, Int32 destinationIndex, Int32 length, Boolean reliable)
         }
