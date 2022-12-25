@@ -235,7 +235,10 @@ namespace ConsensusBenchmarker.Communication
             {
                 Console.WriteLine($"Connecting to address: {receiver} failed with error code: {ex.ErrorCode}\n\t{ex.Message}");
             }
-            nodeManager.Shutdown(SocketShutdown.Both); // this threw an error for me
+            if (nodeManager.Connected)
+            {
+                nodeManager.Shutdown(SocketShutdown.Both); // this threw an error for me
+            }
         }
 
         #endregion
