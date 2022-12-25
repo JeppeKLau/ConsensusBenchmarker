@@ -11,9 +11,8 @@ namespace ConsensusBenchmarker.Communication
     public class CommunicationModule
     {
         private readonly int sharedPortNumber = 11_000;
-        private readonly IPAddress? ipAddress;
-        private readonly IPEndPoint? rxEndpoint;
-        private readonly Socket? server;
+        private readonly IPAddress ipAddress;
+        private readonly IPEndPoint rxEndpoint;
         private readonly uint receivableByteSize = 4096;
 
         private readonly List<IPAddress> knownNodes = new();
@@ -26,9 +25,7 @@ namespace ConsensusBenchmarker.Communication
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
             ipAddress = GetLocalIPAddress();
-            rxEndpoint = new(ipAddress!, sharedPortNumber);
-            server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
+            rxEndpoint = new(ipAddress, sharedPortNumber);
             this.eventQueue = eventQueue;
             this.nodeId = nodeId;
             executionFlag = true;
@@ -60,7 +57,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 // block mining while retrieving blockchain from others.
                 eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null)); // Correct place to do this?
-                while (executionFlag || eventQueue.Count > 0)
+                while (executionFlag || !eventQueue.IsEmpty)
                 {
                     HandleEventQueue().GetAwaiter().GetResult();
                     Thread.Sleep(1);
@@ -230,13 +227,15 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task WaitForMessage(CancellationToken cancellationToken = default)
         {
-            server!.Bind(rxEndpoint!);
-            server!.Listen(1000);
-            Console.WriteLine($"Node listening on {rxEndpoint!.Address}:{rxEndpoint.Port}");
+            Console.WriteLine($"Node listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
 
             while (executionFlag)
             {
-                var handler = await server!.AcceptAsync(cancellationToken);
+                using Socket server = new(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                server.Bind(rxEndpoint);
+                server.Listen(1000);
+                server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
+                var handler = await server.AcceptAsync(cancellationToken);
                 var rxBuffer = new byte[receivableByteSize];
                 var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
                 string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
