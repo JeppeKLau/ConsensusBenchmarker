@@ -343,7 +343,8 @@ namespace ConsensusBenchmarker.Communication
 
         private void RecieveBlockChain(string message)
         {
-            if(message == string.Empty)
+            Console.WriteLine($"message: {message}");
+            if (message == string.Empty)
             {
                 eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null));
             }
