@@ -197,10 +197,16 @@ namespace ConsensusBenchmarker.Communication
             var networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             byte[] responseBuffer = new byte[receivableByteSize];
-
             var networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            await networkManager.ConnectAsync(networkManagerEndpoint, cancellationToken);
-            _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+            try
+            {
+                await networkManager.ConnectAsync(networkManagerEndpoint, cancellationToken);
+                _ = await networkManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine($"Connecting to address: {receiver} failed with error code: {ex.ErrorCode}\n\t{ex.Message}");
+            }
             int responseBytes = await networkManager.ReceiveAsync(responseBuffer, SocketFlags.None);
             networkManager.Shutdown(SocketShutdown.Both);
             networkManager.Close();
@@ -219,8 +225,15 @@ namespace ConsensusBenchmarker.Communication
             var nodeEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             var nodeManager = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            await nodeManager.ConnectAsync(nodeEndpoint, cancellationToken);
-            _ = await nodeManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+            try
+            {
+                await nodeManager.ConnectAsync(nodeEndpoint, cancellationToken);
+                _ = await nodeManager.SendAsync(encodedMessage, SocketFlags.None, cancellationToken);
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine($"Connecting to address: {receiver} failed with error code: {ex.ErrorCode}\n\t{ex.Message}");
+            }
             nodeManager.Shutdown(SocketShutdown.Both);
         }
 
