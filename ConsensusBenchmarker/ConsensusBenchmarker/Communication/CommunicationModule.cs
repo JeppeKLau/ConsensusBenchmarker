@@ -235,7 +235,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 Console.WriteLine($"Connecting to address: {receiver} failed with error code: {ex.ErrorCode}\n\t{ex.Message}");
             }
-            nodeManager.Shutdown(SocketShutdown.Both);
+            nodeManager.Shutdown(SocketShutdown.Both); // this threw an error for me
         }
 
         #endregion
@@ -357,7 +357,6 @@ namespace ConsensusBenchmarker.Communication
 
         private void RecieveBlockChain(string message)
         {
-            Console.WriteLine($"Received blockchain: {message}");
             if (message == string.Empty)
             {
                 eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null));
