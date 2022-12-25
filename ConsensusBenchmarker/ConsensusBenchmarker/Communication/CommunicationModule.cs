@@ -99,7 +99,7 @@ namespace ConsensusBenchmarker.Communication
                     await SendRequestBlockChain();
                     break;
                 case CommunicationEventType.RecieveBlockChain:
-                    await SendRecieveBlockChain(nextEvent.Data as List<Models.Blocks.Block>, nextEvent.Recipient!);
+                    await SendRecieveBlockChain(nextEvent.Data as List<Block>, nextEvent.Recipient!);
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -330,12 +330,19 @@ namespace ConsensusBenchmarker.Communication
 
         private void RecieveBlockChain(string message)
         {
-            if (JsonConvert.DeserializeObject<List<Models.Blocks.Block>>(message, jsonSettings) is not List<Models.Blocks.Block> recievedBlocks)
+            if(message == string.Empty)
             {
-                throw new ArgumentException("Blocks could not be deserialized correctly", nameof(message));
+                eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null));
             }
-            Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().OwnerNodeID}");
-            eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
+            else
+            {
+                if (JsonConvert.DeserializeObject<List<Block>>(message, jsonSettings) is not List<Block> recievedBlocks)
+                {
+                    throw new ArgumentException("Blocks could not be deserialized correctly", nameof(message));
+                }
+                Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().OwnerNodeID}");
+                eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
+            }
         }
 
         #endregion
