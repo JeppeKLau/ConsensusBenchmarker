@@ -158,7 +158,7 @@ namespace ConsensusBenchmarker.Communication
             if (firstNetworkNode == null)
             {
                 Console.WriteLine($"I (node {nodeId}) want to request a blockchain, but I don't know any nodes.");
-                eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null)); // ConsensusModule needs response in order to begin its consensus.
+                eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null));
             }
             else
             {
@@ -170,10 +170,9 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task SendRecieveBlockChain(List<Block> blocks, IPAddress recipient)
         {
-            //Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
+            Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
             var messageToSend = Messages.CreateRecBCMessage(blocks);
 
-            //Console.WriteLine($"Sending: {messageToSend}");
             await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
         }
 

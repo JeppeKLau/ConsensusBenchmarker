@@ -41,7 +41,7 @@ namespace ConsensusBenchmarker.Consensus
 
         private readonly SemaphoreSlim recievedTransactionsMutex = new(1, 1);
         private readonly SemaphoreSlim blocksMutex = new(1, 1);
-        private readonly int maxBlocksInChainAtOnce = 10;
+        private readonly int maxBlocksInChainAtOnce = 50;
 
         public virtual void BeginConsensus()
         {
