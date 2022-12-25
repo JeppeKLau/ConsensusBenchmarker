@@ -19,7 +19,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly List<IPAddress> knownNodes = new();
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeId;
-        private bool executionFlag;
+        private volatile bool executionFlag;
         private readonly SemaphoreSlim knownNodesSemaphore = new(1, 1);
         private readonly JsonSerializerSettings jsonSettings = new() { TypeNameHandling = TypeNameHandling.All };
 
@@ -245,7 +245,6 @@ namespace ConsensusBenchmarker.Communication
 
             using Socket server = new(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             server.Bind(rxEndpoint);
-
 
             while (executionFlag)
             {
