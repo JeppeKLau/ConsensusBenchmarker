@@ -49,7 +49,7 @@ class Program
             waitForMessageThread.Start();
         }
         await communicationModule.AnnounceOwnIP();
-        Thread.Sleep(10_000);
+        //Thread.Sleep(10_000);
 
         // Start threads:
         foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads.Where(t => t.Value.ThreadState == ThreadState.Unstarted))

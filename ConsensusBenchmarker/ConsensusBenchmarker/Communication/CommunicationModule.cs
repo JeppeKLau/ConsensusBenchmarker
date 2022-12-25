@@ -99,7 +99,7 @@ namespace ConsensusBenchmarker.Communication
                     await SendRequestBlockChain();
                     break;
                 case CommunicationEventType.RecieveBlockChain:
-                    await SendRecieveBlockChain(nextEvent.Data as List<Block>, nextEvent.Recipient!);
+                    await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), nextEvent.Recipient!);
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -263,6 +263,7 @@ namespace ConsensusBenchmarker.Communication
 
         private void HandleMessage(string message)
         {
+            Console.WriteLine($"Handling message: {message}");
             if (Messages.DoesMessageContainOperationTag(message, OperationType.EOM))
             {
                 string cleanMessageWithoutEOM = Messages.RemoveOperationTypeTag(Messages.TrimUntillTag(message), OperationType.EOM);
@@ -343,7 +344,7 @@ namespace ConsensusBenchmarker.Communication
 
         private void RecieveBlockChain(string message)
         {
-            Console.WriteLine($"message: {message}");
+            Console.WriteLine($"Received blockchain: {message}");
             if (message == string.Empty)
             {
                 eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null));
