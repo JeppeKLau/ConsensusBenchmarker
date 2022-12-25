@@ -250,7 +250,6 @@ namespace ConsensusBenchmarker.Communication
             server.Bind(rxEndpoint);
             server.Listen(1000);
 
-
             while (executionFlag)
             {
                 try
@@ -282,6 +281,7 @@ namespace ConsensusBenchmarker.Communication
                 switch (operationType)
                 {
                     case OperationType.DEF:
+                        Console.WriteLine($"Could not find any operation type tag on a msg: {cleanMessageWithoutEOM}");
                         break;
                     case OperationType.DIS:
                         SaveNewIPAddresses(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.DIS));
@@ -296,9 +296,14 @@ namespace ConsensusBenchmarker.Communication
                         RequestBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.QBC));
                         break;
                     case OperationType.RBC:
+                        Console.WriteLine("Comms: Recieved a blockchain type operation msg.");
                         RecieveBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RBC));
                         break;
                 }
+            }
+            else
+            {
+                Console.WriteLine("Comms: Could not find EOM tag.");
             }
         }
 
