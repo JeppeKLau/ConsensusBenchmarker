@@ -20,7 +20,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeId;
         private bool executionFlag;
-        private CancellationTokenSource cancellationTokenSource;
+        private readonly CancellationTokenSource cancellationTokenSource;
         private readonly SemaphoreSlim knownNodesSemaphore = new(1, 1);
         private readonly JsonSerializerSettings jsonSettings = new() { TypeNameHandling = TypeNameHandling.All };
 
@@ -58,7 +58,7 @@ namespace ConsensusBenchmarker.Communication
 
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
             {
-                while (executionFlag || eventQueue.Count > 0)
+                while (executionFlag || !eventQueue.IsEmpty)
                 {
                     HandleEventQueue().GetAwaiter().GetResult();
                     Thread.Sleep(1);
@@ -246,18 +246,16 @@ namespace ConsensusBenchmarker.Communication
         {
             Console.WriteLine($"Node listening on {rxEndpoint.Address}:{rxEndpoint.Port}");
 
-            using Socket server = new(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            using Socket server = new(rxEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             server.Bind(rxEndpoint);
+            server.Listen(1000);
+
 
             while (executionFlag)
             {
-                server.Listen(1000);
-                server.ReceiveTimeout = 30_000; // 30 second timoout on socket receives
                 try
                 {
-
                     var handler = await server.AcceptAsync(cancellationToken);
-
                     var rxBuffer = new byte[receivableByteSize];
                     var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
                     string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
