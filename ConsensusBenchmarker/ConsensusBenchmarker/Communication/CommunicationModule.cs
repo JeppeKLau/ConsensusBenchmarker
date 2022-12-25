@@ -168,7 +168,7 @@ namespace ConsensusBenchmarker.Communication
         private async Task SendRecieveBlockChain(List<Block> blocks, IPAddress recipient)
         {
             string messageToSend = string.Empty;
-            if (blocks is not null && blocks.Count > 0)
+            if (blocks.Any())
             {
                 Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
                 messageToSend = Messages.CreateRecBCMessage(blocks);
@@ -237,7 +237,7 @@ namespace ConsensusBenchmarker.Communication
             }
             nodeManager.Shutdown(SocketShutdown.Both);
         }
-        
+
         #endregion
 
         #region HandleInputMessages
