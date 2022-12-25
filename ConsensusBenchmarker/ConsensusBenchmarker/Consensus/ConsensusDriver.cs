@@ -92,8 +92,6 @@ namespace ConsensusBenchmarker.Consensus
 
         public virtual void RecieveBlockChain(List<Block> blocks)
         {
-            // This node could, if its lucky, be able to add its own block while waiting for a response for another node's blockchain, just fyi
-            //      The fact this comment exists, implies the implemented solution is not sound - j
             foreach (Block block in blocks)
             {
                 RecieveBlock(block);

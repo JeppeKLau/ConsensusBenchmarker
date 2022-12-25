@@ -1,4 +1,5 @@
 ﻿using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Events;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
@@ -58,8 +59,6 @@ namespace ConsensusBenchmarker.Communication
 
             moduleThreads.Add("Communication_HandleEventLoop", new Thread(() =>
             {
-                // block mining while retrieving blockchain from others.
-                eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null)); // Correct place to do this?
                 while (executionFlag || eventQueue.Count > 0)
                 {
                     HandleEventQueue().GetAwaiter().GetResult();
@@ -90,7 +89,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 case CommunicationEventType.End:
                     executionFlag = false;
-                    Console.WriteLine("Communication was signalled to end."); // TEMP
+                    Console.WriteLine("Communication was signalled to end.");
                     break;
                 case CommunicationEventType.SendTransaction:
                     eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncTransaction, nextEvent.Data));
@@ -116,7 +115,7 @@ namespace ConsensusBenchmarker.Communication
 
         public async Task AnnounceOwnIP()
         {
-            var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 }); // 192, 168, 100, 100 
+            var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 });
             string messageToSend = Messages.CreateDISMessage(ipAddress!);
             string response = await SendMessageAndWaitForAnswer(networkManagerIP, messageToSend);
 
@@ -153,22 +152,24 @@ namespace ConsensusBenchmarker.Communication
             knownNodesSemaphore.Wait();
             if (knownNodes.Count > 0)
             {
-                firstNetworkNode = knownNodes.First();
+                firstNetworkNode = knownNodes.Last();
             }
             knownNodesSemaphore.Release();
 
             if (firstNetworkNode == null)
             {
                 Console.WriteLine($"I (node {nodeId}) want to request a blockchain, but I don't know any nodes.");
-                return;
+                eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null)); // ConsensusModule needs response in order to begin its consensus.
             }
-
-            Console.WriteLine($"I (node {nodeId}) requests recipient {firstNetworkNode}'s blockchain.");
-            string messageToSend = Messages.CreateReqBCMessage(ipAddress!);
-            await SendMessageAndDontWaitForAnswer(firstNetworkNode, messageToSend);
+            else
+            {
+                Console.WriteLine($"I (node {nodeId}) requests recipient {firstNetworkNode}'s blockchain.");
+                string messageToSend = Messages.CreateReqBCMessage(ipAddress!);
+                await SendMessageAndDontWaitForAnswer(firstNetworkNode, messageToSend);
+            }
         }
 
-        private async Task SendRecieveBlockChain(List<Models.Blocks.Block> blocks, IPAddress recipient)
+        private async Task SendRecieveBlockChain(List<Block> blocks, IPAddress recipient)
         {
             Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
             string messageToSend = Messages.CreateRecBCMessage(blocks);
@@ -331,12 +332,8 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("Blocks could not be deserialized correctly", nameof(message));
             }
-            if (recievedBlocks.Count > 0)
-            {
-                Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().OwnerNodeID}");
-                eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
-            }
-            else { Console.WriteLine($"Recieved a blockchain from another node, but it was empty."); }
+            Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().OwnerNodeID}");
+            eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
         }
 
         #endregion

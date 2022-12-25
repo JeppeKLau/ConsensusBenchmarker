@@ -67,12 +67,13 @@ namespace ConsensusBenchmarkerTest.Tests
         }
 
         [TestMethod]
-        public void GenerateNextBlock_UseTwoDifferentInstances()
+        public void GenerateNextBlock_ReachMaxBlocks()
         {
             // Arrange
             var stopWatch = new Stopwatch();
             stopWatch.Start();
             var consensus = new PoWConsensus(1, 1);
+            consensus.BeginConsensus();
 
             // Mine block 1 and reach maxBlocksToMine
             var transactions1 = new List<Transaction>()
@@ -157,6 +158,8 @@ namespace ConsensusBenchmarkerTest.Tests
             object[] parameters = { stopWatchRef };
 
             var consensus = new PoWConsensus(1, 10);
+            consensus.BeginConsensus();
+
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             var transactions = new List<Transaction>()
             {
@@ -183,6 +186,8 @@ namespace ConsensusBenchmarkerTest.Tests
             object[] parameters = { stopWatchRef };
 
             var consensus = new PoWConsensus(1, 2);
+            consensus.BeginConsensus();
+
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             var transactions1 = new List<Transaction>()
             {
@@ -217,6 +222,8 @@ namespace ConsensusBenchmarkerTest.Tests
             object[] parameters = { stopWatchRef };
 
             var consensus = new PoWConsensus(1, 1);
+            consensus.BeginConsensus();
+
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             var transactions1 = new List<Transaction>()
             {
@@ -252,6 +259,8 @@ namespace ConsensusBenchmarkerTest.Tests
             object[] parameters = { stopWatchRef };
 
             var consensus = new PoWConsensus(1, 10);
+            consensus.BeginConsensus();
+
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:
@@ -294,6 +303,8 @@ namespace ConsensusBenchmarkerTest.Tests
             object[] parameters = { stopWatchRef };
 
             var consensus = new PoWConsensus(1, 10);
+            consensus.BeginConsensus();
+
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:
@@ -333,6 +344,8 @@ namespace ConsensusBenchmarkerTest.Tests
             object[] parameters = { stopWatchRef };
 
             var consensus = new PoWConsensus(1, 10);
+            consensus.BeginConsensus();
+
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:
@@ -376,6 +389,8 @@ namespace ConsensusBenchmarkerTest.Tests
             object[] parameters = { stopWatchRef };
 
             var consensus = new PoWConsensus(1, 10);
+            consensus.BeginConsensus();
+
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:
