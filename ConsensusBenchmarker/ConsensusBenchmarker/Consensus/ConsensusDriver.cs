@@ -109,8 +109,12 @@ namespace ConsensusBenchmarker.Consensus
 
         public void AddNewTransaction(Transaction transaction)
         {
+            recievedTransactionsMutex.Wait();
+
             RecievedTransactionsSinceLastBlock.Add(transaction);
             RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList();
+
+            recievedTransactionsMutex.Release();
         }
 
         /// <summary>

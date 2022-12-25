@@ -110,7 +110,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
             long nonce;
             restartMining = false;
 
-            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(previousBlockHash, RecievedTransactionsSinceLastBlock.ToList());
+            List<Transaction> currentTransactionsCopy = RecievedTransactionsSinceLastBlock.ToList();
+            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(previousBlockHash, currentTransactionsCopy);
 
             using (SHA256 sha256 = SHA256.Create())
             {
@@ -126,7 +127,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     string blockHash = HashNewBlock(sha256, previousHashAndTransactions, nonce);
                     if (HashConformsToDifficulty(blockHash))
                     {
-                        newBlock = new PoWBlock(NodeID, DateTime.UtcNow, RecievedTransactionsSinceLastBlock.ToList(), blockHash, previousBlockHash, nonce);
+                        newBlock = new PoWBlock(NodeID, DateTime.UtcNow, currentTransactionsCopy, blockHash, previousBlockHash, nonce);
                         AddNewBlockToChain(newBlock);
                     }
                 }
@@ -150,10 +151,20 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private static byte[] CombineByteArrays(byte[] first, byte[] second)
         {
-            byte[] ret = new byte[first.Length + second.Length];
-            first.CopyTo(ret, 0);
-            second.CopyTo(ret, first.Length);
-            return ret;
+            int retLength = -1;
+            try
+            {
+                byte[] ret = new byte[first.Length + second.Length];
+                retLength = ret.Length; // TEMP
+                first.CopyTo(ret, 0);
+                second.CopyTo(ret, first.Length);
+                return ret;
+            }
+            catch { }
+            throw new Exception($"Copy byte array failed. First array length: {first.Length}, second: {second.Length}, combined: {retLength}");
+
+            // Unhandled exception. System.ArgumentException: Destination array was not long enough. Check the destination index, length, and the array's lower bounds. (Parameter 'destinationArray')
+            // at System.Array.Copy(Array sourceArray, Int32 sourceIndex, Array destinationArray, Int32 destinationIndex, Int32 length, Boolean reliable)
         }
 
         private bool HashConformsToDifficulty(string hash)
