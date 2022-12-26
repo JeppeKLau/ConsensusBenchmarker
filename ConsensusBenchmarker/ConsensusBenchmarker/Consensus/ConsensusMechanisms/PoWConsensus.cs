@@ -27,34 +27,32 @@ namespace ConsensusBenchmarker.Consensus.PoW
             allowMining = true;
         }
 
-        public override bool RecieveBlock(Block block)
+        public override bool RecieveBlock(Block newBlock)
         {
-            if (block is not PoWBlock recievedBlock)
+            if (newBlock is not PoWBlock newPoWBlock)
             {
-                throw new ArgumentException("Recieved block is not the correct type", block.GetType().FullName);
+                throw new ArgumentException("Recieved block is not the correct type", newBlock.GetType().FullName);
             }
 
-            bool addBlock = false;
+            bool isBlockValid = false;
             PoWBlock? previousBlock = GetLastValidBlock();
-            if (previousBlock == null) // Genesis Block
+
+            if (previousBlock == null)
             {
-                addBlock = true;
+                isBlockValid = ValidateNewBlockHash(newPoWBlock);
             }
             else
             {
-                if (IsBlockValid(previousBlock, recievedBlock)) // Next Block
-                {
-                    addBlock = true;
-                }
+                isBlockValid = previousBlock.BlockHash.Equals(newPoWBlock.PreviousBlockHash) && ValidateNewBlockHash(newPoWBlock);
             }
 
-            if (addBlock)
+            if (isBlockValid)
             {
-                allowMining = false;
-                AddNewBlockToChain(block);
+                AddNewBlockToChain(newBlock);
+                return true;
             }
-            allowMining = true;
-            return addBlock;
+            Console.WriteLine($"The block from {newBlock.OwnerNodeID} created at {newBlock.BlockCreatedAt} was NOT valid.");
+            return false;
         }
 
         public override void RecieveTransaction(Transaction transaction)
@@ -97,6 +95,29 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     RecieveBlock(block);
                 }
             }
+        }
+
+        private bool ValidateNewBlockHash(PoWBlock newBlock)
+        {
+            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
+
+            using SHA256 sha256 = SHA256.Create();
+            string newBlocksHash = HashNewBlock(sha256, previousHashAndTransactions, newBlock.Nonce);
+
+            if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private PoWBlock? GetLastValidBlock()
+        {
+            if (Blocks.Count > 0)
+            {
+                return Blocks.Last() as PoWBlock;
+            }
+            return null;
         }
 
         #region MineNewBlock
@@ -183,50 +204,5 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         #endregion
 
-        #region ValidateBlock
-
-        /// <summary>
-        /// Determines whether or not a new block is valid to be added as the next block in the chain. Throws exception if the current chain is empty.
-        /// </summary>
-        /// <param name="previousBlock"></param>
-        /// <param name="newBlock"></param>
-        /// <returns><see cref="bool"/></returns>
-        /// <exception cref="Exception"></exception>
-        private bool IsBlockValid(PoWBlock previousBlock, PoWBlock newBlock)
-        {
-            if (Blocks.Count == 0) throw new Exception("The current chain is empty and a new block can therefore not be validated.");
-
-            if (previousBlock.BlockHash.Equals(newBlock.PreviousBlockHash) && ValidateNewBlockHash(newBlock))
-            {
-                return true;
-            }
-            Console.WriteLine($"The block from {newBlock.OwnerNodeID} created at {newBlock.BlockCreatedAt} was NOT valid.");
-            return false;
-        }
-
-        private bool ValidateNewBlockHash(PoWBlock newBlock)
-        {
-            byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
-
-            using SHA256 sha256 = SHA256.Create();
-            string newBlocksHash = HashNewBlock(sha256, previousHashAndTransactions, newBlock.Nonce);
-
-            if (HashConformsToDifficulty(newBlocksHash) && newBlock.BlockHash.Equals(newBlocksHash))
-            {
-                return true;
-            }
-            return false;
-        }
-
-        #endregion
-
-        private PoWBlock? GetLastValidBlock()
-        {
-            if (Blocks.Count > 0)
-            {
-                return Blocks.Last() as PoWBlock;
-            }
-            return null;
-        }
     }
 }

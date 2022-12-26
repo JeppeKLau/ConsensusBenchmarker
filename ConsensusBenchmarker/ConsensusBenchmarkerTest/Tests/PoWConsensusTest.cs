@@ -385,13 +385,8 @@ namespace ConsensusBenchmarkerTest.Tests
             // Arrange
             var stopWatch = new Stopwatch();
             stopWatch.Start();
-            ref var stopWatchRef = ref stopWatch;
-            object[] parameters = { stopWatchRef };
-
             var consensus = new PoWConsensus(1, 10);
             consensus.BeginConsensus();
-
-            MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Block 1:
             var transactions1 = new List<Transaction>()
@@ -400,7 +395,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
-            PoWBlock block1 = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
+            _ = consensus.GenerateNextBlock(ref stopWatch);
 
             // Block 2:
             var transactions2 = new List<Transaction>()
@@ -409,25 +404,22 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
-            PoWBlock block2 = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
+            PoWBlock? block2 = consensus.GenerateNextBlock(ref stopWatch);
+
+            // Remove block2 again:
             consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
-            consensus.Blocks.Remove(block2);
+            consensus.Blocks.Remove(block2!);
+            consensus.BlocksInChain--;
 
             // Serialize and deserialize:
-            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
-
-            string block2Serialized = JsonConvert.SerializeObject(block2, settings);
-            if (JsonConvert.DeserializeObject<Block>(block2Serialized, settings) is not Block block2Deserialized)
+            string block2Serialized = JsonConvert.SerializeObject(block2!);
+            if (JsonConvert.DeserializeObject<Block>(block2Serialized) is not Block block2Deserialized)
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(block2Deserialized));
             }
 
-            // Set up validate block:
-            MethodInfo? methodInfo2 = typeof(PoWConsensus).GetMethod(name: "IsBlockValid", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] parameters2 = { block1, block2Deserialized };
-
             // Act
-            bool result = (bool)methodInfo2!.Invoke(consensus, parameters2)!;
+            bool result = consensus.RecieveBlock(block2Deserialized!);
 
             // Assert
             Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");

@@ -39,8 +39,8 @@ namespace ConsensusBenchmarker.Consensus
 
         public List<Block> Blocks { get; set; } = new List<Block>();
 
-        private readonly SemaphoreSlim recievedTransactionsMutex = new(1, 1);
-        private readonly SemaphoreSlim blocksMutex = new(1, 1);
+        private readonly SemaphoreSlim recievedTransactionsSemaphore = new(1, 1);
+        private readonly SemaphoreSlim blocksSemaphore = new(1, 1);
         private readonly int maxBlocksInChainAtOnce = 50;
 
         public virtual void BeginConsensus()
@@ -109,12 +109,12 @@ namespace ConsensusBenchmarker.Consensus
 
         public void AddNewTransaction(Transaction transaction)
         {
-            recievedTransactionsMutex.Wait();
+            recievedTransactionsSemaphore.Wait();
 
             RecievedTransactionsSinceLastBlock.Add(transaction);
             RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList();
 
-            recievedTransactionsMutex.Release();
+            recievedTransactionsSemaphore.Release();
         }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace ConsensusBenchmarker.Consensus
         {
             if (!Blocks.Contains(newBlock))
             {
-                blocksMutex.Wait();
+                blocksSemaphore.Wait();
 
                 Blocks.AddSorted(newBlock);
                 BlocksInChain++;
@@ -134,7 +134,7 @@ namespace ConsensusBenchmarker.Consensus
 
                 MaintainBlockChainSize();
 
-                blocksMutex.Release();
+                blocksSemaphore.Release();
 
                 RemoveNewBlockTransactions(newBlock);
 
@@ -152,14 +152,14 @@ namespace ConsensusBenchmarker.Consensus
 
         private void RemoveNewBlockTransactions(Block newBlock)
         {
-            recievedTransactionsMutex.Wait();
+            recievedTransactionsSemaphore.Wait();
 
             List<Transaction> transactionsToBeRemoved = new();
             transactionsToBeRemoved.AddRange(RecievedTransactionsSinceLastBlock.Intersect(newBlock.Transactions));
 
             _ = RecievedTransactionsSinceLastBlock.RemoveAll(transactionsToBeRemoved.Contains);
 
-            recievedTransactionsMutex.Release();
+            recievedTransactionsSemaphore.Release();
         }
     }
 }
