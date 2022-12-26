@@ -96,7 +96,7 @@ namespace ConsensusBenchmarker.Communication
                     await BroadcastTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case CommunicationEventType.SendBlock:
-                    await BroadcastBlock(nextEvent.Data as Models.Blocks.Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
+                    await BroadcastBlock(nextEvent.Data as Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data)));
                     break;
                 case CommunicationEventType.RequestBlockChain:
                     await SendRequestBlockChain();
