@@ -380,7 +380,7 @@ namespace ConsensusBenchmarkerTest.Tests
         }
 
         [TestMethod]
-        public void RecieveBlock_AreTwoBlockHashesEqual()
+        public void RecieveBlock()
         {
             // Arrange
             var stopWatch = new Stopwatch();
@@ -395,7 +395,15 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
-            _ = consensus.GenerateNextBlock(ref stopWatch);
+            PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
+            
+            // Remove block1 again:
+            consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
+            consensus.Blocks.Remove(block1!);
+            consensus.BlocksInChain--;
+
+            // Act (1/2):
+            bool result1 = consensus.RecieveBlock(block1!);
 
             // Block 2:
             var transactions2 = new List<Transaction>()
@@ -418,12 +426,13 @@ namespace ConsensusBenchmarkerTest.Tests
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(block2Deserialized));
             }
 
-            // Act
-            bool result = consensus.RecieveBlock(block2Deserialized!);
+            // Act (2/2):
+            bool result2 = consensus.RecieveBlock(block2Deserialized!);
 
             // Assert
             Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
-            Assert.AreEqual(true, result);
+            Assert.AreEqual(true, result1);
+            Assert.AreEqual(true, result2);
         }
 
     }
