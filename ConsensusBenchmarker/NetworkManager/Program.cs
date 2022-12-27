@@ -57,7 +57,7 @@ static class Program
 
             await SendBackListOfKnownNodes(handler, cancellationToken);
 
-            IPAddress newNode = ParseIpAddress(message);
+            IPAddress newNode = ParseIpAddress(cleanMessage);
             Console.WriteLine($"Parsed message to ipaddress: {newNode.ToString()}");
 
             await BroadcastNewNodeToAllPreviousNodes(newNode, cancellationToken);
