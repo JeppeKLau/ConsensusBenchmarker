@@ -6,9 +6,9 @@ using System.Net;
 namespace ConsensusBenchmarker.Communication
 {
     /// <summary>
-    /// DEF = Default, DIS = Discover, TRA = Transaction, BLK = Block, QBC = RequestBlockChain, RBC = RecieveBlockChain, ACK = Acknoledgement, EOM = End of Message,
+    /// DEF = Default, DIS = Discover, TRA = Transaction, BLK = Block, QBC = RequestBlockChain, RBC = RecieveBlockChain, EOM = End of Message,
     /// </summary>
-    public enum OperationType { DEF = 0, DIS, TRA, BLK, QBC, RBC, ACK, EOM };
+    public enum OperationType { DEF = 0, DIS, TRA, BLK, QBC, RBC, EOM };
 
     public static class Messages
     {

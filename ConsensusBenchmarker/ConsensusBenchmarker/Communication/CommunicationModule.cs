@@ -22,7 +22,6 @@ namespace ConsensusBenchmarker.Communication
         private bool executionFlag;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly SemaphoreSlim knownNodesSemaphore = new(1, 1);
-        //private readonly JsonSerializerSettings jsonSettings = new() { TypeNameHandling = TypeNameHandling.All };
 
         public CommunicationModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeId)
         {
@@ -118,16 +117,16 @@ namespace ConsensusBenchmarker.Communication
             string messageToSend = Messages.CreateDISMessage(ipAddress!);
             string response = await SendMessageAndWaitForAnswer(networkManagerIP, messageToSend);
 
-            if (Messages.DoesMessageContainOperationTag(response, OperationType.ACK))
+            if (Messages.DoesMessageContainOperationTag(response, OperationType.DIS))
             {
-                response = Messages.RemoveOperationTypeTag(response, OperationType.ACK);
+                response = Messages.RemoveOperationTypeTag(response, OperationType.DIS);
                 response = Messages.RemoveOperationTypeTag(response, OperationType.EOM);
 
                 SaveNewIPAddresses(response);
             }
             else
             {
-                Console.WriteLine("No ACK from Network Manager. Retrying");
+                Console.WriteLine("No discover response from the Network Manager. Retrying");
                 await AnnounceOwnIP();
             }
         }

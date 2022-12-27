@@ -15,8 +15,7 @@ static class Program
     private static readonly int receivableByteSize = 4096;
     private static readonly int portNumber = 11_000;
     private static readonly string eom = "<|EOM|>";
-    private static readonly string ack = "<|ACK|>";
-    private static readonly string discover = "<|DIS|>";
+    private static readonly string dis = "<|DIS|>";
 
     static async Task Main()
     {
@@ -26,7 +25,7 @@ static class Program
 
     private static void Initialize()
     {
-        ipAddress = new IPAddress(new byte[] { 192, 168, 100, 100 }); // 192, 168, 100, 100
+        ipAddress = new IPAddress(new byte[] { 192, 168, 100, 100 });
         rxEndpoint = new(ipAddress!, portNumber);
         server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
     }
@@ -51,14 +50,16 @@ static class Program
 
     private static async Task HandleMessage(string message, Socket handler, CancellationToken cancellationToken = default)
     {
-        if (message.Contains(discover) && message.Contains(eom))
+        if (message.Contains(dis) && message.Contains(eom))
         {
-            string cleanMessage = message.Remove(message.IndexOf(eom), eom.Length).Remove(0, (message.IndexOf(discover) + discover.Length));
-            Console.WriteLine("Recieved message: " + cleanMessage); // TEMP
+            string cleanMessage = message.Remove(message.IndexOf(eom), eom.Length).Remove(0, (message.IndexOf(dis) + dis.Length));
+            Console.WriteLine("Recieved message: " + cleanMessage);
 
             await SendBackListOfKnownNodes(handler, cancellationToken);
-            AddNewKnownNode(cleanMessage);
-            await BroadcastNewNodeToAllPreviousNodes(cancellationToken);
+
+            IPAddress newNode = ParseIpAddress(message);
+            await BroadcastNewNodeToAllPreviousNodes(newNode, cancellationToken);
+            AddNewKnownNode(newNode);
         }
         else
         {
@@ -66,13 +67,23 @@ static class Program
         }
     }
 
-    private static void AddNewKnownNode(string message)
+    private static async Task SendBackListOfKnownNodes(Socket handler, CancellationToken cancellationToken = default)
     {
-        IPAddress newIP = ParseIpAddress(message);
-        if (!knownNodes.Contains(newIP))
+        if (knownNodes.Count > 0)
         {
-            knownNodes.Add(newIP);
+            var echoBytes = Encoding.UTF8.GetBytes(dis + CreateStringOfKnownNodes() + eom);
+            await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
         }
+        else
+        {
+            var echoBytes = Encoding.UTF8.GetBytes(dis + eom);
+            await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+        }
+    }
+
+    private static string CreateStringOfKnownNodes()
+    {
+        return string.Join(",", knownNodes.Select(x => "IP:" + x.ToString()));
     }
 
     private static IPAddress ParseIpAddress(string message)
@@ -86,52 +97,35 @@ static class Program
         return new IPAddress(new byte[] { ip0, ip1, ip2, ip3 });
     }
 
-    private static async Task SendBackListOfKnownNodes(Socket handler, CancellationToken cancellationToken = default)
+    private static void AddNewKnownNode(IPAddress newNode)
     {
-        if (knownNodes.Count > 0)
+        if (!knownNodes.Contains(newNode))
         {
-            var echoBytes = Encoding.UTF8.GetBytes(ack + CreateStringOfKnownNodes() + eom);
-            await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-        }
-        else
-        {
-            var echoBytes = Encoding.UTF8.GetBytes(ack + eom);
-            await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+            knownNodes.Add(newNode);
         }
     }
 
-    private static string CreateStringOfKnownNodes()
+    private static async Task BroadcastNewNodeToAllPreviousNodes(IPAddress newNode, CancellationToken cancellationToken = default)
     {
-        return string.Join(",", knownNodes.Select(x => "IP:" + x.ToString()));
-    }
-
-    private static async Task BroadcastNewNodeToAllPreviousNodes(CancellationToken cancellationToken = default)
-    {
-        Console.WriteLine("Begins broadcasting new node to previous known nodes."); // TEMP
-
         var nodesPendingRemoval = new List<IPAddress>();
-        IPAddress newNode = knownNodes.Last();
         foreach (IPAddress address in knownNodes)
         {
-            if (!address.Equals(newNode))
+            try
             {
-                try
-                {
-                    var echoBytes = Encoding.UTF8.GetBytes(discover + "IP:" + newNode.ToString() + eom);
-                    var nodeEndpoint = new IPEndPoint(address, portNumber);
-                    var nodeSocket = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                    Console.WriteLine($"Connecting to {address}");
-                    await nodeSocket.ConnectAsync(nodeEndpoint);
-                    _ = await nodeSocket.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
-                    nodeSocket.Shutdown(SocketShutdown.Both);
-                    Console.WriteLine("Shutting down socket");
-                }
-                catch (SocketException ex)
-                {
-                    Console.WriteLine($"Socket had an exception, node has likely crashed. Removing {address} from list.");
-                    Console.WriteLine(ex);
-                    nodesPendingRemoval.Add(address);
-                }
+                var echoBytes = Encoding.UTF8.GetBytes(dis + "IP:" + newNode.ToString() + eom);
+                var nodeEndpoint = new IPEndPoint(address, portNumber);
+                var nodeSocket = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                Console.WriteLine($"Connecting to {address}");
+                await nodeSocket.ConnectAsync(nodeEndpoint);
+                _ = await nodeSocket.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+                nodeSocket.Shutdown(SocketShutdown.Both);
+                Console.WriteLine("Shutting down socket");
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine($"Socket had an exception, node has likely crashed. Removing {address} from list.");
+                Console.WriteLine(ex);
+                nodesPendingRemoval.Add(address);
             }
         }
         nodesPendingRemoval.ForEach(x => knownNodes.Remove(x));
