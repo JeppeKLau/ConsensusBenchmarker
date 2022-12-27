@@ -58,8 +58,6 @@ static class Program
             await SendBackListOfKnownNodes(handler, cancellationToken);
 
             IPAddress newNode = ParseIpAddress(cleanMessage);
-            Console.WriteLine($"Parsed message to ipaddress: {newNode.ToString()}");
-
             await BroadcastNewNodeToAllPreviousNodes(newNode, cancellationToken);
             AddNewKnownNode(newNode);
         }
@@ -112,7 +110,6 @@ static class Program
         var nodesPendingRemoval = new List<IPAddress>();
         foreach (IPAddress address in knownNodes)
         {
-            Console.WriteLine($"Send the new node: {newNode.ToString()} back to node: {address.ToString()}");
             try
             {
                 var echoBytes = Encoding.UTF8.GetBytes(dis + "IP:" + newNode.ToString() + eom);

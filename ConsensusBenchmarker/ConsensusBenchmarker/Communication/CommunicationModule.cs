@@ -121,7 +121,6 @@ namespace ConsensusBenchmarker.Communication
             {
                 response = Messages.RemoveOperationTypeTag(response, OperationType.DIS);
                 response = Messages.RemoveOperationTypeTag(response, OperationType.EOM);
-                Console.WriteLine($"Recieved the following response from the network manager: {response}");
 
                 SaveNewIPAddresses(response);
             }
