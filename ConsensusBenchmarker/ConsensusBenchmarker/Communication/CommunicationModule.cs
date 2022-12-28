@@ -111,6 +111,10 @@ namespace ConsensusBenchmarker.Communication
 
         #region HandleOutputMessages
 
+        /// <summary>
+        /// Makes the node announce itself to the network manager, and receives a list of the network managers currently known nodes.
+        /// </summary>
+        /// <returns><see cref="Task"/></returns>
         public async Task AnnounceOwnIP()
         {
             var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 });
@@ -185,13 +189,6 @@ namespace ConsensusBenchmarker.Communication
             knownNodesSemaphore.Release();
         }
 
-        /// <summary>
-        /// Send a message to another IP address and waits for the answer.
-        /// </summary>
-        /// <param name="receiver"></param>
-        /// <param name="message"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns><see cref="string"/></returns>
         private async Task<string> SendMessageAndWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
             eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.OutMessage, DateTime.UtcNow));
@@ -214,13 +211,6 @@ namespace ConsensusBenchmarker.Communication
             return Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
         }
 
-        /// <summary>
-        /// Send a message to another IP address without waiting for the answer.
-        /// </summary>
-        /// <param name="receiver"></param>
-        /// <param name="message"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns><see cref="Task"/></returns>
         private async Task SendMessageAndDontWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
             eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.OutMessage, DateTime.UtcNow));

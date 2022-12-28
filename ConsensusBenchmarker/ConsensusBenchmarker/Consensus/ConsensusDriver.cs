@@ -26,7 +26,7 @@ namespace ConsensusBenchmarker.Consensus
                 blocksInChain = value;
                 if (blocksInChain >= MaxBlocksToCreate)
                 {
-                    ExecutionFlag = false; // Triggers Shutdown of whole node.
+                    ExecutionFlag = false; // Triggers Shutdown of the whole node.
                 }
             }
         }
@@ -43,6 +43,10 @@ namespace ConsensusBenchmarker.Consensus
         private readonly SemaphoreSlim blocksSemaphore = new(1, 1);
         private readonly int maxBlocksInChainAtOnce = 50;
 
+        /// <summary>
+        /// Tells the consensus to start.
+        /// </summary>
+        /// <exception cref="NotImplementedException"></exception>
         public virtual void BeginConsensus()
         {
             throw new NotImplementedException();
@@ -85,11 +89,21 @@ namespace ConsensusBenchmarker.Consensus
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Returns the nodes list of blocks that it currently has.
+        /// </summary>
+        /// <returns></returns>
         public virtual List<Block> RequestBlockChain()
         {
             return Blocks;
         }
 
+        /// <summary>
+        /// Handles the recieving of a list of block from another node.
+        /// </summary>
+        /// <param name="blocks"></param>
+        /// <param name="blockChainStopwatch"></param>
+        /// <exception cref="NotImplementedException"></exception>
         public virtual void RecieveBlockChain(List<Block>? blocks, ref Stopwatch blockChainStopwatch)
         {
             throw new NotImplementedException();
@@ -107,6 +121,10 @@ namespace ConsensusBenchmarker.Consensus
             return newTransaction;
         }
 
+        /// <summary>
+        /// Adds a new transaction thread safe.
+        /// </summary>
+        /// <param name="transaction"></param>
         public void AddNewTransaction(Transaction transaction)
         {
             recievedTransactionsSemaphore.Wait();
