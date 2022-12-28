@@ -101,6 +101,7 @@ namespace ConsensusBenchmarker.Communication
                     await SendRequestBlockChain();
                     break;
                 case CommunicationEventType.RecieveBlockChain:
+                    Console.WriteLine("Preparing to send blockchain back");
                     await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), nextEvent.Recipient!);
                     break;
                 default:
