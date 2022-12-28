@@ -14,6 +14,7 @@ namespace ConsensusBenchmarker.Consensus
         private readonly ConsensusDriver consensusMechanism;
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int NodeID;
+        private bool requestBlockcHainHasHappened;
 
         public ConsensusModule(string consensusType, int maxBlocksToCreate, int nodeID, ref ConcurrentQueue<IEvent> eventQueue)
         {
@@ -21,6 +22,7 @@ namespace ConsensusBenchmarker.Consensus
             consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID, maxBlocksToCreate);
             this.eventQueue = eventQueue;
             NodeID = nodeID;
+            requestBlockcHainHasHappened = false;
         }
 
         public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
@@ -100,13 +102,16 @@ namespace ConsensusBenchmarker.Consensus
                 case ConsensusEventType.CreateBlock:
                     break;
                 case ConsensusEventType.RecieveBlock:
-                    var blockStopwatch = new Stopwatch();
-                    var newBlock = nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data));
-                    var blockWasAdded = consensusMechanism.RecieveBlock(newBlock, ref blockStopwatch);
-                    if (blockWasAdded)
+                    if(requestBlockcHainHasHappened)
                     {
-                        eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
-                        eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, blockStopwatch));
+                        var blockStopwatch = new Stopwatch();
+                        var newBlock = nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data));
+                        var blockWasAdded = consensusMechanism.RecieveBlock(newBlock, ref blockStopwatch);
+                        if (blockWasAdded)
+                        {
+                            eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
+                            eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, blockStopwatch));
+                        }
                     }
                     break;
                 case ConsensusEventType.CreateTransaction:
@@ -125,6 +130,7 @@ namespace ConsensusBenchmarker.Consensus
                     var blockChain = nextEvent.Data as List<Block> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data));
                     RecieveBlockChain(blockChain);
                     consensusMechanism.BeginConsensus();
+                    requestBlockcHainHasHappened = true;
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
