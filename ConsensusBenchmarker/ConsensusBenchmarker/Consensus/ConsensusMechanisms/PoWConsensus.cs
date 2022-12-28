@@ -27,7 +27,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             allowMining = true;
         }
 
-        public override bool RecieveBlock(Block newBlock)
+        public override bool RecieveBlock(Block newBlock, ref Stopwatch stopwatch)
         {
             if (newBlock is not PoWBlock newPoWBlock)
             {
@@ -36,6 +36,8 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             bool isBlockValid = false;
             PoWBlock? previousBlock = GetLastValidBlock();
+
+            stopwatch.Start();
 
             if (previousBlock == null)
             {
@@ -49,6 +51,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             if (isBlockValid)
             {
                 AddNewBlockToChain(newBlock);
+                stopwatch.Stop();
                 return true;
             }
             Console.WriteLine($"The block from {newBlock.OwnerNodeID} created at {newBlock.BlockCreatedAt} was NOT valid.");
@@ -87,7 +90,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         public override void RecieveBlockChain(List<Block>? blocks)
         {
             if (blocks is null) return;
-            
+
             if (blocks.Count > 0)
             {
                 foreach (Block block in blocks)

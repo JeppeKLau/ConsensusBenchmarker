@@ -6,7 +6,7 @@ namespace ConsensusBenchmarker.Models.Measurements
     [Measurement("blocks")]
     public class BlockMeasurement : BaseMeasurement
     {
-        public BlockMeasurement(int nodeId, DateTime timestamp, int blockCount, DateTime creationTime) : base(nodeId, timestamp)
+        public BlockMeasurement(int nodeId, DateTime timestamp, int blockCount, long creationTime) : base(nodeId, timestamp)
         {
             BlockCount = blockCount;
             CreationTime = creationTime;
@@ -14,6 +14,6 @@ namespace ConsensusBenchmarker.Models.Measurements
 
         [Column("Block count")] public int BlockCount { get; set; }
 
-        [Column("Creation time")] public DateTime CreationTime { get; set; }
+        [Column("Creation time")] public long CreationTime { get; set; }
     }
 }

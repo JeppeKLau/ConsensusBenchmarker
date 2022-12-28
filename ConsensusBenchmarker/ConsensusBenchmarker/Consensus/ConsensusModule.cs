@@ -61,7 +61,7 @@ namespace ConsensusBenchmarker.Consensus
             {
                 eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock, null));
                 eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
-                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, block));
+                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, stopWatch));
             }
         }
 
@@ -92,10 +92,13 @@ namespace ConsensusBenchmarker.Consensus
                 case ConsensusEventType.CreateBlock:
                     break;
                 case ConsensusEventType.RecieveBlock:
-                    var blockWasAdded = consensusMechanism.RecieveBlock(nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data)));
+                    var stopwatch = new Stopwatch();
+                    var newBlock = nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data));
+                    var blockWasAdded = consensusMechanism.RecieveBlock(newBlock, ref stopwatch);
                     if (blockWasAdded)
                     {
                         eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
+                        eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, stopwatch));
                     }
                     break;
                 case ConsensusEventType.CreateTransaction:

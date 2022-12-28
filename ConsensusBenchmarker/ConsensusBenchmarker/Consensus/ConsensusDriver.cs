@@ -53,7 +53,7 @@ namespace ConsensusBenchmarker.Consensus
         /// </summary>
         /// <param name="serializedBlock"></param>
         /// <returns><see cref="bool"/></returns>
-        public virtual bool RecieveBlock(Block block)
+        public virtual bool RecieveBlock(Block block, ref Stopwatch stopwatch)
         {
             throw new NotImplementedException();
         }

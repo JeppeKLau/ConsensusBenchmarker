@@ -14,20 +14,21 @@ namespace ConsensusBenchmarker.DataCollection
         private static readonly string MEM_STAT_FILE = "/proc/{pid}/status"; // VmSize: <some number of characters> \n
         private readonly Process currentProcess;
         private readonly ConcurrentQueue<IEvent> eventQueue;
-        private readonly int nodeID;
+        private readonly int nodeId;
         private readonly InfluxDBService influxDBService;
         private readonly DateTime startTime;
         private Thread? memThread;
         private bool executionFlag;
         private int blockCount = 0;
         private int transactionCount = 0;
-        private int messageCount;
+        private int inMessageCount = 0;
+        private int outMessageCount = 0;
 
         public DataCollectionModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeID, InfluxDBService influxDBService, DateTime startTime)
         {
             currentProcess = Process.GetCurrentProcess();
             this.eventQueue = eventQueue;
-            this.nodeID = nodeID;
+            this.nodeId = nodeID;
             this.influxDBService = influxDBService;
             this.startTime = startTime;
             executionFlag = true;
@@ -41,13 +42,13 @@ namespace ConsensusBenchmarker.DataCollection
                 while (executionFlag)
                 {
                     ReadMemvalue(out int mbMemory);
-                    WriteInformationToDB(new MemoryMeasurement(nodeID, DateTime.UtcNow, mbMemory));
+                    WriteInformationToDB(new MemoryMeasurement(nodeId, DateTime.UtcNow, mbMemory));
                     Thread.Sleep(1000);
                 }
             });
             moduleThreads.Add("DataCollection_ReadMemory", memThread);
 
-            eventQueue.Enqueue(new DataCollectionEvent(nodeID, DataCollectionEventType.CollectionReady, null));
+            eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.CollectionReady, null));
         }
 
         private void CollectData()
@@ -56,15 +57,15 @@ namespace ConsensusBenchmarker.DataCollection
              *  _Total CPU usage.
              *  Total storage used. {storage implementation}
              *      - How do we write blocks to storage?
-             *          - Do we write blocks to permanent storage?
+             *          - Do we write blocks to permanent storage? - No
              *      - Where do we store the blocks?
              *  _Total messages sent and received, as well as their timestamps.
              *      - Count messages transmitted to and from node
              *          - 
-             *  Total time spent verifying blocks and block creation time. 
+             *  _Total time spent verifying blocks and block creation time. 
              */
 
-            while (executionFlag || eventQueue.Count > 0)
+            while (executionFlag || !eventQueue.IsEmpty)
             {
                 HandleEvents();
                 Thread.Sleep(1);
@@ -72,10 +73,10 @@ namespace ConsensusBenchmarker.DataCollection
 
             var endTime = DateTime.UtcNow;
             ReadCpuValue(out int cpuTime);
-            WriteInformationToDB(new CPUMeasurement(nodeID, DateTime.UtcNow, cpuTime));
-            WriteInformationToDB(new RunTimeMeasurement(nodeID, DateTime.UtcNow, endTime.Subtract(startTime)));
-            WriteInformationToDB(new TransactionMeasurement(nodeID, DateTime.UtcNow, transactionCount));
-            WriteInformationToDB(new MessageMeasurement(nodeID, DateTime.UtcNow, messageCount));
+            WriteInformationToDB(new CPUMeasurement(nodeId, DateTime.UtcNow, cpuTime));
+            WriteInformationToDB(new RunTimeMeasurement(nodeId, DateTime.UtcNow, endTime.Subtract(startTime)));
+            WriteInformationToDB(new TransactionMeasurement(nodeId, DateTime.UtcNow, transactionCount));
+            WriteInformationToDB(new InMessageMeasurement(nodeId, DateTime.UtcNow, inMessageCount));
             memThread?.Join();
         }
 
@@ -110,14 +111,20 @@ namespace ConsensusBenchmarker.DataCollection
                     break;
                 case DataCollectionEventType.IncBlock:
                     blockCount++;
-                    var blockCreationTime = nextEvent.Data as DateTime? ?? new DateTime(0);
-                    WriteInformationToDB(new BlockMeasurement(nodeID, DateTime.UtcNow, blockCount, blockCreationTime));
+                    var blockCreationTime = nextEvent.Data as Stopwatch ?? new Stopwatch();
+                    WriteInformationToDB(new BlockMeasurement(nodeId, DateTime.UtcNow, blockCount, blockCreationTime.ElapsedMilliseconds / 1000));
                     break;
                 case DataCollectionEventType.IncTransaction:
                     transactionCount++;
+                    WriteInformationToDB(new TransactionMeasurement(nodeId, DateTime.Now, transactionCount));
                     break;
                 case DataCollectionEventType.IncMessage:
-                    messageCount++;
+                    inMessageCount++;
+                    WriteInformationToDB(new InMessageMeasurement(nodeId, DateTime.UtcNow, inMessageCount));
+                    break;
+                case DataCollectionEventType.OutMessage:
+                    outMessageCount++;
+                    WriteInformationToDB(new OutMessageMeasurement(nodeId, DateTime.UtcNow, outMessageCount));
                     break;
                 default:
                     throw new ArgumentException($"Unkown type of {nameof(DataCollectionEvent)}", nameof(nextEvent.EventType));

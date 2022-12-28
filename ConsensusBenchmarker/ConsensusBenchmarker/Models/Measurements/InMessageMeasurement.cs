@@ -2,10 +2,10 @@
 
 namespace ConsensusBenchmarker.Models.Measurements
 {
-    [Measurement("messages")]
-    internal class MessageMeasurement : BaseMeasurement
+    [Measurement("incoming messages")]
+    internal class InMessageMeasurement : BaseMeasurement
     {
-        public MessageMeasurement(int nodeId, DateTime timestamp, int messageCount) : base(nodeId, timestamp)
+        public InMessageMeasurement(int nodeId, DateTime timestamp, int messageCount) : base(nodeId, timestamp)
         {
             MessageCount = messageCount;
         }

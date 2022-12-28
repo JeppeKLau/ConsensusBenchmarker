@@ -195,6 +195,7 @@ namespace ConsensusBenchmarker.Communication
         /// <returns><see cref="string"/></returns>
         private async Task<string> SendMessageAndWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
+            eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.OutMessage, DateTime.UtcNow));
             var networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             byte[] responseBuffer = new byte[receivableByteSize];
@@ -223,6 +224,7 @@ namespace ConsensusBenchmarker.Communication
         /// <returns><see cref="Task"/></returns>
         private async Task SendMessageAndDontWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
         {
+            eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.OutMessage, DateTime.UtcNow));
             var nodeEndpoint = new IPEndPoint(receiver, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             var nodeManager = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
