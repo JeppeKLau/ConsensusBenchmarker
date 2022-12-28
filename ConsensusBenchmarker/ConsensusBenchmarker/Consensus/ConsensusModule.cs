@@ -25,7 +25,7 @@ namespace ConsensusBenchmarker.Consensus
 
         public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
         {
-            eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null)); // Correct place to do this?
+            eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null));
             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
             moduleThreads.Add("Consensus_HandleEventLoop", new Thread(() =>
             {
