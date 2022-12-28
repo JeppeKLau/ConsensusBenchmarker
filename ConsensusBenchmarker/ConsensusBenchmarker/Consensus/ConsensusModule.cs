@@ -59,11 +59,14 @@ namespace ConsensusBenchmarker.Consensus
 
             if (block != null)
             {
-                eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock, null));
-                Thread.Sleep(500); // 0.02 sec // Enables this node to receive anothers node if it was mined first.
+                while (eventQueue.Any(e => e is ConsensusEvent consensusEvent && consensusEvent.EventType == ConsensusEventType.RecieveBlock)) // Recieve all blocks in the queue before trying to add your own block.
+                {
+                    Thread.Sleep(1);
+                }
 
                 if (consensusMechanism.RecieveBlock(block, ref stopWatch))
                 {
+                    eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock, null));
                     eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
                     eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, stopWatch));
                 }
