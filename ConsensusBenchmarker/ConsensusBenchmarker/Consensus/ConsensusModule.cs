@@ -92,13 +92,13 @@ namespace ConsensusBenchmarker.Consensus
                 case ConsensusEventType.CreateBlock:
                     break;
                 case ConsensusEventType.RecieveBlock:
-                    var stopwatch = new Stopwatch();
+                    var blockStopwatch = new Stopwatch();
                     var newBlock = nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data));
-                    var blockWasAdded = consensusMechanism.RecieveBlock(newBlock, ref stopwatch);
+                    var blockWasAdded = consensusMechanism.RecieveBlock(newBlock, ref blockStopwatch);
                     if (blockWasAdded)
                     {
                         eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
-                        eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, stopwatch));
+                        eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, blockStopwatch));
                     }
                     break;
                 case ConsensusEventType.CreateTransaction:
@@ -114,7 +114,9 @@ namespace ConsensusBenchmarker.Consensus
                     eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.RequestBlockChain(), CommunicationEventType.RecieveBlockChain, nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient))));
                     break;
                 case ConsensusEventType.RecieveBlockchain:
-                    consensusMechanism.RecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data)));
+                    var blockChainStopwatch = new Stopwatch();
+                    var blockChain = nextEvent.Data as List<Block> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data));
+                    consensusMechanism.RecieveBlockChain(blockChain, ref blockChainStopwatch);
                     consensusMechanism.BeginConsensus();
                     break;
                 default:

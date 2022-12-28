@@ -90,7 +90,7 @@ namespace ConsensusBenchmarker.Consensus
             return Blocks;
         }
 
-        public virtual void RecieveBlockChain(List<Block>? blocks)
+        public virtual void RecieveBlockChain(List<Block>? blocks, ref Stopwatch blockChainStopwatch)
         {
             throw new NotImplementedException();
         }

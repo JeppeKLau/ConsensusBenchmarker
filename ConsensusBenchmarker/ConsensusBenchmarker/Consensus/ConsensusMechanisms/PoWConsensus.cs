@@ -87,7 +87,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return null;
         }
 
-        public override void RecieveBlockChain(List<Block>? blocks)
+        public override void RecieveBlockChain(List<Block>? blocks, ref Stopwatch blockChainStopwatch)
         {
             if (blocks is null) return;
 
@@ -95,7 +95,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             {
                 foreach (Block block in blocks)
                 {
-                    RecieveBlock(block);
+                    RecieveBlock(block, ref blockChainStopwatch);
                 }
             }
         }
