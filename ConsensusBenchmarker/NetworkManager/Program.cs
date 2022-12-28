@@ -17,10 +17,13 @@ static class Program
     private static readonly string eom = "<|EOM|>";
     private static readonly string dis = "<|DIS|>";
 
+    private static readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private static System.Timers.Timer? timeoutTimer;
+
     static async Task Main()
     {
         Initialize();
-        await WaitInstruction();
+        await WaitInstruction(cancellationTokenSource.Token);
     }
 
     private static void Initialize()
@@ -28,6 +31,22 @@ static class Program
         ipAddress = new IPAddress(new byte[] { 192, 168, 100, 100 });
         rxEndpoint = new(ipAddress!, portNumber);
         server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+        // Initialize timer:
+        timeoutTimer = new System.Timers.Timer(120_000); // 120 sec
+        timeoutTimer.AutoReset = false;
+        timeoutTimer.Elapsed += (sender, e) => 
+        {
+            Console.WriteLine("Network Manager timed out, cancellation token will be set to cancel.\n");
+            cancellationTokenSource.Cancel(); 
+        };
+        timeoutTimer.Start();
+    }
+
+    private static void RestartTimer()
+    {
+        timeoutTimer!.Stop();
+        timeoutTimer!.Start();
     }
 
     private static async Task WaitInstruction(CancellationToken cancellationToken = default)
@@ -38,13 +57,21 @@ static class Program
 
         while (true)
         {
-            Socket handler = await server!.AcceptAsync(cancellationToken);
-            var rxBuffer = new byte[receivableByteSize];
-            var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
-            string message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
+            try
+            {
+                var handler = await server!.AcceptAsync(cancellationToken);
+                var rxBuffer = new byte[receivableByteSize];
+                var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
+                var message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
 
-            await HandleMessage(message, handler, cancellationToken);
-            Console.WriteLine("Status: Number of known nodes is currently: " + knownNodes.Count.ToString());
+                await HandleMessage(message, handler, cancellationToken);
+                RestartTimer();
+                Console.WriteLine("Status: Number of known nodes is currently: " + knownNodes.Count.ToString());
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 
