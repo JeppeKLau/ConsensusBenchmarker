@@ -19,8 +19,6 @@ class Program
 
         IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
-        //JsonConvert.DefaultSettings = () => new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
-
         var moduleThreads = new Dictionary<string, Thread>();
         string consensus = RetrieveConsensusMechanismType();
         int maxBlocksToCreate = RetrieveMaxBlocksToCreate();
@@ -49,7 +47,6 @@ class Program
             waitForMessageThread.Start();
         }
         await communicationModule.AnnounceOwnIP();
-        //Thread.Sleep(10_000);
 
         // Start threads:
         foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads.Where(t => t.Value.ThreadState == ThreadState.Unstarted))
@@ -63,7 +60,6 @@ class Program
             moduleThread.Value.Join();
             Console.WriteLine($"{moduleThread.Key}'s state is currently: {moduleThread.Value.ThreadState}");
         }
-        // HoldMainThreadUntilAllThreadsIsFinished(moduleThreads);
 
         //debuggingThreadsThread.Join();
         Console.WriteLine("Test complete, terminating execution.");

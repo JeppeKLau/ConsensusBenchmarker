@@ -107,7 +107,7 @@ namespace ConsensusBenchmarker.DataCollection
             {
                 case DataCollectionEventType.End:
                     executionFlag = false;
-                    Console.WriteLine("Data collection was signalled to end."); // TEMP
+                    Console.WriteLine("Data collection was signalled to end.");
                     break;
                 case DataCollectionEventType.IncBlock:
                     blockCount++;
