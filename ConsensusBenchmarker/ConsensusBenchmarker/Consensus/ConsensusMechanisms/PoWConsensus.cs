@@ -138,7 +138,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
                     if (HashConformsToDifficulty(blockHash))
                     {
                         newBlock = new PoWBlock(NodeID, DateTime.UtcNow, currentTransactionsCopy, blockHash, previousBlockHash, nonce);
-                        AddNewBlockToChain(newBlock);
                     }
                 }
             }

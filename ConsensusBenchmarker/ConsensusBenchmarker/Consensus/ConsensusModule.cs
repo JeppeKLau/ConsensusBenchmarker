@@ -59,9 +59,12 @@ namespace ConsensusBenchmarker.Consensus
 
             if (block != null)
             {
-                eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock, null));
-                eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
-                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, stopWatch));
+                if(consensusMechanism.RecieveBlock(block, ref stopWatch))
+                {
+                    eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock, null));
+                    eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
+                    eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, stopWatch));
+                }
             }
         }
 
