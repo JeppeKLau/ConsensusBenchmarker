@@ -339,6 +339,7 @@ namespace ConsensusBenchmarker.Communication
                 throw new ArgumentException("Transaction could not be deserialized correctly", nameof(message));
             }
             eventQueue.Enqueue(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction, null));
+            eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncTransaction, recievedTransaction));
         }
 
         private void ReceiveBlock(string message)
