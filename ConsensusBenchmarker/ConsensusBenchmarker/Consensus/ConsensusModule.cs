@@ -111,6 +111,7 @@ namespace ConsensusBenchmarker.Consensus
                     consensusMechanism.RecieveTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case ConsensusEventType.RequestBlockchain:
+                    Console.WriteLine("Handling blockchain request");
                     eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.RequestBlockChain(), CommunicationEventType.RecieveBlockChain, nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient))));
                     break;
                 case ConsensusEventType.RecieveBlockchain:
