@@ -23,6 +23,7 @@ namespace ConsensusBenchmarker.DataCollection
         private int transactionCount = 0;
         private int inMessageCount = 0;
         private int outMessageCount = 0;
+        private SemaphoreSlim counterSemaphore = new SemaphoreSlim(1, 1);
 
         public DataCollectionModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeID, InfluxDBService influxDBService, DateTime startTime)
         {
@@ -103,6 +104,8 @@ namespace ConsensusBenchmarker.DataCollection
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not DataCollectionEvent nextEvent) return;
 
+            counterSemaphore.Wait();
+
             switch (nextEvent.EventType)
             {
                 case DataCollectionEventType.End:
@@ -130,6 +133,7 @@ namespace ConsensusBenchmarker.DataCollection
                     throw new ArgumentException($"Unkown type of {nameof(DataCollectionEvent)}", nameof(nextEvent.EventType));
             }
             eventQueue.TryDequeue(out _);
+            counterSemaphore.Release();
         }
 
         private void ReadMemvalue(out int value)
