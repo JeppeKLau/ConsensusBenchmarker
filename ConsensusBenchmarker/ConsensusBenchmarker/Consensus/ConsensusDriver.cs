@@ -95,7 +95,6 @@ namespace ConsensusBenchmarker.Consensus
         /// <returns></returns>
         public virtual List<Block> RequestBlockChain()
         {
-            Console.WriteLine($"Returning blockchain of length: {Blocks.Count}");
             return Blocks;
         }
 

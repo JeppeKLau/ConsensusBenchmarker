@@ -60,7 +60,7 @@ namespace ConsensusBenchmarker.Consensus
             if (block != null)
             {
                 eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock, null));
-                Thread.Sleep(20); // 0.02 sec // Enables this node to receive anothers node if it was mined first.
+                Thread.Sleep(500); // 0.02 sec // Enables this node to receive anothers node if it was mined first.
 
                 if (consensusMechanism.RecieveBlock(block, ref stopWatch))
                 {
@@ -116,7 +116,6 @@ namespace ConsensusBenchmarker.Consensus
                     consensusMechanism.RecieveTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case ConsensusEventType.RequestBlockchain:
-                    Console.WriteLine("Handling blockchain request");
                     eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.RequestBlockChain(), CommunicationEventType.RecieveBlockChain, nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient))));
                     break;
                 case ConsensusEventType.RecieveBlockchain:
