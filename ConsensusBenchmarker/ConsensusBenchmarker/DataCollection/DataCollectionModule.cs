@@ -103,6 +103,8 @@ namespace ConsensusBenchmarker.DataCollection
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not DataCollectionEvent nextEvent) return;
 
+            Console.WriteLine("Data collection, handle event thread is handling one now!");
+
             switch (nextEvent.EventType)
             {
                 case DataCollectionEventType.End:
