@@ -4,7 +4,6 @@ using ConsensusBenchmarker.DataCollection;
 using ConsensusBenchmarker.Models.Events;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using System.Collections.Concurrent;
 
 namespace ConsensusBenchmarker;
@@ -38,7 +37,7 @@ class Program
         consensusModule.SpawnThreads(moduleThreads);
 
         // For thread debugging:
-        //Thread debuggingThreadsThread = PrintActiveThreads(moduleThreads);
+        Thread debuggingThreadsThread = PrintActiveThreads(moduleThreads);
         //debuggingThreadsThread.Start();
 
         // Start communication thread first, so nodes can discover each other before it begins:
@@ -47,6 +46,8 @@ class Program
             waitForMessageThread.Start();
         }
         await communicationModule.AnnounceOwnIP();
+
+        Console.WriteLine("Threads started and talked to network manager");
 
         // Start threads:
         foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads.Where(t => t.Value.ThreadState == ThreadState.Unstarted))
