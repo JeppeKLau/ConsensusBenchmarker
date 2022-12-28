@@ -1,6 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
-using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
+using ConsensusBenchmarker.Models.DTOs;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -27,17 +27,15 @@ namespace ConsensusBenchmarker.Consensus.PoW
             allowMining = true;
         }
 
-        public override bool RecieveBlock(Block newBlock, ref Stopwatch stopwatch)
+        public override bool RecieveBlock(BlockDTO newBlock)
         {
-            if (newBlock is not PoWBlock newPoWBlock)
+            if (newBlock.Block is not PoWBlock newPoWBlock)
             {
                 throw new ArgumentException("Recieved block is not the correct type", newBlock.GetType().FullName);
             }
 
-            bool isBlockValid = false;
+            bool isBlockValid;
             PoWBlock? previousBlock = GetLastValidBlock();
-
-            stopwatch.Start();
 
             if (previousBlock == null)
             {
@@ -50,11 +48,16 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
             if (isBlockValid)
             {
-                AddNewBlockToChain(newBlock);
-                stopwatch.Stop();
+                AddNewBlockToChain(newPoWBlock);
                 return true;
             }
-            Console.WriteLine($"The block from {newBlock.OwnerNodeID} created at {newBlock.BlockCreatedAt} was NOT valid.");
+            else if (newBlock.BlockchainLength - BlocksInChain >= 2)
+            {
+                // replace current blockchain with newBlock's creator's chain
+                allowMining = false;
+                EmptyBlockchain();
+            }
+            Console.WriteLine($"The block from {newPoWBlock.OwnerNodeID} created at {newPoWBlock.BlockCreatedAt} was NOT valid.");
             return false;
         }
 

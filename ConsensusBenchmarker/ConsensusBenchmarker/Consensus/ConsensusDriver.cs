@@ -1,6 +1,7 @@
 ﻿using ConsensusBenchmarker.Extensions;
 using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
+using ConsensusBenchmarker.Models.DTOs;
 using System.Diagnostics;
 
 namespace ConsensusBenchmarker.Consensus
@@ -57,7 +58,7 @@ namespace ConsensusBenchmarker.Consensus
         /// </summary>
         /// <param name="serializedBlock"></param>
         /// <returns><see cref="bool"/></returns>
-        public virtual bool RecieveBlock(Block block, ref Stopwatch stopwatch)
+        public virtual bool RecieveBlock(BlockDTO block)
         {
             throw new NotImplementedException();
         }
@@ -96,6 +97,16 @@ namespace ConsensusBenchmarker.Consensus
         public virtual List<Block> RequestBlockChain()
         {
             return Blocks;
+        }
+
+        public void EmptyBlockchain()
+        {
+            blocksSemaphore.Wait();
+
+            Blocks.Clear();
+            BlocksInChain = 0;
+
+            blocksSemaphore.Release();
         }
 
         /// <summary>

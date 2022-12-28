@@ -47,8 +47,6 @@ class Program
         }
         await communicationModule.AnnounceOwnIP();
 
-        Console.WriteLine("Threads started and talked to network manager");
-
         // Start threads:
         foreach (KeyValuePair<string, Thread> moduleThread in moduleThreads.Where(t => t.Value.ThreadState == ThreadState.Unstarted))
         {

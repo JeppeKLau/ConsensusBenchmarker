@@ -1,5 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
+using ConsensusBenchmarker.Models.DTOs;
 using Newtonsoft.Json;
 using System.Net;
 
@@ -56,20 +57,10 @@ namespace ConsensusBenchmarker.Communication
             return value;
         }
 
-        public static IPAddress ParseIpAddress(string IPMessage)
+        public static string CreateDISMessage(IPAddress ipAddress, int nodeId)
         {
-            var ipString = IPMessage.Contains("IP:") ? IPMessage[3..] : IPMessage;
-            var ipArray = ipString.Split('.');
-            _ = byte.TryParse(ipArray[0], out var ip0);
-            _ = byte.TryParse(ipArray[1], out var ip1);
-            _ = byte.TryParse(ipArray[2], out var ip2);
-            _ = byte.TryParse(ipArray[3], out var ip3);
-            return new IPAddress(new byte[] { ip0, ip1, ip2, ip3 });
-        }
-
-        public static string CreateDISMessage(IPAddress ipAddress)
-        {
-            return $"{CreateTag(OperationType.DIS)}IP:{ipAddress}{CreateTag(OperationType.EOM)}";
+            var serialized = JsonConvert.SerializeObject(new KeyValuePair<int, IPAddress>(nodeId, ipAddress));
+            return $"{CreateTag(OperationType.DIS)}{serialized}{CreateTag(OperationType.EOM)}";
         }
 
         public static string CreateTRAMessage(Transaction transaction)
@@ -89,7 +80,7 @@ namespace ConsensusBenchmarker.Communication
             return $"{CreateTag(OperationType.QBC)}IP:{ipAddress}{CreateTag(OperationType.EOM)}";
         }
 
-        public static string CreateRecBCMessage(List<Block> blocks)
+        public static string CreateRecBCMessage(List<BlockDTO> blocks)
         {
             string serializedBlocks = string.Empty;
             if (blocks.Any())

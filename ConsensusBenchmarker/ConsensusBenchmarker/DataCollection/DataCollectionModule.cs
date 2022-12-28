@@ -23,7 +23,7 @@ namespace ConsensusBenchmarker.DataCollection
         private int transactionCount = 0;
         private int inMessageCount = 0;
         private int outMessageCount = 0;
-        private SemaphoreSlim counterSemaphore = new SemaphoreSlim(1, 1);
+        private SemaphoreSlim counterSemaphore = new(1, 1);
 
         public DataCollectionModule(ref ConcurrentQueue<IEvent> eventQueue, int nodeID, InfluxDBService influxDBService, DateTime startTime)
         {

@@ -9,9 +9,9 @@ namespace ConsensusBenchmarker.Models.Events
 
         public object? Data { get; set; }
 
-        public IPAddress? Recipient { get; set; }
+        public KeyValuePair<int, IPAddress>? Recipient { get; set; }
 
-        public ConsensusEvent(object? data, ConsensusEventType eventType, IPAddress? recipient)
+        public ConsensusEvent(object? data, ConsensusEventType eventType, KeyValuePair<int, IPAddress>? recipient)
         {
             EventType = eventType;
             Data = data;

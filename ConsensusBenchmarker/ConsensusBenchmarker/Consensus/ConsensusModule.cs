@@ -1,5 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
+using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -14,7 +15,7 @@ namespace ConsensusBenchmarker.Consensus
         private readonly ConsensusDriver consensusMechanism;
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int NodeID;
-        private bool requestBlockcHainHasHappened;
+        private bool requestBlockchainHasHappened;
 
         public ConsensusModule(string consensusType, int maxBlocksToCreate, int nodeID, ref ConcurrentQueue<IEvent> eventQueue)
         {
@@ -22,7 +23,7 @@ namespace ConsensusBenchmarker.Consensus
             consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID, maxBlocksToCreate);
             this.eventQueue = eventQueue;
             NodeID = nodeID;
-            requestBlockcHainHasHappened = false;
+            requestBlockchainHasHappened = false;
         }
 
         public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
@@ -66,7 +67,7 @@ namespace ConsensusBenchmarker.Consensus
                     Thread.Sleep(1);
                 }
 
-                if (consensusMechanism.RecieveBlock(block, ref stopWatch))
+                if (consensusMechanism.RecieveBlock(new BlockDTO(block, consensusMechanism.BlocksInChain)))
                 {
                     eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock, null));
                     eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
@@ -102,15 +103,18 @@ namespace ConsensusBenchmarker.Consensus
                 case ConsensusEventType.CreateBlock:
                     break;
                 case ConsensusEventType.RecieveBlock:
-                    var newBlock = nextEvent.Data as Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data));
-                    if (requestBlockcHainHasHappened)
+                    var newBlock = nextEvent.Data as BlockDTO ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data));
+                    if (requestBlockchainHasHappened)
                     {
-                        var blockStopwatch = new Stopwatch();
-                        var blockWasAdded = consensusMechanism.RecieveBlock(newBlock, ref blockStopwatch);
-                        if (blockWasAdded)
+                        if (consensusMechanism.RecieveBlock(newBlock))
                         {
                             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
-                            eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, blockStopwatch));
+                            eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, null));
+                        }
+                        else if (consensusMechanism.BlocksInChain == 0)
+                        {
+                            requestBlockchainHasHappened = false;
+                            eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null));
                         }
                     }
                     else
@@ -129,13 +133,14 @@ namespace ConsensusBenchmarker.Consensus
                     consensusMechanism.RecieveTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case ConsensusEventType.RequestBlockchain:
-                    eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.RequestBlockChain(), CommunicationEventType.RecieveBlockChain, nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient))));
+                    var recipient = nextEvent.Recipient ?? throw new ArgumentException("KeyValuePair<int, IPAddress> missing from event", nameof(nextEvent.Recipient));
+                    eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.RequestBlockChain(), CommunicationEventType.RecieveBlockChain, recipient));
                     break;
                 case ConsensusEventType.RecieveBlockchain:
-                    var blockChain = nextEvent.Data as List<Block> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data));
+                    var blockChain = nextEvent.Data as List<BlockDTO> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data));
                     RecieveBlockChain(blockChain);
                     consensusMechanism.BeginConsensus();
-                    requestBlockcHainHasHappened = true;
+                    requestBlockchainHasHappened = true;
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -143,16 +148,18 @@ namespace ConsensusBenchmarker.Consensus
             eventQueue.TryDequeue(out _);
         }
 
-        private void RecieveBlockChain(List<Block> blockChain)
+        private void RecieveBlockChain(List<BlockDTO> blockChain)
         {
-            var blockChainStopwatch = new Stopwatch();
-
             foreach (var block in blockChain)
             {
-                consensusMechanism.RecieveBlock(block, ref blockChainStopwatch);
-                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, blockChainStopwatch));
-                blockChainStopwatch.Reset();
+                consensusMechanism.RecieveBlock(block);
+                //eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, blockChainStopwatch));
             }
+
+
+
+            // Move this method back into consensusDriver imo.
+
         }
 
         private void NotifyModulesOfTestEnd()

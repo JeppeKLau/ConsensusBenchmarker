@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Newtonsoft.Json;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -6,39 +7,33 @@ namespace NetworkManager;
 
 static class Program
 {
-    private static IPAddress? ipAddress;
-    private static IPEndPoint? rxEndpoint;
-    private static Socket? server;
+    private static IPAddress ipAddress = new(new byte[] { 192, 168, 100, 100 });
+    private static IPEndPoint rxEndpoint = new(ipAddress, portNumber);
+    private static Socket server = new(rxEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
-    private static readonly List<IPAddress> knownNodes = new();
+    private static readonly Dictionary<int, IPAddress> knownNodes = new();
 
     private static readonly int receivableByteSize = 4096;
     private static readonly int portNumber = 11_000;
     private static readonly string eom = "<|EOM|>";
     private static readonly string dis = "<|DIS|>";
 
-    private static readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-    private static System.Timers.Timer? timeoutTimer;
+    private static readonly CancellationTokenSource cancellationTokenSource = new();
+    private static readonly System.Timers.Timer timeoutTimer = new(120_000); // 120 sec
 
     static async Task Main()
     {
-        Initialize();
+        InitializeTimeoutTimer();
         await WaitInstruction(cancellationTokenSource.Token);
     }
 
-    private static void Initialize()
+    private static void InitializeTimeoutTimer()
     {
-        ipAddress = new IPAddress(new byte[] { 192, 168, 100, 100 });
-        rxEndpoint = new(ipAddress!, portNumber);
-        server = new Socket(rxEndpoint!.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-        // Initialize timer:
-        timeoutTimer = new System.Timers.Timer(120_000); // 120 sec
         timeoutTimer.AutoReset = false;
-        timeoutTimer.Elapsed += (sender, e) => 
+        timeoutTimer.Elapsed += (sender, e) =>
         {
             Console.WriteLine("Network Manager timed out, cancellation token will be set to cancel.\n");
-            cancellationTokenSource.Cancel(); 
+            cancellationTokenSource.Cancel();
         };
         timeoutTimer.Start();
     }
@@ -51,8 +46,8 @@ static class Program
 
     private static async Task WaitInstruction(CancellationToken cancellationToken = default)
     {
-        Console.WriteLine($"Listening on {rxEndpoint!.Address}:{rxEndpoint!.Port}\n");
-        server!.Bind(rxEndpoint!);
+        Console.WriteLine($"Listening on {rxEndpoint.Address}:{rxEndpoint.Port}\n");
+        server!.Bind(rxEndpoint);
         server!.Listen(1000);
 
         while (true)
@@ -84,7 +79,7 @@ static class Program
 
             await SendBackListOfKnownNodes(handler, cancellationToken);
 
-            IPAddress newNode = ParseIpAddress(cleanMessage);
+            var newNode = JsonConvert.DeserializeObject<KeyValuePair<int, IPAddress>>(cleanMessage);
             await BroadcastNewNodeToAllPreviousNodes(newNode, cancellationToken);
             AddNewKnownNode(newNode);
         }
@@ -98,6 +93,7 @@ static class Program
     {
         if (knownNodes.Count > 0)
         {
+
             var echoBytes = Encoding.UTF8.GetBytes(dis + CreateStringOfKnownNodes() + eom);
             await handler.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
         }
@@ -110,51 +106,45 @@ static class Program
 
     private static string CreateStringOfKnownNodes()
     {
-        return string.Join(",", knownNodes.Select(x => "IP:" + x.ToString()));
+        return JsonConvert.SerializeObject(knownNodes);
     }
 
-    private static IPAddress ParseIpAddress(string message)
+    private static void AddNewKnownNode(KeyValuePair<int, IPAddress> newNode)
     {
-        var ipString = message.Contains("IP:") ? message[3..] : message;
-        var ipArray = ipString.Split('.');
-        _ = byte.TryParse(ipArray[0], out var ip0);
-        _ = byte.TryParse(ipArray[1], out var ip1);
-        _ = byte.TryParse(ipArray[2], out var ip2);
-        _ = byte.TryParse(ipArray[3], out var ip3);
-        return new IPAddress(new byte[] { ip0, ip1, ip2, ip3 });
-    }
-
-    private static void AddNewKnownNode(IPAddress newNode)
-    {
-        if (!knownNodes.Contains(newNode))
+        if (!knownNodes.ContainsKey(newNode.Key))
         {
-            knownNodes.Add(newNode);
+            knownNodes.Add(newNode.Key, newNode.Value);
         }
     }
 
-    private static async Task BroadcastNewNodeToAllPreviousNodes(IPAddress newNode, CancellationToken cancellationToken = default)
+    private static async Task BroadcastNewNodeToAllPreviousNodes(KeyValuePair<int, IPAddress> newNode, CancellationToken cancellationToken = default)
     {
-        var nodesPendingRemoval = new List<IPAddress>();
-        foreach (IPAddress address in knownNodes)
+        var nodesPendingRemoval = new Dictionary<int, IPAddress>();
+        var messageBytes = Encoding.UTF8.GetBytes(dis + JsonConvert.SerializeObject(newNode) + eom);
+
+        foreach (var node in knownNodes)
         {
             try
             {
-                var echoBytes = Encoding.UTF8.GetBytes(dis + "IP:" + newNode.ToString() + eom);
-                var nodeEndpoint = new IPEndPoint(address, portNumber);
+                var nodeEndpoint = new IPEndPoint(node.Value, portNumber);
                 var nodeSocket = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                Console.WriteLine($"Connecting to {address}");
+                Console.WriteLine($"Connecting to {node.Value}");
                 await nodeSocket.ConnectAsync(nodeEndpoint);
-                _ = await nodeSocket.SendAsync(echoBytes, SocketFlags.None, cancellationToken);
+                _ = await nodeSocket.SendAsync(messageBytes, SocketFlags.None, cancellationToken);
                 nodeSocket.Shutdown(SocketShutdown.Both);
+                nodeSocket.Close();
                 Console.WriteLine("Shutting down socket");
             }
             catch (SocketException ex)
             {
-                Console.WriteLine($"Socket had an exception, node has likely crashed. Removing {address} from list.");
+                Console.WriteLine($"Socket had an exception, node ({node.Key}, {node.Value}) has likely crashed. Removing it.");
                 Console.WriteLine(ex);
-                nodesPendingRemoval.Add(address);
+                nodesPendingRemoval.Add(node.Key, node.Value);
             }
         }
-        nodesPendingRemoval.ForEach(x => knownNodes.Remove(x));
+        foreach (var node in nodesPendingRemoval)
+        {
+            knownNodes.Remove(node.Key);
+        }
     }
 }

@@ -9,13 +9,13 @@ namespace ConsensusBenchmarker.Models.Events
 
         public CommunicationEventType EventType { get; set; }
 
-        public IPAddress? Recipient { get; set; }
+        public KeyValuePair<int, IPAddress>? Recipient { get; set; }
 
-        public CommunicationEvent(object? data, CommunicationEventType eventType, IPAddress? ricipient)
+        public CommunicationEvent(object? data, CommunicationEventType eventType, KeyValuePair<int, IPAddress>? recipient)
         {
             Data = data;
             EventType = eventType;
-            Recipient = ricipient;
+            Recipient = recipient;
         }
     }
 }
