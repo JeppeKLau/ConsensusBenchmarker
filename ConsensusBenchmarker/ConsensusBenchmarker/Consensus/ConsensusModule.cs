@@ -102,16 +102,21 @@ namespace ConsensusBenchmarker.Consensus
                 case ConsensusEventType.CreateBlock:
                     break;
                 case ConsensusEventType.RecieveBlock:
-                    if(requestBlockcHainHasHappened)
+                    var newBlock = nextEvent.Data as Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data));
+                    if (requestBlockcHainHasHappened)
                     {
                         var blockStopwatch = new Stopwatch();
-                        var newBlock = nextEvent.Data as Block ?? throw new ArgumentException("String missing from event", nameof(nextEvent.Data));
                         var blockWasAdded = consensusMechanism.RecieveBlock(newBlock, ref blockStopwatch);
                         if (blockWasAdded)
                         {
                             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
                             eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, blockStopwatch));
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Received block before I heard back from my requestblockchain, requeuing.");
+                        eventQueue.Enqueue(new ConsensusEvent(newBlock, ConsensusEventType.RecieveBlock, null));
                     }
                     break;
                 case ConsensusEventType.CreateTransaction:
