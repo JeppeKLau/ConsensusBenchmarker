@@ -149,25 +149,25 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task SendRequestBlockChain()
         {
-            IPAddress? firstNetworkNode = null;
+            IPAddress? lastNetworkNode = null;
 
             knownNodesSemaphore.Wait();
             if (knownNodes.Count > 0)
             {
-                firstNetworkNode = knownNodes.Last();
+                lastNetworkNode = knownNodes.Last();
             }
             knownNodesSemaphore.Release();
 
-            if (firstNetworkNode == null)
+            if (lastNetworkNode == null)
             {
                 Console.WriteLine($"I (node {nodeId}) want to request a blockchain, but I don't know any nodes.");
                 eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null));
             }
             else
             {
-                Console.WriteLine($"I (node {nodeId}) requests recipient {firstNetworkNode}'s blockchain.");
+                Console.WriteLine($"I (node {nodeId}) requests recipient {lastNetworkNode}'s blockchain.");
                 string messageToSend = Messages.CreateReqBCMessage(ipAddress!);
-                await SendMessageAndDontWaitForAnswer(firstNetworkNode, messageToSend);
+                await SendMessageAndDontWaitForAnswer(lastNetworkNode, messageToSend);
             }
         }
 
