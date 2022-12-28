@@ -123,7 +123,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return null;
         }
 
-        #region MineNewBlock
+        #region Mining
 
         private PoWBlock? MineNewBlock(ref Stopwatch stopwatch)
         {

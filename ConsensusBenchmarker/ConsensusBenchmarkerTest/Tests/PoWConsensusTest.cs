@@ -285,10 +285,9 @@ namespace ConsensusBenchmarkerTest.Tests
             consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList(); // Simulates that it recieves a 'mined block'.
 
             // Act
-            consensus.RecieveBlock(blocked2);
+            consensus.RecieveBlock(blocked2, ref stopWatch);
 
             // Assert
-            Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
             Assert.AreEqual(2, consensus.Blocks.Count);
             Assert.AreEqual(0, consensus.RecievedTransactionsSinceLastBlock.Count);
         }
@@ -326,10 +325,9 @@ namespace ConsensusBenchmarkerTest.Tests
             var invalidBlock2 = new PoWBlock(42, DateTime.Now.ToLocalTime(), transactions2.ToList(), "000000DJKHSDG000SOME0000HASH0QQQ", blocked1.BlockHash, 12345); // It HIGHLY unlikely that this is the correct nonce.
 
             // Act
-            consensus.RecieveBlock(invalidBlock2);
+            consensus.RecieveBlock(invalidBlock2, ref stopWatch);
 
             // Assert
-            Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
             Assert.AreEqual(1, consensus.Blocks.Count);
             Assert.AreEqual(2, consensus.RecievedTransactionsSinceLastBlock.Count);
         }
@@ -371,10 +369,9 @@ namespace ConsensusBenchmarkerTest.Tests
             consensus.AddNewTransaction(new Transaction(42, 3, DateTime.Now.ToLocalTime()));
 
             // Act
-            consensus.RecieveBlock(blocked2);
+            consensus.RecieveBlock(blocked2, ref stopWatch);
 
             // Assert
-            Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
             Assert.AreEqual(2, consensus.Blocks.Count);
             Assert.AreEqual(1, consensus.RecievedTransactionsSinceLastBlock.Count);
         }
@@ -403,7 +400,7 @@ namespace ConsensusBenchmarkerTest.Tests
             consensus.BlocksInChain--;
 
             // Act (1/2):
-            bool result1 = consensus.RecieveBlock(block1!);
+            bool result1 = consensus.RecieveBlock(block1!, ref stopWatch);
 
             // Block 2:
             var transactions2 = new List<Transaction>()
@@ -427,10 +424,9 @@ namespace ConsensusBenchmarkerTest.Tests
             }
 
             // Act (2/2):
-            bool result2 = consensus.RecieveBlock(block2Deserialized!);
+            bool result2 = consensus.RecieveBlock(block2Deserialized!, ref stopWatch);
 
             // Assert
-            Console.WriteLine("It took: " + stopWatch.Elapsed.Seconds + " seconds.");
             Assert.AreEqual(true, result1);
             Assert.AreEqual(true, result2);
         }
