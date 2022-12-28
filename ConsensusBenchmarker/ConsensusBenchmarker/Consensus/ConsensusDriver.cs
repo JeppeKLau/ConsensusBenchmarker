@@ -100,17 +100,6 @@ namespace ConsensusBenchmarker.Consensus
         }
 
         /// <summary>
-        /// Handles the recieving of a list of block from another node.
-        /// </summary>
-        /// <param name="blocks"></param>
-        /// <param name="blockChainStopwatch"></param>
-        /// <exception cref="NotImplementedException"></exception>
-        public virtual void RecieveBlockChain(List<Block>? blocks, ref Stopwatch blockChainStopwatch)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Generate and return a new transaction.
         /// </summary>
         /// <returns><see cref="Transaction"/></returns>

@@ -115,15 +115,26 @@ namespace ConsensusBenchmarker.Consensus
                     eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.RequestBlockChain(), CommunicationEventType.RecieveBlockChain, nextEvent.Recipient as IPAddress ?? throw new ArgumentException("IPAddress missing from event", nameof(nextEvent.Recipient))));
                     break;
                 case ConsensusEventType.RecieveBlockchain:
-                    var blockChainStopwatch = new Stopwatch();
                     var blockChain = nextEvent.Data as List<Block> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data));
-                    consensusMechanism.RecieveBlockChain(blockChain, ref blockChainStopwatch);
+                    RecieveBlockChain(blockChain);
                     consensusMechanism.BeginConsensus();
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
             }
             eventQueue.TryDequeue(out _);
+        }
+
+        private void RecieveBlockChain(List<Block> blockChain)
+        {
+            var blockChainStopwatch = new Stopwatch();
+
+            foreach (var block in blockChain)
+            {
+                consensusMechanism.RecieveBlock(block, ref blockChainStopwatch);
+                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, blockChainStopwatch));
+                blockChainStopwatch.Reset();
+            }
         }
 
         private void NotifyModulesOfTestEnd()

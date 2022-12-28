@@ -87,19 +87,6 @@ namespace ConsensusBenchmarker.Consensus.PoW
             return null;
         }
 
-        public override void RecieveBlockChain(List<Block>? blocks, ref Stopwatch blockChainStopwatch)
-        {
-            if (blocks is null) return;
-
-            if (blocks.Count > 0)
-            {
-                foreach (Block block in blocks)
-                {
-                    RecieveBlock(block, ref blockChainStopwatch);
-                }
-            }
-        }
-
         private bool ValidateNewBlockHash(PoWBlock newBlock)
         {
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(newBlock.PreviousBlockHash, newBlock.Transactions);
