@@ -104,7 +104,7 @@ namespace ConsensusBenchmarker.DataCollection
             if (@event is not DataCollectionEvent nextEvent) return;
 
             Console.WriteLine("Data collection, handle event thread is handling one now!");
-            Console.WriteLine($"data collection type: {nextEvent.EventType.ToString()}");
+            Console.WriteLine($"data collection type: {nextEvent.EventType}, number of events in the queue atm: {eventQueue.Count}");
 
             switch (nextEvent.EventType)
             {
