@@ -59,7 +59,7 @@ namespace ConsensusBenchmarker.Consensus
         public List<Block> Blocks { get; set; } = new List<Block>();
 
         private readonly SemaphoreSlim receivedTransactionsSemaphore = new(1, 1);
-        private readonly SemaphoreSlim blocksSemaphore = new(1, 1);
+        protected readonly SemaphoreSlim blocksSemaphore = new(1, 1);
         private readonly int maxBlocksInChainAtOnce = 50;
 
         /// <summary>
@@ -123,6 +123,16 @@ namespace ConsensusBenchmarker.Consensus
         }
 
         public virtual void HandleVoteReceived(bool vote)
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual void HandleHeartbeatRequest(RaftHeartbeat heartbeat)
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual void HandleHeartbeatReceive(RaftHeartbeatResponse heartbeat)
         {
             throw new NotImplementedException();
         }

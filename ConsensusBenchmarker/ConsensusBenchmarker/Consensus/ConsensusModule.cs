@@ -150,7 +150,15 @@ namespace ConsensusBenchmarker.Consensus
                     consensusMechanism.HandleVoteRequest(voteRequest);
                     break;
                 case ConsensusEventType.ReceiveVote:
-                    var vote = nextEvent.Data as bool ?? throw new ArgumentException("Vote missing from event", nameof(nextEvent.Data));
+                    var vote = nextEvent.Data as bool? ?? throw new ArgumentException("Vote missing from event", nameof(nextEvent.Data));
+                    break;
+                case ConsensusEventType.RequestHeartBeat:
+                    var heartbeat = nextEvent.Data as RaftHeartbeat ?? throw new ArgumentException("Heartbeat missing from event", nameof(nextEvent.Data));
+                    consensusMechanism.HandleHeartbeatRequest(heartbeat);
+                    break;
+                case ConsensusEventType.ReceiveHeartBeat:
+                    var heartbeatResponse = nextEvent.Data as RaftHeartbeatResponse ?? throw new ArgumentException("HeartbeatResponse missing from event", nameof(nextEvent.Data));
+                    consensusMechanism.HandleHeartbeatReceive(heartbeatResponse);
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));

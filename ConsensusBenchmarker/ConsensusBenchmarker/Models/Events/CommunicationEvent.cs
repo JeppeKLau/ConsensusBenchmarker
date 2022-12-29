@@ -1,6 +1,6 @@
 ﻿namespace ConsensusBenchmarker.Models.Events
 {
-    public enum CommunicationEventType { End, SendTransaction, SendBlock, RequestBlockChain, RecieveBlockChain, RequestVote, CastVote, SendHeartBeat, ReceiveHeartBeat }
+    public enum CommunicationEventType { End, SendTransaction, SendBlock, RequestBlockChain, RecieveBlockChain, RequestVote, CastVote, RequestHeartBeat, ReceiveHeartBeat }
     public class CommunicationEvent : IEvent
     {
         public object? Data { get; set; }

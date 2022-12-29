@@ -1,5 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
+using ConsensusBenchmarker.Models.DTOs;
 using Newtonsoft.Json;
 
 namespace ConsensusBenchmarker.Communication
@@ -98,14 +99,16 @@ namespace ConsensusBenchmarker.Communication
             return $"{CreateTag(OperationType.RCV)}{message}{CreateTag(OperationType.EOM)}";
         }
 
-        public static string CreateRQHMessage(string message)
+        public static string CreateRQHMessage(RaftHeartbeat heartbeat)
         {
-            return $"{CreateTag(OperationType.RQH)}{message}{CreateTag(OperationType.EOM)}";
+            var serializedHeartbeat = JsonConvert.SerializeObject(heartbeat);
+            return $"{CreateTag(OperationType.RQH)}{serializedHeartbeat}{CreateTag(OperationType.EOM)}";
         }
 
-        public static string CreateRCHMessage(string message)
+        public static string CreateRCHMessage(RaftHeartbeatResponse heartbeatResponse)
         {
-            return $"{CreateTag(OperationType.RCH)}{message}{CreateTag(OperationType.EOM)}";
+            var serializedHeartbeatResponse = JsonConvert.SerializeObject(heartbeatResponse);
+            return $"{CreateTag(OperationType.RCH)}{serializedHeartbeatResponse}{CreateTag(OperationType.EOM)}";
         }
 
     }
