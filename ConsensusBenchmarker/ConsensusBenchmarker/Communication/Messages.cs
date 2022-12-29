@@ -2,7 +2,6 @@
 using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.DTOs;
 using Newtonsoft.Json;
-using System.Net;
 
 namespace ConsensusBenchmarker.Communication
 {
@@ -57,9 +56,9 @@ namespace ConsensusBenchmarker.Communication
             return value;
         }
 
-        public static string CreateDISMessage(IPAddress ipAddress, int nodeId)
+        public static string CreateDISMessage(string ipAddress, int nodeId)
         {
-            var serialized = JsonConvert.SerializeObject(new KeyValuePair<int, IPAddress>(nodeId, ipAddress));
+            var serialized = JsonConvert.SerializeObject(new KeyValuePair<int, string>(nodeId, ipAddress));
             return $"{CreateTag(OperationType.DIS)}{serialized}{CreateTag(OperationType.EOM)}";
         }
 
@@ -75,9 +74,10 @@ namespace ConsensusBenchmarker.Communication
             return $"{CreateTag(OperationType.BLK)}{serializedBlock}{CreateTag(OperationType.EOM)}";
         }
 
-        public static string CreateReqBCMessage(IPAddress ipAddress)
+        public static string CreateReqBCMessage(int nodeId, string ipAddress)
         {
-            return $"{CreateTag(OperationType.QBC)}IP:{ipAddress}{CreateTag(OperationType.EOM)}";
+            var serialized = JsonConvert.SerializeObject(new KeyValuePair<int, string>(nodeId, ipAddress));
+            return $"{CreateTag(OperationType.QBC)}{serialized}{CreateTag(OperationType.EOM)}";
         }
 
         public static string CreateRecBCMessage(List<BlockDTO> blocks)

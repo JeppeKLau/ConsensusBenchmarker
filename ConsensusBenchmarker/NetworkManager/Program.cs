@@ -7,11 +7,11 @@ namespace NetworkManager;
 
 static class Program
 {
-    private static IPAddress ipAddress = new(new byte[] { 192, 168, 100, 100 });
-    private static IPEndPoint rxEndpoint = new(ipAddress, portNumber);
-    private static Socket server = new(rxEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+    private static readonly IPAddress ipAddress = new(new byte[] { 192, 168, 100, 100 });
+    private static readonly IPEndPoint rxEndpoint = new(ipAddress, portNumber);
+    private static readonly Socket server = new(rxEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
-    private static readonly Dictionary<int, IPAddress> knownNodes = new();
+    private static readonly Dictionary<int, string> knownNodes = new();
 
     private static readonly int receivableByteSize = 4096;
     private static readonly int portNumber = 11_000;
@@ -79,7 +79,7 @@ static class Program
 
             await SendBackListOfKnownNodes(handler, cancellationToken);
 
-            var newNode = JsonConvert.DeserializeObject<KeyValuePair<int, IPAddress>>(cleanMessage);
+            var newNode = JsonConvert.DeserializeObject<KeyValuePair<int, string>>(cleanMessage);
             await BroadcastNewNodeToAllPreviousNodes(newNode, cancellationToken);
             AddNewKnownNode(newNode);
         }
@@ -109,7 +109,7 @@ static class Program
         return JsonConvert.SerializeObject(knownNodes);
     }
 
-    private static void AddNewKnownNode(KeyValuePair<int, IPAddress> newNode)
+    private static void AddNewKnownNode(KeyValuePair<int, string> newNode)
     {
         if (!knownNodes.ContainsKey(newNode.Key))
         {
@@ -117,16 +117,16 @@ static class Program
         }
     }
 
-    private static async Task BroadcastNewNodeToAllPreviousNodes(KeyValuePair<int, IPAddress> newNode, CancellationToken cancellationToken = default)
+    private static async Task BroadcastNewNodeToAllPreviousNodes(KeyValuePair<int, string> newNode, CancellationToken cancellationToken = default)
     {
-        var nodesPendingRemoval = new Dictionary<int, IPAddress>();
+        var nodesPendingRemoval = new Dictionary<int, string>();
         var messageBytes = Encoding.UTF8.GetBytes(dis + JsonConvert.SerializeObject(newNode) + eom);
 
         foreach (var node in knownNodes)
         {
             try
             {
-                var nodeEndpoint = new IPEndPoint(node.Value, portNumber);
+                var nodeEndpoint = new IPEndPoint(IPAddress.Parse(node.Value), portNumber);
                 var nodeSocket = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 Console.WriteLine($"Connecting to {node.Value}");
                 await nodeSocket.ConnectAsync(nodeEndpoint);

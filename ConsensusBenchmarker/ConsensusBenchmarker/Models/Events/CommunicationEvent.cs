@@ -1,6 +1,4 @@
-﻿using System.Net;
-
-namespace ConsensusBenchmarker.Models.Events
+﻿namespace ConsensusBenchmarker.Models.Events
 {
     public enum CommunicationEventType { End, SendTransaction, SendBlock, RequestBlockChain, RecieveBlockChain }
     public class CommunicationEvent : IEvent
@@ -9,9 +7,9 @@ namespace ConsensusBenchmarker.Models.Events
 
         public CommunicationEventType EventType { get; set; }
 
-        public KeyValuePair<int, IPAddress>? Recipient { get; set; }
+        public KeyValuePair<int, string>? Recipient { get; set; }
 
-        public CommunicationEvent(object? data, CommunicationEventType eventType, KeyValuePair<int, IPAddress>? recipient)
+        public CommunicationEvent(object? data, CommunicationEventType eventType, KeyValuePair<int, string>? recipient)
         {
             Data = data;
             EventType = eventType;

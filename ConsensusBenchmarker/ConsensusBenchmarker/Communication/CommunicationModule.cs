@@ -17,7 +17,7 @@ namespace ConsensusBenchmarker.Communication
         private readonly IPEndPoint rxEndpoint;
         private readonly uint receivableByteSize = 50 * 1024;
 
-        private readonly Dictionary<int, IPAddress> knownNodes = new();
+        private readonly Dictionary<int, string> knownNodes = new();
         private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int nodeId;
         private bool executionFlag;
@@ -103,7 +103,7 @@ namespace ConsensusBenchmarker.Communication
                     break;
                 case CommunicationEventType.RecieveBlockChain:
                     Console.WriteLine("Preparing to send blockchain back");
-                    IPAddress recipient = nextEvent.Recipient.HasValue ? nextEvent.Recipient.Value.Value : throw new ArgumentException(nameof(nextEvent.Recipient));
+                    var recipient = nextEvent.Recipient.HasValue ? nextEvent.Recipient.Value.Value : throw new ArgumentException(nameof(nextEvent.Recipient));
                     await SendRecieveBlockChain(nextEvent.Data as List<BlockDTO> ?? throw new ArgumentException("Blockchain missing from event"), recipient);
                     break;
                 default:
@@ -120,8 +120,8 @@ namespace ConsensusBenchmarker.Communication
         /// <returns><see cref="Task"/></returns>
         public async Task AnnounceOwnIP()
         {
-            var networkManagerIP = new IPAddress(new byte[] { 192, 168, 100, 100 });
-            string messageToSend = Messages.CreateDISMessage(ipAddress, nodeId);
+            var networkManagerIP = "192.168.100.100";
+            string messageToSend = Messages.CreateDISMessage(ipAddress.ToString(), nodeId);
             string response = await SendMessageAndWaitForAnswer(networkManagerIP, messageToSend);
 
             if (Messages.DoesMessageContainOperationTag(response, OperationType.DIS))
@@ -131,7 +131,7 @@ namespace ConsensusBenchmarker.Communication
 
                 if (string.IsNullOrEmpty(response)) return;
 
-                var newNodes = JsonConvert.DeserializeObject<Dictionary<int, IPAddress>>(response) ?? throw new ArgumentNullException(nameof(response));
+                var newNodes = JsonConvert.DeserializeObject<Dictionary<int, string>>(response) ?? throw new ArgumentNullException(nameof(response));
 
                 foreach (var node in newNodes)
                 {
@@ -159,7 +159,7 @@ namespace ConsensusBenchmarker.Communication
 
         private async Task SendRequestBlockChain()
         {
-            KeyValuePair<int, IPAddress>? lastNetworkNode = null;
+            KeyValuePair<int, string>? lastNetworkNode = null;
 
             knownNodesSemaphore.Wait();
             if (knownNodes.Count > 0)
@@ -177,12 +177,12 @@ namespace ConsensusBenchmarker.Communication
             else
             {
                 Console.WriteLine($"I (node {nodeId}) requests recipient {lastNetworkNode}'s blockchain.");
-                string messageToSend = Messages.CreateReqBCMessage(ipAddress!);
+                string messageToSend = Messages.CreateReqBCMessage(nodeId, ipAddress.ToString());
                 await SendMessageAndDontWaitForAnswer(lastNetworkNode.Value.Value, messageToSend);
             }
         }
 
-        private async Task SendRecieveBlockChain(List<BlockDTO> blocks, IPAddress recipient)
+        private async Task SendRecieveBlockChain(List<BlockDTO> blocks, string recipient)
         {
             Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
             var messageToSend = Messages.CreateRecBCMessage(blocks);
@@ -200,10 +200,11 @@ namespace ConsensusBenchmarker.Communication
             knownNodesSemaphore.Release();
         }
 
-        private async Task<string> SendMessageAndWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
+        private async Task<string> SendMessageAndWaitForAnswer(string receiver, string message, CancellationToken cancellationToken = default)
         {
+            var receiverIP = IPAddress.Parse(receiver);
             eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.OutMessage, DateTime.UtcNow));
-            var networkManagerEndpoint = new IPEndPoint(receiver, sharedPortNumber);
+            var networkManagerEndpoint = new IPEndPoint(receiverIP, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             byte[] responseBuffer = new byte[receivableByteSize];
             var networkManager = new Socket(networkManagerEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -222,10 +223,11 @@ namespace ConsensusBenchmarker.Communication
             return Encoding.UTF8.GetString(responseBuffer, 0, responseBytes);
         }
 
-        private async Task SendMessageAndDontWaitForAnswer(IPAddress receiver, string message, CancellationToken cancellationToken = default)
+        private async Task SendMessageAndDontWaitForAnswer(string receiver, string message, CancellationToken cancellationToken = default)
         {
+            var receiverIP = IPAddress.Parse(receiver);
             eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.OutMessage, DateTime.UtcNow));
-            var nodeEndpoint = new IPEndPoint(receiver, sharedPortNumber);
+            var nodeEndpoint = new IPEndPoint(receiverIP, sharedPortNumber);
             byte[] encodedMessage = Encoding.UTF8.GetBytes(message);
             var nodeManager = new Socket(nodeEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
@@ -312,11 +314,11 @@ namespace ConsensusBenchmarker.Communication
 
         private void SaveNewIPAddresses(string message)
         {
-            var newNode = JsonConvert.DeserializeObject<KeyValuePair<int, IPAddress>>(message);
+            var newNode = JsonConvert.DeserializeObject<KeyValuePair<int, string>>(message);
             AddNewNode(newNode);
         }
 
-        private void AddNewNode(KeyValuePair<int, IPAddress> newNode)
+        private void AddNewNode(KeyValuePair<int, string> newNode)
         {
             if (!knownNodes.ContainsKey(newNode.Key) && !newNode.Value.Equals(ipAddress))
             {
@@ -347,8 +349,8 @@ namespace ConsensusBenchmarker.Communication
 
         private void RequestBlockChain(string message)
         {
-            var recipient = JsonConvert.DeserializeObject<KeyValuePair<int, IPAddress>>(message);
-            Console.WriteLine($"Node {recipient.Value} requested my (node {recipient.Key} blockchain.");
+            var recipient = JsonConvert.DeserializeObject<KeyValuePair<int, string>>(message);
+            Console.WriteLine($"Node {recipient.Value} requested my (node {recipient.Key}'s blockchain.");
             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.RequestBlockchain, recipient));
         }
 
