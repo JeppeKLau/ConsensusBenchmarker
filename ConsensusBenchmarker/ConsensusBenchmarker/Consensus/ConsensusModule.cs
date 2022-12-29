@@ -4,7 +4,6 @@ using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Net;
 using System.Reflection;
 
 namespace ConsensusBenchmarker.Consensus
@@ -111,11 +110,6 @@ namespace ConsensusBenchmarker.Consensus
                             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
                             eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, null));
                         }
-                        else if (consensusMechanism.BlocksInChain == 0)
-                        {
-                            requestBlockchainHasHappened = false;
-                            eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null));
-                        }
                     }
                     else
                     {
@@ -153,13 +147,8 @@ namespace ConsensusBenchmarker.Consensus
             foreach (var block in blockChain)
             {
                 consensusMechanism.RecieveBlock(block);
-                //eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, blockChainStopwatch));
+                eventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, null));
             }
-
-
-
-            // Move this method back into consensusDriver imo.
-
         }
 
         private void NotifyModulesOfTestEnd()

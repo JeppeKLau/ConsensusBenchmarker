@@ -99,6 +99,9 @@ namespace ConsensusBenchmarker.Consensus
             return Blocks;
         }
 
+        /// <summary>
+        /// Empty the blockchain of all its blocks.
+        /// </summary>
         public void EmptyBlockchain()
         {
             blocksSemaphore.Wait();
@@ -133,6 +136,21 @@ namespace ConsensusBenchmarker.Consensus
             RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList();
 
             recievedTransactionsSemaphore.Release();
+        }
+
+        /// <summary>
+        /// Replace the last block in the chain with another block.
+        /// </summary>
+        /// <param name="previousBlock"></param>
+        /// <param name="newBlock"></param>
+        protected void ReplaceLastBlock(Block previousBlock, Block newBlock)
+        {
+            blocksSemaphore.Wait();
+
+            Blocks.Remove(previousBlock);
+            Blocks.Add(newBlock);
+
+            blocksSemaphore.Release();
         }
 
         /// <summary>

@@ -51,11 +51,9 @@ namespace ConsensusBenchmarker.Consensus.PoW
                 AddNewBlockToChain(newPoWBlock);
                 return true;
             }
-            else if (newBlock.BlockchainLength - BlocksInChain >= 2)
+            else if (newPoWBlock.BlockCreatedAt < previousBlock!.BlockCreatedAt && newPoWBlock.PreviousBlockHash.Equals(previousBlock.PreviousBlockHash))
             {
-                // replace current blockchain with newBlock's creator's chain
-                allowMining = false;
-                EmptyBlockchain();
+                ReplaceLastBlock(previousBlock, newPoWBlock);
             }
             Console.WriteLine($"The block from {newPoWBlock.OwnerNodeID} created at {newPoWBlock.BlockCreatedAt} was NOT valid.");
             return false;
