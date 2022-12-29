@@ -7,16 +7,16 @@ namespace NetworkManager;
 
 static class Program
 {
-    private static readonly IPAddress ipAddress = new(new byte[] { 192, 168, 100, 100 });
-    private static readonly IPEndPoint rxEndpoint = new(ipAddress, portNumber);
-    private static readonly Socket server = new(rxEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
     private static readonly Dictionary<int, string> knownNodes = new();
 
     private static readonly int receivableByteSize = 4096;
     private static readonly int portNumber = 11_000;
     private static readonly string eom = "<|EOM|>";
     private static readonly string dis = "<|DIS|>";
+
+    private static readonly IPAddress ipAddress = new(new byte[] { 192, 168, 100, 100 });
+    private static readonly IPEndPoint rxEndpoint = new(ipAddress, portNumber);
+    private static readonly Socket server = new(rxEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
     private static readonly CancellationTokenSource cancellationTokenSource = new();
     private static readonly System.Timers.Timer timeoutTimer = new(120_000); // 120 sec
@@ -47,14 +47,14 @@ static class Program
     private static async Task WaitInstruction(CancellationToken cancellationToken = default)
     {
         Console.WriteLine($"Listening on {rxEndpoint.Address}:{rxEndpoint.Port}\n");
-        server!.Bind(rxEndpoint);
-        server!.Listen(1000);
+        server.Bind(rxEndpoint);
+        server.Listen(1000);
 
         while (true)
         {
             try
             {
-                var handler = await server!.AcceptAsync(cancellationToken);
+                var handler = await server.AcceptAsync(cancellationToken);
                 var rxBuffer = new byte[receivableByteSize];
                 var bytesReceived = await handler.ReceiveAsync(rxBuffer, SocketFlags.None, cancellationToken);
                 var message = Encoding.UTF8.GetString(rxBuffer, 0, bytesReceived);
