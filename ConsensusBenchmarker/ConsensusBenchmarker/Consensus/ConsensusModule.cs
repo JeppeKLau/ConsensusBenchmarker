@@ -62,6 +62,7 @@ namespace ConsensusBenchmarker.Consensus
             {
                 while (eventQueue.Any(e => e is ConsensusEvent consensusEvent && consensusEvent.EventType == ConsensusEventType.RecieveBlock)) // Recieve all blocks in the queue before trying to add your own block.
                 {
+                    Console.WriteLine("Waiting for consensusModule to handle all receiveBlocks before adding the newly mined block.");
                     Thread.Sleep(1);
                 }
 
