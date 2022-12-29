@@ -94,9 +94,9 @@ namespace ConsensusBenchmarker.Consensus
         /// Returns the nodes list of blocks that it currently has.
         /// </summary>
         /// <returns></returns>
-        public virtual List<Block> RequestBlockChain()
+        public virtual List<BlockDTO> RequestBlockChain()
         {
-            return Blocks;
+            return Blocks.Select(x => new BlockDTO(x, BlocksInChain)).ToList();
         }
 
         /// <summary>
