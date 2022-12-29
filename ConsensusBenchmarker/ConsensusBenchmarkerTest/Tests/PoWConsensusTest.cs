@@ -2,7 +2,6 @@ using ConsensusBenchmarker.Consensus.PoW;
 using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
-using ConsensusBenchmarker.Models.DTOs;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using System.Reflection;
@@ -158,7 +157,7 @@ namespace ConsensusBenchmarkerTest.Tests
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1;
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
-            bool block2Result = consensus.RecieveBlock(new BlockDTO(block1!, 1), ref stopWatch);
+            _ = consensus.RecieveBlock(block1!);
 
             var transactions2 = new List<Transaction>()
             {
@@ -193,7 +192,7 @@ namespace ConsensusBenchmarkerTest.Tests
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
-            bool block1Result = consensus.RecieveBlock(new BlockDTO(block1!, 1), ref stopWatch);
+            bool block1Result = consensus.RecieveBlock(block1!);
 
             // Block 2:
             var transactions2 = new List<Transaction>()
@@ -205,7 +204,7 @@ namespace ConsensusBenchmarkerTest.Tests
             PoWBlock? block2 = consensus.GenerateNextBlock(ref stopWatch);
 
             // Act
-            bool block2Result = consensus.RecieveBlock(new BlockDTO(block2!, 2), ref stopWatch);
+            bool block2Result = consensus.RecieveBlock(block2!);
 
             // Assert
             Assert.AreEqual(true, block1Result);
@@ -232,7 +231,7 @@ namespace ConsensusBenchmarkerTest.Tests
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
-            bool block1Result = consensus.RecieveBlock(new BlockDTO(block1!, 1), ref stopWatch);
+            bool block1Result = consensus.RecieveBlock(block1!);
 
             // Block 2:
             var transactions2 = new List<Transaction>()
@@ -244,7 +243,7 @@ namespace ConsensusBenchmarkerTest.Tests
             var invalidBlock2 = new PoWBlock(42, DateTime.Now.ToLocalTime(), transactions2.ToList(), "000000DJKHSDG000SOME0000HASH0QQQ", block1!.BlockHash, 12345); // It is HIGHLY unlikely that this is the correct nonce.
 
             // Act
-            bool block2Result = consensus.RecieveBlock(new BlockDTO(invalidBlock2, 2), ref stopWatch);
+            bool block2Result = consensus.RecieveBlock(invalidBlock2);
 
             // Assert
             Assert.AreEqual(true, block1Result);
@@ -271,7 +270,7 @@ namespace ConsensusBenchmarkerTest.Tests
             };
             consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
-            bool block1Result = consensus.RecieveBlock(new BlockDTO(block1!, 1), ref stopWatch);
+            bool block1Result = consensus.RecieveBlock(block1!);
 
             // Block 2:
             var transactions2 = new List<Transaction>()
@@ -284,7 +283,7 @@ namespace ConsensusBenchmarkerTest.Tests
             consensus.AddNewTransaction(new Transaction(42, 3, DateTime.Now.ToLocalTime()));
 
             // Act
-            bool block2Result = consensus.RecieveBlock(new BlockDTO(block2!, 2), ref stopWatch);
+            bool block2Result = consensus.RecieveBlock(block2!);
 
             // Assert
             Assert.AreEqual(true, block1Result);
@@ -312,7 +311,7 @@ namespace ConsensusBenchmarkerTest.Tests
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
 
             // Act (1/2):
-            bool result1 = consensus.RecieveBlock(new BlockDTO(block1!, 1), ref stopWatch);
+            bool result1 = consensus.RecieveBlock(block1!);
 
             // Block 2:
             var transactions2 = new List<Transaction>()
@@ -331,7 +330,7 @@ namespace ConsensusBenchmarkerTest.Tests
             }
 
             // Act (2/2):
-            bool result2 = consensus.RecieveBlock(new BlockDTO(block2Deserialized!, 2), ref stopWatch);
+            bool result2 = consensus.RecieveBlock(block2Deserialized!);
 
             // Assert
             Assert.AreEqual(true, result1);

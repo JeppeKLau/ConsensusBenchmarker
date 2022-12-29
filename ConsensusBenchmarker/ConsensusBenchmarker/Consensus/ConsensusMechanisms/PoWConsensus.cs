@@ -1,6 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
-using ConsensusBenchmarker.Models.DTOs;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -27,9 +27,9 @@ namespace ConsensusBenchmarker.Consensus.PoW
             allowMining = true;
         }
 
-        public override bool RecieveBlock(BlockDTO newBlock)
+        public override bool RecieveBlock(Block newBlock)
         {
-            if (newBlock.Block is not PoWBlock newPoWBlock)
+            if (newBlock is not PoWBlock newPoWBlock)
             {
                 throw new ArgumentException("Recieved block is not the correct type", newBlock.GetType().FullName);
             }
@@ -53,7 +53,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             }
             else if (newPoWBlock.BlockCreatedAt < previousBlock!.BlockCreatedAt && newPoWBlock.PreviousBlockHash.Equals(previousBlock.PreviousBlockHash))
             {
-                Console.WriteLine($"PoW: HotSwap. replaced block ({previousBlock.OwnerNodeID}, {previousBlock.BlockCreatedAt.ToString("o")}), with block ({newPoWBlock.OwnerNodeID}, {newPoWBlock.BlockCreatedAt.ToString("o")}).");
+                Console.WriteLine($"PoW: HotSwap. replaced block ({previousBlock.OwnerNodeID}, {previousBlock.BlockCreatedAt:o}), with block ({newPoWBlock.OwnerNodeID}, {newPoWBlock.BlockCreatedAt:o}).");
                 ReplaceLastBlock(previousBlock, newPoWBlock);
             }
             Console.WriteLine($"The block from {newPoWBlock.OwnerNodeID} created at {newPoWBlock.BlockCreatedAt} was NOT valid.");

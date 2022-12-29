@@ -1,7 +1,6 @@
 ﻿using ConsensusBenchmarker.Extensions;
 using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
-using ConsensusBenchmarker.Models.DTOs;
 using System.Diagnostics;
 
 namespace ConsensusBenchmarker.Consensus
@@ -58,7 +57,7 @@ namespace ConsensusBenchmarker.Consensus
         /// </summary>
         /// <param name="serializedBlock"></param>
         /// <returns><see cref="bool"/></returns>
-        public virtual bool RecieveBlock(BlockDTO block)
+        public virtual bool RecieveBlock(Block block)
         {
             throw new NotImplementedException();
         }
@@ -94,9 +93,9 @@ namespace ConsensusBenchmarker.Consensus
         /// Returns the nodes list of blocks that it currently has.
         /// </summary>
         /// <returns></returns>
-        public virtual List<BlockDTO> RequestBlockChain()
+        public virtual List<Block> RequestBlockChain()
         {
-            return Blocks.Select(x => new BlockDTO(x, BlocksInChain)).ToList();
+            return Blocks;
         }
 
         /// <summary>

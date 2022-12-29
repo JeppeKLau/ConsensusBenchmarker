@@ -1,6 +1,5 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
-using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
@@ -104,7 +103,7 @@ namespace ConsensusBenchmarker.Communication
                 case CommunicationEventType.RecieveBlockChain:
                     Console.WriteLine("Preparing to send blockchain back");
                     var recipient = nextEvent.Recipient.HasValue ? nextEvent.Recipient.Value.Value : throw new ArgumentException(nameof(nextEvent.Recipient));
-                    await SendRecieveBlockChain(nextEvent.Data as List<BlockDTO> ?? throw new ArgumentException("Blockchain missing from event"), recipient);
+                    await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), recipient);
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -172,7 +171,7 @@ namespace ConsensusBenchmarker.Communication
             if (lastNetworkNode == null)
             {
                 Console.WriteLine($"I (node {nodeId}) want to request a blockchain, but I don't know any nodes.");
-                eventQueue.Enqueue(new ConsensusEvent(new List<BlockDTO>(), ConsensusEventType.RecieveBlockchain, null));
+                eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null));
             }
             else
             {
@@ -182,7 +181,7 @@ namespace ConsensusBenchmarker.Communication
             }
         }
 
-        private async Task SendRecieveBlockChain(List<BlockDTO> blocks, string recipient)
+        private async Task SendRecieveBlockChain(List<Block> blocks, string recipient)
         {
             Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
             var messageToSend = Messages.CreateRecBCMessage(blocks);
@@ -340,7 +339,7 @@ namespace ConsensusBenchmarker.Communication
 
         private void ReceiveBlock(string message)
         {
-            if (JsonConvert.DeserializeObject<BlockDTO>(message) is not BlockDTO recievedBlock)
+            if (JsonConvert.DeserializeObject<Block>(message) is not Block recievedBlock)
             {
                 throw new ArgumentException("Block could not be deserialized correctly", nameof(message));
             }
@@ -359,15 +358,15 @@ namespace ConsensusBenchmarker.Communication
             if (message == string.Empty)
             {
                 Console.WriteLine($"I (node {nodeId}) recieved a blockchain with 0 blocks.");
-                eventQueue.Enqueue(new ConsensusEvent(new List<BlockDTO>(), ConsensusEventType.RecieveBlockchain, null));
+                eventQueue.Enqueue(new ConsensusEvent(new List<Block>(), ConsensusEventType.RecieveBlockchain, null));
             }
             else
             {
-                if (JsonConvert.DeserializeObject<List<BlockDTO>>(message) is not List<BlockDTO> recievedBlocks)
+                if (JsonConvert.DeserializeObject<List<Block>>(message) is not List<Block> recievedBlocks)
                 {
                     throw new ArgumentException("Blocks could not be deserialized correctly", nameof(message));
                 }
-                Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().Block.OwnerNodeID}");
+                Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().OwnerNodeID}");
                 eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
             }
         }

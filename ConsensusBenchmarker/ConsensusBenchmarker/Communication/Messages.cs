@@ -1,6 +1,5 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
-using ConsensusBenchmarker.Models.DTOs;
 using Newtonsoft.Json;
 
 namespace ConsensusBenchmarker.Communication
@@ -80,7 +79,7 @@ namespace ConsensusBenchmarker.Communication
             return $"{CreateTag(OperationType.QBC)}{serialized}{CreateTag(OperationType.EOM)}";
         }
 
-        public static string CreateRecBCMessage(List<BlockDTO> blocks)
+        public static string CreateRecBCMessage(List<Block> blocks)
         {
             string serializedBlocks = string.Empty;
             if (blocks.Any())

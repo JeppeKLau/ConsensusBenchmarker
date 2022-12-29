@@ -1,6 +1,5 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
-using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -66,7 +65,7 @@ namespace ConsensusBenchmarker.Consensus
                     Thread.Sleep(1);
                 }
 
-                if (consensusMechanism.RecieveBlock(new BlockDTO(block, consensusMechanism.BlocksInChain)))
+                if (consensusMechanism.RecieveBlock(block))
                 {
                     eventQueue.Enqueue(new CommunicationEvent(block, CommunicationEventType.SendBlock, null));
                     eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
@@ -102,7 +101,7 @@ namespace ConsensusBenchmarker.Consensus
                 case ConsensusEventType.CreateBlock:
                     break;
                 case ConsensusEventType.RecieveBlock:
-                    var newBlock = nextEvent.Data as BlockDTO ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data));
+                    var newBlock = nextEvent.Data as Block ?? throw new ArgumentException("Block missing from event", nameof(nextEvent.Data));
                     if (requestBlockchainHasHappened)
                     {
                         if (consensusMechanism.RecieveBlock(newBlock))
@@ -131,7 +130,7 @@ namespace ConsensusBenchmarker.Consensus
                     eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.RequestBlockChain(), CommunicationEventType.RecieveBlockChain, recipient));
                     break;
                 case ConsensusEventType.RecieveBlockchain:
-                    var blockChain = nextEvent.Data as List<BlockDTO> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data));
+                    var blockChain = nextEvent.Data as List<Block> ?? throw new ArgumentException("List<Block> missing from event", nameof(nextEvent.Data));
                     RecieveBlockChain(blockChain);
                     consensusMechanism.BeginConsensus();
                     requestBlockchainHasHappened = true;
@@ -142,7 +141,7 @@ namespace ConsensusBenchmarker.Consensus
             eventQueue.TryDequeue(out _);
         }
 
-        private void RecieveBlockChain(List<BlockDTO> blockChain)
+        private void RecieveBlockChain(List<Block> blockChain)
         {
             foreach (var block in blockChain)
             {
