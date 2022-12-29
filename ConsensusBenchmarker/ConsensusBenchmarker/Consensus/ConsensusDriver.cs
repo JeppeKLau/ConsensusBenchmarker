@@ -31,15 +31,29 @@ namespace ConsensusBenchmarker.Consensus
             }
         }
 
+        public int CurrentTransactionCount
+        {
+            get
+            {
+                int count = 0;
+
+                receivedTransactionsSemaphore.Wait();
+                count = ReceivedTransactionsSinceLastBlock.Count;
+                receivedTransactionsSemaphore.Release();
+
+                return count;
+            }
+        }
+
         public int CreatedTransactionsByThisNode { get; private set; } = 0;
 
         public bool ExecutionFlag { get; private set; } = true;
 
-        public List<Transaction> RecievedTransactionsSinceLastBlock { get; set; } = new();
+        public List<Transaction> ReceivedTransactionsSinceLastBlock { get; set; } = new();
 
         public List<Block> Blocks { get; set; } = new List<Block>();
 
-        private readonly SemaphoreSlim recievedTransactionsSemaphore = new(1, 1);
+        private readonly SemaphoreSlim receivedTransactionsSemaphore = new(1, 1);
         private readonly SemaphoreSlim blocksSemaphore = new(1, 1);
         private readonly int maxBlocksInChainAtOnce = 50;
 
@@ -129,12 +143,27 @@ namespace ConsensusBenchmarker.Consensus
         /// <param name="transaction"></param>
         public void AddNewTransaction(Transaction transaction)
         {
-            recievedTransactionsSemaphore.Wait();
+            receivedTransactionsSemaphore.Wait();
 
-            RecievedTransactionsSinceLastBlock.Add(transaction);
-            RecievedTransactionsSinceLastBlock = RecievedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList();
+            ReceivedTransactionsSinceLastBlock.Add(transaction);
+            ReceivedTransactionsSinceLastBlock = ReceivedTransactionsSinceLastBlock.OrderBy(x => x.NodeID).ThenBy(x => x.TransactionId).ToList();
 
-            recievedTransactionsSemaphore.Release();
+            receivedTransactionsSemaphore.Release();
+        }
+
+        /// <summary>
+        /// Fetches the RecievedTransactionsSinceLastBlock thread safe.
+        /// </summary>
+        /// <returns></returns>
+        protected List<Transaction> GetTransactionsThreadSafe()
+        {
+            List<Transaction> transactions = new();
+
+            receivedTransactionsSemaphore.Wait();
+            transactions = ReceivedTransactionsSinceLastBlock.ToList();
+            receivedTransactionsSemaphore.Release();
+
+            return transactions;
         }
 
         /// <summary>
@@ -173,7 +202,7 @@ namespace ConsensusBenchmarker.Consensus
 
                 RemoveNewBlockTransactions(newBlock);
 
-                Console.WriteLine($"CD: Current transactions after adding a new block is: {RecievedTransactionsSinceLastBlock.Count}.\n");
+                Console.WriteLine($"CD: Current transactions after adding a new block is: {ReceivedTransactionsSinceLastBlock.Count}.\n");
             }
         }
 
@@ -187,14 +216,13 @@ namespace ConsensusBenchmarker.Consensus
 
         private void RemoveNewBlockTransactions(Block newBlock)
         {
-            recievedTransactionsSemaphore.Wait();
+            receivedTransactionsSemaphore.Wait();
 
             List<Transaction> transactionsToBeRemoved = new();
-            transactionsToBeRemoved.AddRange(RecievedTransactionsSinceLastBlock.Intersect(newBlock.Transactions));
+            transactionsToBeRemoved.AddRange(ReceivedTransactionsSinceLastBlock.Intersect(newBlock.Transactions));
+            _ = ReceivedTransactionsSinceLastBlock.RemoveAll(transactionsToBeRemoved.Contains);
 
-            _ = RecievedTransactionsSinceLastBlock.RemoveAll(transactionsToBeRemoved.Contains);
-
-            recievedTransactionsSemaphore.Release();
+            receivedTransactionsSemaphore.Release();
         }
     }
 }

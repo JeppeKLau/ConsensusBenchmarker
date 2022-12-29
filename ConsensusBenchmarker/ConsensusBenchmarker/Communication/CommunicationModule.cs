@@ -91,7 +91,7 @@ namespace ConsensusBenchmarker.Communication
                     Console.WriteLine("Communication was signalled to end.");
                     break;
                 case CommunicationEventType.SendTransaction:
-                    eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncTransaction, nextEvent.Data));
+                    eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncTransaction, null));
                     await BroadcastTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case CommunicationEventType.SendBlock:
@@ -334,7 +334,7 @@ namespace ConsensusBenchmarker.Communication
                 throw new ArgumentException("Transaction could not be deserialized correctly", nameof(message));
             }
             eventQueue.Enqueue(new ConsensusEvent(recievedTransaction, ConsensusEventType.RecieveTransaction, null));
-            eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncTransaction, recievedTransaction));
+            eventQueue.Enqueue(new DataCollectionEvent(nodeId, DataCollectionEventType.IncTransaction, null));
         }
 
         private void ReceiveBlock(string message)
@@ -349,7 +349,7 @@ namespace ConsensusBenchmarker.Communication
         private void RequestBlockChain(string message)
         {
             var recipient = JsonConvert.DeserializeObject<KeyValuePair<int, string>>(message);
-            Console.WriteLine($"Node {recipient.Value} requested my (node {recipient.Key}'s blockchain.");
+            Console.WriteLine($"Node ({recipient.Key}, {recipient.Value}) requested my (node {nodeId})'s blockchain.");
             eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.RequestBlockchain, recipient));
         }
 

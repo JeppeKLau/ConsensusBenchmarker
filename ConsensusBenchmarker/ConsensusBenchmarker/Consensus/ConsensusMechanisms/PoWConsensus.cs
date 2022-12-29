@@ -62,7 +62,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         public override void RecieveTransaction(Transaction transaction)
         {
-            if (!RecievedTransactionsSinceLastBlock.Any(x => x.Equals(transaction)))
+            if (!GetTransactionsThreadSafe().Any(x => x.Equals(transaction)))
             {
                 AddNewTransaction(transaction);
                 restartMining = true;
@@ -73,7 +73,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         {
             if (ExecutionFlag)
             {
-                while (!allowMining || RecievedTransactionsSinceLastBlock.Count == 0)
+                while (!allowMining || CurrentTransactionCount == 0)
                 {
                     if (ExecutionFlag == false) break;
                     Thread.Sleep(1);
@@ -122,7 +122,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             long nonce;
             restartMining = false;
 
-            List<Transaction> currentTransactionsCopy = RecievedTransactionsSinceLastBlock.ToList();
+            List<Transaction> currentTransactionsCopy = GetTransactionsThreadSafe();
             byte[] previousHashAndTransactions = GetPreviousHashAndTransactionByteArray(previousBlockHash, currentTransactionsCopy);
 
             using (SHA256 sha256 = SHA256.Create())
@@ -162,21 +162,10 @@ namespace ConsensusBenchmarker.Consensus.PoW
 
         private static byte[] CombineByteArrays(byte[] first, byte[] second)
         {
-            int retLength = -1;
-            try
-            {
-                byte[] ret = new byte[first.Length + second.Length];
-                retLength = ret.Length; // TEMP
-                first.CopyTo(ret, 0);
-                second.CopyTo(ret, first.Length);
-                return ret;
-            }
-            catch { }
-            throw new Exception($"Copy byte array failed. First array length: {first.Length}, second: {second.Length}, combined: {retLength}");
-
-            // Only got this exception ONE time
-            // Unhandled exception. System.ArgumentException: Destination array was not long enough. Check the destination index, length, and the array's lower bounds. (Parameter 'destinationArray')
-            // at System.Array.Copy(Array sourceArray, Int32 sourceIndex, Array destinationArray, Int32 destinationIndex, Int32 length, Boolean reliable)
+            byte[] ret = new byte[first.Length + second.Length];
+            first.CopyTo(ret, 0);
+            second.CopyTo(ret, first.Length);
+            return ret;
         }
 
         private bool HashConformsToDifficulty(string hash)

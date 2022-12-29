@@ -131,7 +131,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions;
+            consensus.ReceivedTransactionsSinceLastBlock = transactions;
 
             // Act
             PoWBlock result = (PoWBlock)methodInfo!.Invoke(consensus, parameters)!;
@@ -155,7 +155,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions1;
+            consensus.ReceivedTransactionsSinceLastBlock = transactions1;
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
             _ = consensus.RecieveBlock(block1!);
 
@@ -164,7 +164,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions2;
+            consensus.ReceivedTransactionsSinceLastBlock = transactions2;
 
             // Act
             PoWBlock? block2 = consensus.GenerateNextBlock(ref stopWatch);
@@ -190,7 +190,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
+            consensus.ReceivedTransactionsSinceLastBlock = transactions1.ToList();
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
             bool block1Result = consensus.RecieveBlock(block1!);
 
@@ -200,7 +200,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
+            consensus.ReceivedTransactionsSinceLastBlock = transactions2.ToList();
             PoWBlock? block2 = consensus.GenerateNextBlock(ref stopWatch);
 
             // Act
@@ -210,7 +210,7 @@ namespace ConsensusBenchmarkerTest.Tests
             Assert.AreEqual(true, block1Result);
             Assert.AreEqual(true, block2Result);
             Assert.AreEqual(2, consensus.Blocks.Count);
-            Assert.AreEqual(0, consensus.RecievedTransactionsSinceLastBlock.Count);
+            Assert.AreEqual(0, consensus.ReceivedTransactionsSinceLastBlock.Count);
         }
 
         [TestMethod]
@@ -229,7 +229,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
+            consensus.ReceivedTransactionsSinceLastBlock = transactions1.ToList();
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
             bool block1Result = consensus.RecieveBlock(block1!);
 
@@ -239,7 +239,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
+            consensus.ReceivedTransactionsSinceLastBlock = transactions2.ToList();
             var invalidBlock2 = new PoWBlock(42, DateTime.Now.ToLocalTime(), transactions2.ToList(), "000000DJKHSDG000SOME0000HASH0QQQ", block1!.BlockHash, 12345); // It is HIGHLY unlikely that this is the correct nonce.
 
             // Act
@@ -249,7 +249,7 @@ namespace ConsensusBenchmarkerTest.Tests
             Assert.AreEqual(true, block1Result);
             Assert.AreEqual(false, block2Result);
             Assert.AreEqual(1, consensus.Blocks.Count);
-            Assert.AreEqual(2, consensus.RecievedTransactionsSinceLastBlock.Count);
+            Assert.AreEqual(2, consensus.ReceivedTransactionsSinceLastBlock.Count);
         }
 
         [TestMethod]
@@ -268,7 +268,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
+            consensus.ReceivedTransactionsSinceLastBlock = transactions1.ToList();
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
             bool block1Result = consensus.RecieveBlock(block1!);
 
@@ -278,7 +278,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
+            consensus.ReceivedTransactionsSinceLastBlock = transactions2.ToList();
             PoWBlock? block2 = consensus.GenerateNextBlock(ref stopWatch);
             consensus.AddNewTransaction(new Transaction(42, 3, DateTime.Now.ToLocalTime()));
 
@@ -289,7 +289,7 @@ namespace ConsensusBenchmarkerTest.Tests
             Assert.AreEqual(true, block1Result);
             Assert.AreEqual(true, block2Result);
             Assert.AreEqual(2, consensus.Blocks.Count);
-            Assert.AreEqual(1, consensus.RecievedTransactionsSinceLastBlock.Count);
+            Assert.AreEqual(1, consensus.ReceivedTransactionsSinceLastBlock.Count);
         }
 
         [TestMethod]
@@ -307,7 +307,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 1, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 1, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions1.ToList();
+            consensus.ReceivedTransactionsSinceLastBlock = transactions1.ToList();
             PoWBlock? block1 = consensus.GenerateNextBlock(ref stopWatch);
 
             // Act (1/2):
@@ -319,7 +319,7 @@ namespace ConsensusBenchmarkerTest.Tests
                 { new Transaction(2, 2, DateTime.Now.ToLocalTime()) },
                 { new Transaction(3, 2, DateTime.Now.ToLocalTime()) },
             };
-            consensus.RecievedTransactionsSinceLastBlock = transactions2.ToList();
+            consensus.ReceivedTransactionsSinceLastBlock = transactions2.ToList();
             PoWBlock? block2 = consensus.GenerateNextBlock(ref stopWatch);
 
             // Serialize and deserialize:

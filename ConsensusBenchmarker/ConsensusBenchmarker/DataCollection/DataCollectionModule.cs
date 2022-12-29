@@ -118,6 +118,7 @@ namespace ConsensusBenchmarker.DataCollection
                     WriteInformationToDB(new BlockMeasurement(nodeId, DateTime.UtcNow, blockCount, blockCreationTime.ElapsedMilliseconds / 1000));
                     break;
                 case DataCollectionEventType.IncTransaction:
+                    Console.WriteLine("DataCollectionEventType.IncTransaction hit.");
                     transactionCount++;
                     WriteInformationToDB(new TransactionMeasurement(nodeId, DateTime.Now, transactionCount));
                     break;
