@@ -53,6 +53,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
             }
             else if (newPoWBlock.BlockCreatedAt < previousBlock!.BlockCreatedAt && newPoWBlock.PreviousBlockHash.Equals(previousBlock.PreviousBlockHash))
             {
+                Console.WriteLine($"PoW: HotSwap. replaced block ({previousBlock.OwnerNodeID}, {previousBlock.BlockCreatedAt.ToString("o")}), with block ({newPoWBlock.OwnerNodeID}, {newPoWBlock.BlockCreatedAt.ToString("o")}).");
                 ReplaceLastBlock(previousBlock, newPoWBlock);
             }
             Console.WriteLine($"The block from {newPoWBlock.OwnerNodeID} created at {newPoWBlock.BlockCreatedAt} was NOT valid.");
