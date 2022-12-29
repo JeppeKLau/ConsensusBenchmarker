@@ -37,8 +37,8 @@ namespace ConsensusBenchmarker.Communication
             {
                 case (int)BlockTypes.PoWBlock:
                     return JsonConvert.DeserializeObject<PoWBlock>(jo.ToString(), SpecifiedSubclassConversion);
-                //case 2:
-                //    return JsonConvert.DeserializeObject<DerivedType2>(jo.ToString(), SpecifiedSubclassConversion);
+                case 2:
+                    return JsonConvert.DeserializeObject<RaftBlock>(jo.ToString(), SpecifiedSubclassConversion);
                 default:
                     throw new Exception("Could not find the correct derived class when reading json.");
             }

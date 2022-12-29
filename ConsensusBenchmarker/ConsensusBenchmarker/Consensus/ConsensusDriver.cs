@@ -1,16 +1,21 @@
 ﻿using ConsensusBenchmarker.Extensions;
 using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
+using ConsensusBenchmarker.Models.DTOs;
+using ConsensusBenchmarker.Models.Events;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace ConsensusBenchmarker.Consensus
 {
     public abstract class ConsensusDriver
     {
-        protected ConsensusDriver(int nodeID, int maxBlocksToCreate)
+        protected readonly ConcurrentQueue<IEvent> eventQueue;
+        protected ConsensusDriver(int nodeID, int maxBlocksToCreate, ref ConcurrentQueue<IEvent> eventQueue)
         {
             NodeID = nodeID;
             MaxBlocksToCreate = maxBlocksToCreate;
+            this.eventQueue = eventQueue;
         }
 
         public readonly int NodeID;
@@ -110,6 +115,16 @@ namespace ConsensusBenchmarker.Consensus
         public virtual List<Block> RequestBlockChain()
         {
             return Blocks;
+        }
+
+        public virtual void HandleVoteRequest(RaftVoteRequest voteRequest)
+        {
+            throw new NotImplementedException();
+        }
+
+        public virtual void HandleVoteReceived(bool vote)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>

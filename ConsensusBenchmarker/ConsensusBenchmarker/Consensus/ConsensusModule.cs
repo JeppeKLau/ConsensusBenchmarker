@@ -1,5 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
+using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -88,6 +89,14 @@ namespace ConsensusBenchmarker.Consensus
             if (consensusCtor == null) throw new Exception("Consensus class does not have the required constructor");
 
             return consensusCtor.Invoke(new object[] { nodeID, totalBlocksToCreate }) as ConsensusDriver ?? throw new Exception("Construction invokation failed");
+
+            //var driverType = typeof(ConsensusDriver<>);
+
+            //Type[] typeArgs = { assemblyType };
+
+            //var constructed = driverType.MakeGenericType(typeArgs);
+
+            //return Activator.CreateInstance(constructed, new object[] { nodeID, totalBlocksToCreate }) ?? throw new ArgumentException(nameof(constructed), "Couldn't construct proper driver type");
         }
 
         private void HandleEventQueue()
@@ -127,7 +136,7 @@ namespace ConsensusBenchmarker.Consensus
                     consensusMechanism.RecieveTransaction(nextEvent.Data as Transaction ?? throw new ArgumentException("Transaction missing from event", nameof(nextEvent.Data)));
                     break;
                 case ConsensusEventType.RequestBlockchain:
-                    var recipient = nextEvent.Recipient ?? throw new ArgumentException("KeyValuePair missing from event", nameof(nextEvent.Recipient));
+                    var recipient = nextEvent.Recipient ?? throw new ArgumentException("Recipient missing from event", nameof(nextEvent.Recipient));
                     eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.RequestBlockChain(), CommunicationEventType.RecieveBlockChain, recipient));
                     break;
                 case ConsensusEventType.RecieveBlockchain:
@@ -135,6 +144,13 @@ namespace ConsensusBenchmarker.Consensus
                     RecieveBlockChain(blockChain);
                     consensusMechanism.BeginConsensus();
                     requestBlockchainHasHappened = true;
+                    break;
+                case ConsensusEventType.RequestVote:
+                    var voteRequest = nextEvent.Data as RaftVoteRequest ?? throw new ArgumentException("VoteRequest missing from event", nameof(nextEvent.Data));
+                    consensusMechanism.HandleVoteRequest(voteRequest);
+                    break;
+                case ConsensusEventType.ReceiveVote:
+                    var vote = nextEvent.Data as bool ?? throw new ArgumentException("Vote missing from event", nameof(nextEvent.Data));
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));

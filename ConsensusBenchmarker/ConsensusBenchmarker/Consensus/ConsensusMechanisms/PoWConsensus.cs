@@ -1,6 +1,8 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
+using ConsensusBenchmarker.Models.Events;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,7 +16,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private volatile bool restartMining;
         private readonly Random random;
 
-        public PoWConsensus(int nodeID, int maxBlocksToCreate) : base(nodeID, maxBlocksToCreate)
+        public PoWConsensus(int nodeID, int maxBlocksToCreate, ref ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, ref eventQueue)
         {
             random = new Random(NodeID * new Random().Next());
             allowMining = false;

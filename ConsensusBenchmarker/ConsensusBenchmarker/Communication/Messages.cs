@@ -5,9 +5,9 @@ using Newtonsoft.Json;
 namespace ConsensusBenchmarker.Communication
 {
     /// <summary>
-    /// DEF = Default, DIS = Discover, TRA = Transaction, BLK = Block, QBC = RequestBlockChain, RBC = RecieveBlockChain, EOM = End of Message,
+    /// DEF = Default, DIS = Discover, TRA = Transaction, BLK = Block, RQB = RequestBlockChain, RCB = RecieveBlockChain, RQV = RequestVote, RCV = ReceiveVote, RQH = RequestHeartBeat, RCH = ReceiveHeartBeat, EOM = End of Message,
     /// </summary>
-    public enum OperationType { DEF = 0, DIS, TRA, BLK, QBC, RBC, EOM };
+    public enum OperationType { DEF = 0, DIS, TRA, BLK, RQB, RCB, RQV, RCV, RQH, RCH, EOM };
 
     public static class Messages
     {
@@ -73,10 +73,9 @@ namespace ConsensusBenchmarker.Communication
             return $"{CreateTag(OperationType.BLK)}{serializedBlock}{CreateTag(OperationType.EOM)}";
         }
 
-        public static string CreateReqBCMessage(int nodeId, string ipAddress)
+        public static string CreateReqBCMessage(int nodeId)
         {
-            var serialized = JsonConvert.SerializeObject(new KeyValuePair<int, string>(nodeId, ipAddress));
-            return $"{CreateTag(OperationType.QBC)}{serialized}{CreateTag(OperationType.EOM)}";
+            return $"{CreateTag(OperationType.RQB)}{nodeId}{CreateTag(OperationType.EOM)}";
         }
 
         public static string CreateRecBCMessage(List<Block> blocks)
@@ -86,7 +85,27 @@ namespace ConsensusBenchmarker.Communication
             {
                 serializedBlocks = JsonConvert.SerializeObject(blocks);
             }
-            return $"{CreateTag(OperationType.RBC)}{serializedBlocks}{CreateTag(OperationType.EOM)}";
+            return $"{CreateTag(OperationType.RCB)}{serializedBlocks}{CreateTag(OperationType.EOM)}";
+        }
+
+        public static string CreateRQVMessage(string message)
+        {
+            return $"{CreateTag(OperationType.RQV)}{message}{CreateTag(OperationType.EOM)}";
+        }
+
+        public static string CreateRCVMessage(string message)
+        {
+            return $"{CreateTag(OperationType.RCV)}{message}{CreateTag(OperationType.EOM)}";
+        }
+
+        public static string CreateRQHMessage(string message)
+        {
+            return $"{CreateTag(OperationType.RQH)}{message}{CreateTag(OperationType.EOM)}";
+        }
+
+        public static string CreateRCHMessage(string message)
+        {
+            return $"{CreateTag(OperationType.RCH)}{message}{CreateTag(OperationType.EOM)}";
         }
 
     }

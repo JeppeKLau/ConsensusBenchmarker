@@ -1,5 +1,6 @@
 ﻿using ConsensusBenchmarker.Models;
 using ConsensusBenchmarker.Models.Blocks;
+using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
@@ -79,6 +80,14 @@ namespace ConsensusBenchmarker.Communication
             return false;
         }
 
+        private string GetAddressByNodeId(int nodeId)
+        {
+            knownNodesSemaphore.Wait();
+            var value = knownNodes.GetValueOrDefault(nodeId) ?? throw new ArgumentOutOfRangeException(nameof(nodeId), "Could not retrieve value by key.");
+            knownNodesSemaphore.Release();
+            return value;
+        }
+
         private async Task HandleEventQueue()
         {
             if (!eventQueue.TryPeek(out var @event)) return;
@@ -101,9 +110,23 @@ namespace ConsensusBenchmarker.Communication
                     await SendRequestBlockChain();
                     break;
                 case CommunicationEventType.RecieveBlockChain:
-                    Console.WriteLine("Preparing to send blockchain back");
-                    var recipient = nextEvent.Recipient.HasValue ? nextEvent.Recipient.Value.Value : throw new ArgumentException(nameof(nextEvent.Recipient));
-                    await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), recipient);
+                    {
+                        var recipient = nextEvent.Recipient ?? throw new ArgumentException("string missing from event", nameof(nextEvent.Recipient));
+                        await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), GetAddressByNodeId(recipient));
+                    }
+                    break;
+                case CommunicationEventType.RequestVote:
+                    var requestVoteMessage = nextEvent.Data as string ?? throw new ArgumentException("string missing from event", nameof(nextEvent.Data));
+                    await BroadcastMessageAndDontWaitForAnswer(Messages.CreateRQVMessage(requestVoteMessage));
+                    break;
+                case CommunicationEventType.CastVote:
+                    var voteRecipient = nextEvent.Recipient ?? throw new ArgumentException("Recipient missing from event", nameof(nextEvent.Recipient));
+                    var voteMessage = nextEvent.Data as string ?? throw new ArgumentException("Vote missing from event", nameof(nextEvent.Data));
+                    await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(voteRecipient), Messages.CreateRCVMessage(voteMessage));
+                    break;
+                case CommunicationEventType.SendHeartBeat:
+                    break;
+                case CommunicationEventType.ReceiveHeartBeat:
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -176,7 +199,7 @@ namespace ConsensusBenchmarker.Communication
             else
             {
                 Console.WriteLine($"I (node {nodeId}) requests recipient {lastNetworkNode}'s blockchain.");
-                string messageToSend = Messages.CreateReqBCMessage(nodeId, ipAddress.ToString());
+                string messageToSend = Messages.CreateReqBCMessage(nodeId);
                 await SendMessageAndDontWaitForAnswer(lastNetworkNode.Value.Value, messageToSend);
             }
         }
@@ -285,23 +308,29 @@ namespace ConsensusBenchmarker.Communication
 
                 switch (operationType)
                 {
-                    case OperationType.DEF:
-                        Console.WriteLine($"Could not find any operation type tag on a msg: {cleanMessageWithoutEOM}");
-                        break;
                     case OperationType.DIS:
                         SaveNewIPAddresses(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.DIS));
                         break;
                     case OperationType.TRA:
-                        RecieveTransaction(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.TRA));
+                        ReceiveTransaction(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.TRA));
                         break;
                     case OperationType.BLK:
                         ReceiveBlock(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.BLK));
                         break;
-                    case OperationType.QBC:
-                        RequestBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.QBC));
+                    case OperationType.RQB:
+                        RequestBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RQB));
                         break;
-                    case OperationType.RBC:
-                        RecieveBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RBC));
+                    case OperationType.RCB:
+                        ReceiveBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RCB));
+                        break;
+                    case OperationType.RQV:
+                        RequestVote(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RQV));
+                        break;
+                    case OperationType.RCV:
+                        ReceiveVote(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RCV));
+                        break;
+                    case OperationType.DEF:
+                        Console.WriteLine($"Could not find any operation type tag on a msg: {cleanMessageWithoutEOM}");
                         break;
                 }
             }
@@ -327,7 +356,7 @@ namespace ConsensusBenchmarker.Communication
             }
         }
 
-        private void RecieveTransaction(string message)
+        private void ReceiveTransaction(string message)
         {
             if (JsonConvert.DeserializeObject<Transaction>(message) is not Transaction recievedTransaction)
             {
@@ -348,12 +377,12 @@ namespace ConsensusBenchmarker.Communication
 
         private void RequestBlockChain(string message)
         {
-            var recipient = JsonConvert.DeserializeObject<KeyValuePair<int, string>>(message);
-            Console.WriteLine($"Node ({recipient.Key}, {recipient.Value}) requested my (node {nodeId})'s blockchain.");
-            eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.RequestBlockchain, recipient));
+            var recipientId = int.Parse(message);
+            Console.WriteLine($"Node {recipientId} requested my (node {nodeId})'s blockchain.");
+            eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.RequestBlockchain, recipientId));
         }
 
-        private void RecieveBlockChain(string message)
+        private void ReceiveBlockChain(string message)
         {
             if (message == string.Empty)
             {
@@ -369,6 +398,21 @@ namespace ConsensusBenchmarker.Communication
                 Console.WriteLine($"I (node {nodeId}) recieved a blockchain with {recievedBlocks.Count} blocks, latest block was created by: {recievedBlocks.Last().OwnerNodeID}");
                 eventQueue.Enqueue(new ConsensusEvent(recievedBlocks, ConsensusEventType.RecieveBlockchain, null));
             }
+        }
+
+        private void RequestVote(string message)
+        {
+            if (JsonConvert.DeserializeObject<RaftVoteRequest>(message) is not RaftVoteRequest recievedVoteRequest)
+            {
+                throw new ArgumentException("VoteRequest could not be deserialized correctly", nameof(message));
+            }
+            eventQueue.Enqueue(new ConsensusEvent(recievedVoteRequest, ConsensusEventType.RequestVote, null));
+        }
+
+        private void ReceiveVote(string message)
+        {
+            var vote = Boolean.Parse(message);
+            eventQueue.Enqueue(new ConsensusEvent(vote, ConsensusEventType.ReceiveVote, null));
         }
 
         #endregion

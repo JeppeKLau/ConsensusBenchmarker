@@ -95,7 +95,7 @@ namespace ConsensusBenchmarker.DataCollection
             var numRegex = NumberRegex();
             var valueLine = GetLineWithWord("cpu ", cpuFileStream);
             var matches = numRegex.Matches(valueLine);
-            cpuTime = matches.Count == 10 ? matches.Take(3).Sum(x => int.Parse(x.Value)) : throw new Exception($"Incorrect match count: {matches.Count}");
+            cpuTime = matches.Count == 10 ? matches.Take(3).Sum(x => int.Parse(x.Value)) / 100 : throw new Exception($"Incorrect match count: {matches.Count}");
             cpuFileStream.Seek(0, SeekOrigin.Begin);
         }
 
@@ -118,7 +118,6 @@ namespace ConsensusBenchmarker.DataCollection
                     WriteInformationToDB(new BlockMeasurement(nodeId, DateTime.UtcNow, blockCount, blockCreationTime.ElapsedMilliseconds / 1000));
                     break;
                 case DataCollectionEventType.IncTransaction:
-                    Console.WriteLine("DataCollectionEventType.IncTransaction hit.");
                     transactionCount++;
                     WriteInformationToDB(new TransactionMeasurement(nodeId, DateTime.Now, transactionCount));
                     break;

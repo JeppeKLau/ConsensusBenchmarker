@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace ConsensusBenchmarker.Models.Blocks
 {
-    public enum BlockTypes { PoWBlock = 1 }
+    public enum BlockTypes { PoWBlock = 1, RaftBlock }
 
     [JsonConverter(typeof(BlockConverter))]
     public class Block : IComparable<Block>
