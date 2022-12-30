@@ -345,10 +345,10 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void GetLatestEntryInformation(out int latestBlockIndex, out int latestBlockTerm)
         {
-            blocksSemaphore.Wait(); // I don't think its necessary to acquire the semaphores. There will only be one thread accessing this class at a time
-            latestBlockIndex = Blocks.FindLastIndex(x => true);
+            //blocksSemaphore.Wait(); // I don't think its necessary to acquire the semaphores. There will only be one thread accessing this class at a time
+            latestBlockIndex = Blocks.FindLastIndex(x => x is not null);
             latestBlockTerm = (Blocks.Last() as RaftBlock)?.ElectionTerm ?? throw new ArgumentException("Latest log entry is wrong block type");
-            blocksSemaphore.Release();
+            //blocksSemaphore.Release();
         }
     }
 }
