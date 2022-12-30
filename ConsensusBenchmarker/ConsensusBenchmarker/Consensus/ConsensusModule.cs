@@ -27,8 +27,6 @@ namespace ConsensusBenchmarker.Consensus
 
         public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
         {
-            eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null));
-            eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
             moduleThreads.Add("Consensus_HandleEventLoop", new Thread(() =>
             {
                 while (consensusMechanism.ExecutionFlag || !eventQueue.IsEmpty)
@@ -40,6 +38,9 @@ namespace ConsensusBenchmarker.Consensus
             }));
             if (consensusType == "PoW") // Could probably be prettier
             {
+                eventQueue.Enqueue(new CommunicationEvent(null, CommunicationEventType.RequestBlockChain, null));
+                eventQueue.Enqueue(new ConsensusEvent(null, ConsensusEventType.CreateTransaction, null));
+
                 moduleThreads.Add("Consensus_PoWMining", new Thread(() =>
                 {
                     while (consensusMechanism.ExecutionFlag)

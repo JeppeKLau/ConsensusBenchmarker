@@ -66,9 +66,7 @@ namespace ConsensusBenchmarker.Consensus
         /// Tells the consensus to start.
         /// </summary>
         /// <exception cref="NotImplementedException"></exception>
-        public virtual void BeginConsensus()
-        {
-        }
+        public virtual void BeginConsensus() { }
 
         /// <summary>
         /// Handles the recieving of a new block from another node.
