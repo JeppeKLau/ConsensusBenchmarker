@@ -199,7 +199,9 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         {
             Console.WriteLine("Requesting votes");
             GetLatestEntryInformation(out var latestBlockIndex, out var latestBlockTerm);
+            Console.WriteLine("Got latest entry info");
             var voteRequest = new RaftVoteRequest(latestBlockIndex, latestBlockTerm, currentTerm, NodeID);
+            Console.WriteLine("Instantiated vote request");
             eventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId));
             Console.WriteLine("Vote requests sent");
         }
