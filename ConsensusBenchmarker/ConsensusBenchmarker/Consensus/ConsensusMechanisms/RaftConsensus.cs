@@ -175,7 +175,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 else
                 {
                     Thread.Sleep(1);
-                    if (eventQueue.Where(e => e is ConsensusEvent consensusEvent && consensusEvent.EventType == ConsensusEventType.ReceiveVote).ToList().Count <= 1)
+                    if (EventQueue.Where(e => e is ConsensusEvent consensusEvent && consensusEvent.EventType == ConsensusEventType.ReceiveVote).ToList().Count <= 1)
                     {
                         foreach (RaftNode node in raftNodes)
                         {
@@ -192,7 +192,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void SendHeartBeat(RaftHeartbeatRequest heartbeat)
         {
-            eventQueue.Enqueue(new CommunicationEvent(heartbeat, CommunicationEventType.RequestHeartbeat, null));
+            EventQueue.Enqueue(new CommunicationEvent(heartbeat, CommunicationEventType.RequestHeartbeat, null));
         }
 
         private void RequestVotes(int? nodeId = null)
@@ -200,7 +200,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             Console.WriteLine("Requesting votes");
             GetLatestEntryInformation(out var latestBlockIndex, out var latestBlockTerm);
             var voteRequest = new RaftVoteRequest(latestBlockIndex, latestBlockTerm, currentTerm, NodeID);
-            eventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId)); // this shit broke
+            Console.WriteLine($"Event queue count {EventQueue.Count}");
+            EventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId)); // this shit broke
             Console.WriteLine("Vote requests sent");
         }
 
@@ -290,7 +291,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 }
             }
             Console.WriteLine($"Node {NodeID} received a vote request from node {voteRequest.NodeId}. Grant vote?: {grantVote}.");
-            eventQueue.Enqueue(new CommunicationEvent(new RaftVoteResponse(NodeID, currentTerm, grantVote), CommunicationEventType.CastVote, voteRequest.NodeId));
+            EventQueue.Enqueue(new CommunicationEvent(new RaftVoteResponse(NodeID, currentTerm, grantVote), CommunicationEventType.CastVote, voteRequest.NodeId));
         }
 
         public override void HandleRequestHeartBeat(RaftHeartbeatRequest heartbeat) // Followers gets this
@@ -330,7 +331,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 }
             }
             Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {success}.");
-            eventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, success, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+            EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, success, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
         }
 
         private void TransitionToFollower(int term)

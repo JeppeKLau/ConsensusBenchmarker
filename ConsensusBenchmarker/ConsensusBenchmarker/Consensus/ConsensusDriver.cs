@@ -14,10 +14,10 @@ namespace ConsensusBenchmarker.Consensus
         {
             NodeID = nodeID;
             MaxBlocksToCreate = maxBlocksToCreate;
-            this.eventQueue = eventQueue;
+            this.EventQueue = eventQueue;
         }
 
-        protected readonly ConcurrentQueue<IEvent> eventQueue;
+        public ConcurrentQueue<IEvent> EventQueue;
 
         public readonly int NodeID;
 

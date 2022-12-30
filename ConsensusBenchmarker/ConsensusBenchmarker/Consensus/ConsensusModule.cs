@@ -12,7 +12,7 @@ namespace ConsensusBenchmarker.Consensus
     {
         private readonly string consensusType;
         private readonly ConsensusDriver consensusMechanism;
-        private ConcurrentQueue<IEvent> eventQueue;
+        private readonly ConcurrentQueue<IEvent> eventQueue;
         private readonly int NodeID;
         private bool requestBlockchainHasHappened;
 
@@ -98,7 +98,7 @@ namespace ConsensusBenchmarker.Consensus
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not ConsensusEvent nextEvent) return;
 
-            Console.WriteLine("CM: Handling ConsensusEvent");
+            Console.WriteLine($"CM: Handling ConsensusEvent: {nextEvent.EventType}");
 
             switch (nextEvent.EventType)
             {
