@@ -200,6 +200,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             Console.WriteLine("Requesting votes");
             GetLatestEntryInformation(out var latestBlockIndex, out var latestBlockTerm);
             var voteRequest = new RaftVoteRequest(latestBlockIndex, latestBlockTerm, currentTerm, NodeID);
+            Console.WriteLine("Next is event queue:");
             Console.WriteLine($"Event queue count {EventQueue.Count}");
             EventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId)); // this shit broke
             Console.WriteLine("Vote requests sent");
