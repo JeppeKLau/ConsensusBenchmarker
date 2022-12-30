@@ -17,7 +17,7 @@ namespace ConsensusBenchmarker.Consensus
             this.eventQueue = eventQueue;
         }
 
-        protected readonly ref ConcurrentQueue<IEvent> eventQueue;
+        protected readonly ConcurrentQueue<IEvent> eventQueue;
 
         public readonly int NodeID;
 
@@ -62,11 +62,6 @@ namespace ConsensusBenchmarker.Consensus
         private readonly SemaphoreSlim receivedTransactionsSemaphore = new(1, 1);
         protected readonly SemaphoreSlim blocksSemaphore = new(1, 1);
         private readonly int maxBlocksInChainAtOnce = 50;
-
-        public void InstantiateEventQueue(ref ConcurrentQueue<IEvent> eventQueue)
-        {
-            this.eventQueue = eventQueue;
-        }
 
         /// <summary>
         /// Tells the consensus to start.
