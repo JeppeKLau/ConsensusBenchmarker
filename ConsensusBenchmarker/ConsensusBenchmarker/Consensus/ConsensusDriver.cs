@@ -117,22 +117,22 @@ namespace ConsensusBenchmarker.Consensus
             return Blocks;
         }
 
-        public virtual void HandleVoteRequest(RaftVoteRequest voteRequest)
+        public virtual void HandleRequestVote(RaftVoteRequest voteRequest)
         {
             throw new NotImplementedException();
         }
 
-        public virtual void HandleVoteReceived(bool vote)
+        public virtual void HandleReceiveVote(bool vote)
         {
             throw new NotImplementedException();
         }
 
-        public virtual void HandleHeartbeatRequest(RaftHeartbeat heartbeat)
+        public virtual void HandleRequestHeartBeat(RaftHeartbeat heartbeat)
         {
             throw new NotImplementedException();
         }
 
-        public virtual void HandleHeartbeatReceive(RaftHeartbeatResponse heartbeat)
+        public virtual void HandleReceiveHeartBeat(RaftHeartbeatResponse heartbeat)
         {
             throw new NotImplementedException();
         }
