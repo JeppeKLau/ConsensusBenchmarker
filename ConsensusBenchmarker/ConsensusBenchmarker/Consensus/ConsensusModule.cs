@@ -27,8 +27,6 @@ namespace ConsensusBenchmarker.Consensus
 
         public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
         {
-            Console.WriteLine("CM: SpawnThreads");
-
             moduleThreads.Add("Consensus_HandleEventLoop", new Thread(() =>
             {
                 while (consensusMechanism.ExecutionFlag || !eventQueue.IsEmpty)
