@@ -197,9 +197,11 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void RequestVotes(int? nodeId = null)
         {
+            Console.WriteLine("Requesting votes");
             GetLatestEntryInformation(out var latestBlockIndex, out var latestBlockTerm);
             var voteRequest = new RaftVoteRequest(latestBlockIndex, latestBlockTerm, currentTerm, NodeID);
             eventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId));
+            Console.WriteLine("Vote requests sent");
         }
 
         private void StartElection()
