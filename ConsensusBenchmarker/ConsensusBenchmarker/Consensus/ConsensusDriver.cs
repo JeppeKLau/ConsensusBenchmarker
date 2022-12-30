@@ -68,7 +68,6 @@ namespace ConsensusBenchmarker.Consensus
         /// <exception cref="NotImplementedException"></exception>
         public virtual void BeginConsensus()
         {
-            throw new NotImplementedException();
         }
 
         /// <summary>
