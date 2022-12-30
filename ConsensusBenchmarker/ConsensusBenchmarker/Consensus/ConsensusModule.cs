@@ -20,6 +20,7 @@ namespace ConsensusBenchmarker.Consensus
         {
             this.consensusType = consensusType;
             consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID, maxBlocksToCreate);
+            Console.WriteLine("1");
             this.eventQueue = eventQueue;
             NodeID = nodeID;
             requestBlockchainHasHappened = false;
