@@ -67,7 +67,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         List<RaftNode> raftNodes = new();
 
 
-        public RaftConsensus(int nodeID, int maxBlocksToCreate, ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, eventQueue)
+        public RaftConsensus(int nodeID, int maxBlocksToCreate) : base(nodeID, maxBlocksToCreate)
         {
             nodesInNetwork = int.Parse(Environment.GetEnvironmentVariable("RAFT_NETWORKSIZE") ?? "0");
             maxElectionTimeout = int.Parse(Environment.GetEnvironmentVariable("RAFT_ELECTIONTIMEOUT") ?? "0.5") * 1000;
