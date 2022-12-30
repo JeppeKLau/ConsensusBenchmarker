@@ -1,6 +1,7 @@
 ﻿using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
 using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
+using InfluxDB.Client.Api.Domain;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,14 +19,14 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
     {
         /*
          * Raft TODO list:
-         *      1. nextIndex array : describes the next log entry to send each server - initialized to leader last log index + 1; index should match with node ID
+         * (X)  1. nextIndex array : describes the next log entry to send each server - initialized to leader last log index + 1; index should match with node ID
          *          - Updated when transmitting a new entry to a node.
          *      2. matchIndex array : describes the index of highest log entry known to be replicated on server - initialized to 0, increases monotonically; index should match with node ID
          *          - Used to find out which indecies should be committed. Updated when node returns success == true to indicate the entry was accepted
          *      3. Add committed Boolean to RaftBlock, marking if a block is committed. Should be updated by heartbeats to propagate commitment of blocks to follower nodes.
          *      4. lastApplied : index of the highest log entry applied to the state machine - initialized to 0, increases monotonically
-         *      5. Triple check the "Rules for servers" section of Figure 2 in paper (https://www.usenix.org/system/files/conference/atc14/atc14-paper-ongaro.pdf)
-         *      6. Consider refactor of RequestVote to more closely match the implementation described in Figure 2 in paper
+         * (x)  5. Triple check the "Rules for servers" section of Figure 2 in paper (https://www.usenix.org/system/files/conference/atc14/atc14-paper-ongaro.pdf)
+         * (X)  6. Consider refactor of RequestVote to more closely match the implementation described in Figure 2 in paper
          */
 
 
@@ -79,25 +80,43 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         #region Election and Leader specific methods
 
-        public override void HandleReceiveHeartBeat(RaftHeartbeatResponse heartbeat) // Leaders gets this
+        public override void HandleReceiveHeartBeat(RaftHeartbeatResponse heartbeatResponse) // Leaders gets this
         {
+            if(currentTerm < heartbeatResponse.Term)
+            {
+                StepDownAsLeader(heartbeatResponse.Term);
+            }
+            if(state == RaftState.Leader && currentTerm == heartbeatResponse.Term)
+            {
+                if(heartbeatResponse.Success)
+                {
+                    
+                }
+                else
+                {
 
+                }
+            }
         }
 
-        public override void HandleReceiveVote(bool vote) // This method will be called FOREACH vote received
+        public override void HandleReceiveVote(RaftVoteResponse voteResponse) // This method will be called FOREACH vote received
         {
-            totalVotesReceived++;
-            if (vote) { votesForLeaderReceived++; }
-
-            if (state == RaftState.Candidate)
+            if (currentTerm < voteResponse.Term)
             {
+                StepDownAsLeader(voteResponse.Term);
+            }
+            if (state == RaftState.Candidate && currentTerm == voteResponse.Term) 
+            {
+                totalVotesReceived++;
+                if (voteResponse.VoteGranted) { votesForLeaderReceived++; }
+
                 if (votesForLeaderReceived > Math.Floor((double)nodesInNetwork / 2))
                 {
                     ElectNodeAsLeader();
                 }
-                else if(votesForLeaderReceived != totalVotesReceived)
+                else
                 {
-                    RequestVotes(); // This will be called a lot, we should maybe put up a guard? // I tried something^
+                    RequestVotes(); // This will be called A LOT, we should maybe put up a guard? // Should this even be here?
                 }
             }
         }
@@ -106,45 +125,58 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         {
             GetLatestEntryInformation(out var latestBlockIndex, out var latestBlockTerm);
             var voteRequest = new RaftVoteRequest(latestBlockIndex, latestBlockTerm, currentTerm, NodeID);
-            eventQueue.Enqueue(new CommunicationEvent(JsonConvert.SerializeObject(voteRequest), CommunicationEventType.RequestVote, null));
+            eventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, null));
         }
 
         private void StartElection()
         {
+            InitializeCandidate();
+            RequestVotes();
+        }
+
+        private void InitializeCandidate()
+        {
+            Console.WriteLine($"Node {NodeID} started an election and is now a leader candidate.");
+
             ResetElectionTimer();
             state = RaftState.Candidate;
-            votesForLeaderReceived = 1;
             votedFor = NodeID;
             currentTerm++;
-            RequestVotes();
+            nextIndex = 1;
+            matchIndex = 0;
+            votesForLeaderReceived = 1;
+            totalVotesReceived = 1;
         }
 
         private void ElectNodeAsLeader()
         {
-            Console.WriteLine($"Node {NodeID} is leader in term {currentTerm}.");
-
             GetPreviousEntryInformation(out var previousLogIndex, out int previousElectionTerm);
-            InitializeLeader(previousLogIndex);
+            InitializeLeader();
 
             // Request heartbeat:
-            var heartBeatMessage = new RaftHeartbeat(currentTerm, NodeID, previousLogIndex, previousElectionTerm, null, commitIndex);
-            eventQueue.Enqueue(new CommunicationEvent(heartBeatMessage, CommunicationEventType.RequestHeartBeat, null));
+            var heartbeatRequest = new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, null, commitIndex);
+            eventQueue.Enqueue(new CommunicationEvent(heartbeatRequest, CommunicationEventType.RequestHeartbeat, null));
+
+            // We should maybe start a timer so that regular heartbeats can be sent out, so this node doesn't lose its leadership?.
         }
 
-        private void InitializeLeader(int previousLogIndex)
+        private void InitializeLeader()
         {
+            Console.WriteLine($"Node {NodeID} is now leader in term {currentTerm}.");
+
             ResetElectionTimer();
             state = RaftState.Leader;
             votesForLeaderReceived = 0;
+            totalVotesReceived = 0;
             votedFor = null;
 
-            nextIndex = previousLogIndex + 1;
-            matchIndex = previousLogIndex;
+            nextIndex = BlocksInChain + 1;
+            matchIndex = BlocksInChain;
         }
 
         private void GetPreviousEntryInformation(out int previousLogIndex, out int previousElectionTerm)
         {
-            blocksSemaphore.Wait();
+            blocksSemaphore.Wait();  // I don't think its necessary to acquire the semaphores. There will only be one thread accessing this class at a time
             previousLogIndex = Blocks.FindLastIndex(0, Blocks.Count - 1, x => true);
             previousElectionTerm = (Blocks.ElementAt(previousLogIndex) as RaftBlock)?.ElectionTerm ?? throw new ArgumentException("Previous log entry is wrong block type");
             blocksSemaphore.Release();
@@ -154,66 +186,97 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         public override void HandleRequestVote(RaftVoteRequest voteRequest) // Followers gets this
         {
-            if(currentTerm < voteRequest.ElectionTerm)
+            bool grantVote = false;
+            if (currentTerm < voteRequest.ElectionTerm)
             {
-
+                StepDownAsLeader(voteRequest.ElectionTerm);
             }
-
             if (votedFor == null)
             {
-                int latestBlockIndex, latestBlockTerm;
-                GetLatestEntryInformation(out latestBlockIndex, out latestBlockTerm);
-                if (voteRequest.LatestBlockTerm >= latestBlockTerm)
+                int latestBlockIndex;
+                GetLatestEntryInformation(out latestBlockIndex, out _);
+                if (voteRequest.ElectionTerm >= currentTerm)
                 {
                     if (voteRequest.LatestBlockIndex >= latestBlockIndex)
                     {
-                        eventQueue.Enqueue(new CommunicationEvent("true", CommunicationEventType.CastVote, voteRequest.NodeId));
-                        votedFor = voteRequest.NodeId;
                         ResetElectionTimer();
-                        return;
+                        grantVote = true;
+                        votedFor = voteRequest.NodeId;
                     }
                 }
-                eventQueue.Enqueue(new CommunicationEvent("false", CommunicationEventType.CastVote, voteRequest.NodeId));
             }
+            eventQueue.Enqueue(new CommunicationEvent(new RaftVoteResponse(currentTerm, grantVote), CommunicationEventType.CastVote, voteRequest.NodeId));
         }
 
-        public override void HandleRequestHeartBeat(RaftHeartbeat heartbeat) // Followers gets this
+        public override void HandleRequestHeartBeat(RaftHeartbeatRequest heartbeat) // Followers gets this
         {
-            StepDownAsLeader(heartbeat);
+            bool success = false;
+            if(currentTerm < heartbeat.Term)
+            {
+                StepDownAsLeader(heartbeat.Term);
+            }
+            if (heartbeat.Term >= currentTerm)
+            {
+                ResetElectionTimer();
 
-            var previousEntry = Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) as RaftBlock;
-            var success = previousEntry != null && previousEntry.ElectionTerm == heartbeat.PreviousLogTerm && currentTerm >= heartbeat.Term;
-            var heartBeatResponse = new RaftHeartbeatResponse(currentTerm, success);
-            eventQueue.Enqueue(new CommunicationEvent(heartBeatResponse, CommunicationEventType.ReceiveHeartBeat, heartbeat.LeaderId));
-            if (!success && previousEntry != null)
-            {
-                Blocks.RemoveRange(heartbeat.PreviousLogIndex, Blocks.Count - heartbeat.PreviousLogIndex);
+                var previousEntry = Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) as RaftBlock;
+                if(previousEntry != null)
+                {
+                    if (previousEntry.ElectionTerm == heartbeat.PreviousLogTerm)
+                    {
+                        success = true;
+                    }
+                    else
+                    {
+                        Blocks.RemoveRange(heartbeat.PreviousLogIndex, Blocks.Count - heartbeat.PreviousLogIndex);
+                    }
+                }
+                if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
+                {
+                    AddNewBlockToChain(heartbeat.Entries); // heartbeat.Entries is currently always null fyi
+                }
+                if (heartbeat.LeaderCommit > commitIndex)
+                {
+                    GetLatestEntryInformation(out var latestEntryIndex, out _);
+                    commitIndex = Math.Min(heartbeat.LeaderCommit, latestEntryIndex);
+                }
             }
-            else if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
-            {
-                AddNewBlockToChain(heartbeat.Entries);
-            }
-            if (heartbeat.LeaderCommit > commitIndex)
-            {
-                GetLatestEntryInformation(out var latestEntryIndex, out _);
-                commitIndex = Math.Min(heartbeat.LeaderCommit, latestEntryIndex);
-            }
-            // something should be sent back right? RaftheartbeatResponse?
+            eventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(currentTerm, success), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+
+
+            // OLD:
+            //var previousEntry = Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) as RaftBlock;
+            //var success = previousEntry != null && previousEntry.ElectionTerm == heartbeat.PreviousLogTerm && currentTerm >= heartbeat.Term;
+            //var heartBeatResponse = new RaftHeartbeatResponse(currentTerm, success);
+            //eventQueue.Enqueue(new CommunicationEvent(heartBeatResponse, CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+            //if (!success && previousEntry != null)
+            //{
+            //    Blocks.RemoveRange(heartbeat.PreviousLogIndex, Blocks.Count - heartbeat.PreviousLogIndex);
+            //}
+            //else if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
+            //{
+            //    AddNewBlockToChain(heartbeat.Entries);
+            //}
+            //if (heartbeat.LeaderCommit > commitIndex)
+            //{
+            //    GetLatestEntryInformation(out var latestEntryIndex, out _);
+            //    commitIndex = Math.Min(heartbeat.LeaderCommit, latestEntryIndex);
+            //}
         }
 
-        private void StepDownAsLeader(RaftHeartbeat heartbeat)
+        private void StepDownAsLeader(int term)
         {
             ResetElectionTimer();
             state = RaftState.Follower;
-            currentTerm = heartbeat.Term;
+            currentTerm = term;
             votedFor = null;
             
-            Console.WriteLine($"Node {NodeID} is follower in term {heartbeat.Term}.");
+            Console.WriteLine($"Node {NodeID} stepped down as leader.");
         }
 
         private void GetLatestEntryInformation(out int latestBlockIndex, out int latestBlockTerm)
         {
-            blocksSemaphore.Wait();
+            blocksSemaphore.Wait(); // I don't think its necessary to acquire the semaphores. There will only be one thread accessing this class at a time
             latestBlockIndex = Blocks.FindLastIndex(x => true);
             latestBlockTerm = (Blocks.Last() as RaftBlock)?.ElectionTerm ?? throw new ArgumentException("Latest log entry is wrong block type");
             blocksSemaphore.Release();

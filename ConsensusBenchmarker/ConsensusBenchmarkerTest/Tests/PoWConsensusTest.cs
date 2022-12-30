@@ -13,7 +13,7 @@ using System.Text;
 namespace ConsensusBenchmarkerTest.Tests
 {
     [TestClass]
-    public class UnitTest1
+    public class PoWConsensusTests
     {
         [TestMethod]
         public void HashNewBlock()

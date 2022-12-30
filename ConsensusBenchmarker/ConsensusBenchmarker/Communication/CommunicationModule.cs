@@ -114,20 +114,20 @@ namespace ConsensusBenchmarker.Communication
                     await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), GetAddressByNodeId(recipient));
                     break;
                 case CommunicationEventType.RequestVote:
-                    var requestVoteMessage = nextEvent.Data as string ?? throw new ArgumentException("string missing from event", nameof(nextEvent.Data));
-                    await BroadcastMessageAndDontWaitForAnswer(Messages.CreateRQVMessage(requestVoteMessage));
+                    var voteRequest = nextEvent.Data as RaftVoteRequest ?? throw new ArgumentException("VoteRequest missing from event", nameof(nextEvent.Data));
+                    await BroadcastMessageAndDontWaitForAnswer(Messages.CreateRQVMessage(voteRequest));
                     break;
                 case CommunicationEventType.CastVote:
                     var voteRecipient = nextEvent.Recipient ?? throw new ArgumentException("Recipient missing from event", nameof(nextEvent.Recipient));
-                    var voteMessage = nextEvent.Data as string ?? throw new ArgumentException("Vote missing from event", nameof(nextEvent.Data));
-                    await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(voteRecipient), Messages.CreateRCVMessage(voteMessage));
+                    var voteResponse = nextEvent.Data as RaftVoteResponse ?? throw new ArgumentException("VoteResponse missing from event", nameof(nextEvent.Data));
+                    await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(voteRecipient), Messages.CreateRCVMessage(voteResponse));
                     break;
-                case CommunicationEventType.RequestHeartBeat:
-                    var heartbeat = nextEvent.Data as RaftHeartbeat ?? throw new ArgumentException("RaftHeartbeat missing from event", nameof(nextEvent.Data));
-                    await BroadcastMessageAndDontWaitForAnswer(Messages.CreateRQHMessage(heartbeat));
+                case CommunicationEventType.RequestHeartbeat:
+                    var heartbeatRequest = nextEvent.Data as RaftHeartbeatRequest ?? throw new ArgumentException("HeartbeatRequest missing from event", nameof(nextEvent.Data));
+                    await BroadcastMessageAndDontWaitForAnswer(Messages.CreateRQHMessage(heartbeatRequest));
                     break;
-                case CommunicationEventType.ReceiveHeartBeat:
-                    var heartbeatResponse = nextEvent.Data as RaftHeartbeatResponse ?? throw new ArgumentException("RaftHeartbeatResponse missing from event", nameof(nextEvent.Data));
+                case CommunicationEventType.ReceiveHeartbeat:
+                    var heartbeatResponse = nextEvent.Data as RaftHeartbeatResponse ?? throw new ArgumentException("HeartbeatResponse missing from event", nameof(nextEvent.Data));
                     var heartbeatRecipient = nextEvent.Recipient ?? throw new ArgumentException("Recipient missing from event", nameof(nextEvent.Recipient));
                     await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(heartbeatRecipient), Messages.CreateRCHMessage(heartbeatResponse));
                     break;
@@ -420,17 +420,20 @@ namespace ConsensusBenchmarker.Communication
 
         private void ReceiveVote(string message)
         {
-            var vote = Boolean.Parse(message);
-            eventQueue.Enqueue(new ConsensusEvent(vote, ConsensusEventType.ReceiveVote, null));
+            if (JsonConvert.DeserializeObject<RaftVoteResponse>(message) is not RaftVoteResponse recievedVoteResponse)
+            {
+                throw new ArgumentException("VoteRequest could not be deserialized correctly", nameof(message));
+            }
+            eventQueue.Enqueue(new ConsensusEvent(recievedVoteResponse, ConsensusEventType.ReceiveVote, null));
         }
 
         private void RequestHeartBeat(string message)
         {
-            if (JsonConvert.DeserializeObject<RaftHeartbeat>(message) is not RaftHeartbeat recievedHeartbeat)
+            if (JsonConvert.DeserializeObject<RaftHeartbeatRequest>(message) is not RaftHeartbeatRequest recievedHeartbeat)
             {
                 throw new ArgumentException("Heartbeat could not be deserialized correctly", nameof(message));
             }
-            eventQueue.Enqueue(new ConsensusEvent(recievedHeartbeat, ConsensusEventType.RequestHeartBeat, null));
+            eventQueue.Enqueue(new ConsensusEvent(recievedHeartbeat, ConsensusEventType.RequestHeartbeat, null));
         }
 
         private void ReceiveHeartBeat(string message)
@@ -439,7 +442,7 @@ namespace ConsensusBenchmarker.Communication
             {
                 throw new ArgumentException("HeartbeatResponse could not be deserialized correctly", nameof(message));
             }
-            eventQueue.Enqueue(new ConsensusEvent(recievedHeartbeatResponse, ConsensusEventType.ReceiveHeartBeat, null));
+            eventQueue.Enqueue(new ConsensusEvent(recievedHeartbeatResponse, ConsensusEventType.ReceiveHeartbeat, null));
         }
 
         #endregion

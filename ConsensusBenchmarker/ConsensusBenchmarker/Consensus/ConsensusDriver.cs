@@ -122,12 +122,12 @@ namespace ConsensusBenchmarker.Consensus
             throw new NotImplementedException();
         }
 
-        public virtual void HandleReceiveVote(bool vote)
+        public virtual void HandleReceiveVote(RaftVoteResponse voteResponse)
         {
             throw new NotImplementedException();
         }
 
-        public virtual void HandleRequestHeartBeat(RaftHeartbeat heartbeat)
+        public virtual void HandleRequestHeartBeat(RaftHeartbeatRequest heartbeat)
         {
             throw new NotImplementedException();
         }

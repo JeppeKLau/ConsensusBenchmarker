@@ -5,9 +5,9 @@ namespace ConsensusBenchmarker.Models.DTOs
     /// <summary>
     /// AppendEntries DTO. Represents both the addition of new blocks to chain and heartbeats from leader.
     /// </summary>
-    public class RaftHeartbeat
+    public class RaftHeartbeatRequest
     {
-        public RaftHeartbeat(int term, int leaderId, int previousLogIndex, int previousLogTerm, Block? entries, int leaderCommit)
+        public RaftHeartbeatRequest(int term, int leaderId, int previousLogIndex, int previousLogTerm, Block? entries, int leaderCommit)
         {
             Term = term;
             LeaderId = leaderId;

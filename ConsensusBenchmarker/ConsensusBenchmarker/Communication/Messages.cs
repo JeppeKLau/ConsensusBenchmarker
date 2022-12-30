@@ -89,20 +89,22 @@ namespace ConsensusBenchmarker.Communication
             return $"{CreateTag(OperationType.RCB)}{serializedBlocks}{CreateTag(OperationType.EOM)}";
         }
 
-        public static string CreateRQVMessage(string message)
+        public static string CreateRQVMessage(RaftVoteRequest voteRequest)
         {
-            return $"{CreateTag(OperationType.RQV)}{message}{CreateTag(OperationType.EOM)}";
+            var serializedVoteRequest = JsonConvert.SerializeObject(voteRequest);
+            return $"{CreateTag(OperationType.RQV)}{serializedVoteRequest}{CreateTag(OperationType.EOM)}";
         }
 
-        public static string CreateRCVMessage(string message)
+        public static string CreateRCVMessage(RaftVoteResponse voteResponse)
         {
-            return $"{CreateTag(OperationType.RCV)}{message}{CreateTag(OperationType.EOM)}";
+            var serializedVoteResponse = JsonConvert.SerializeObject(voteResponse);
+            return $"{CreateTag(OperationType.RCV)}{serializedVoteResponse}{CreateTag(OperationType.EOM)}";
         }
 
-        public static string CreateRQHMessage(RaftHeartbeat heartbeat)
+        public static string CreateRQHMessage(RaftHeartbeatRequest heartbeatRequest)
         {
-            var serializedHeartbeat = JsonConvert.SerializeObject(heartbeat);
-            return $"{CreateTag(OperationType.RQH)}{serializedHeartbeat}{CreateTag(OperationType.EOM)}";
+            var serializedHeartbeatRequest = JsonConvert.SerializeObject(heartbeatRequest);
+            return $"{CreateTag(OperationType.RQH)}{serializedHeartbeatRequest}{CreateTag(OperationType.EOM)}";
         }
 
         public static string CreateRCHMessage(RaftHeartbeatResponse heartbeatResponse)
