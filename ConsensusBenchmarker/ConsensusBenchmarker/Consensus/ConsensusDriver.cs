@@ -154,11 +154,14 @@ namespace ConsensusBenchmarker.Consensus
         /// Generate and return a new transaction.
         /// </summary>
         /// <returns><see cref="Transaction"/></returns>
-        public Transaction GenerateNextTransaction()
+        public Transaction GenerateNextTransaction(bool saveTransaction = false)
         {
             var newTransaction = new Transaction(NodeID, CreatedTransactionsByThisNode, DateTime.Now.ToLocalTime());
-            AddNewTransaction(newTransaction);
             CreatedTransactionsByThisNode++;
+            if (saveTransaction)
+            {
+                AddNewTransaction(newTransaction);
+            }
             return newTransaction;
         }
 
@@ -166,7 +169,7 @@ namespace ConsensusBenchmarker.Consensus
         /// Adds a new transaction thread safe.
         /// </summary>
         /// <param name="transaction"></param>
-        public void AddNewTransaction(Transaction transaction)
+        public virtual void AddNewTransaction(Transaction transaction)
         {
             receivedTransactionsSemaphore.Wait();
 

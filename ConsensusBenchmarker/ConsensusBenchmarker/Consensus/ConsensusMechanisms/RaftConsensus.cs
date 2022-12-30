@@ -1,18 +1,33 @@
-﻿using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
+﻿using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
 using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
-using InfluxDB.Client.Api.Domain;
-using Newtonsoft.Json;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 {
     public enum RaftState
     {
-        Follower = 0, 
+        Follower = 0,
         Leader,
         Candidate,
+    }
+
+    class RaftNode
+    {
+        public RaftNode(int nodeId, int nextIndex, int matchIndex, bool? voteGranted)
+        {
+            NodeId = nodeId;
+            NextIndex = nextIndex;
+            MatchIndex = matchIndex;
+            VoteGranted = voteGranted;
+        }
+
+        public int NodeId { get; set; }
+        public int NextIndex { get; set; }
+        public int MatchIndex { get; set; }
+        public bool? VoteGranted { get; set; }
     }
 
     public class RaftConsensus : ConsensusDriver
@@ -40,6 +55,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         // ConsensusDriver's Blocks // Holds RaftBlocks a.k.a. the log entries.
         private readonly int maxElectionTimeout;
         private System.Timers.Timer electionTimeout;
+        private readonly Random random;
 
 
         // Volatile state of nodes:
@@ -48,16 +64,16 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
 
         // Volatile state of leader nodes: (Reinitialized after election)
-        private int nextIndex = 0; //  index of the next log entry to send initialized to leader last log index + 1
-        private int matchIndex = 0; // index of highest log entry known to be replicated, (initialized to 0, increases monotonically).
+        List<RaftNode> raftNodes = new();
 
 
         public RaftConsensus(int nodeID, int maxBlocksToCreate, ref ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, ref eventQueue)
         {
             nodesInNetwork = int.Parse(Environment.GetEnvironmentVariable("RAFT_NETWORKSIZE") ?? "0");
             maxElectionTimeout = int.Parse(Environment.GetEnvironmentVariable("RAFT_ELECTIONTIMEOUT") ?? "0.5") * 1000;
+            random = new Random(NodeID * new Random().Next());
             electionTimeout = new();
-            electionTimeout.AutoReset = true;
+            electionTimeout.AutoReset = false;
             electionTimeout.Elapsed += (sender, e) =>
             {
                 StartElection();
@@ -67,65 +83,119 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void ResetElectionTimer()
         {
-            electionTimeout.Stop();
-            electionTimeout = new System.Timers.Timer(new Random(NodeID).Next(maxElectionTimeout / 2, maxElectionTimeout));
-            electionTimeout.Start();
-        }
-
-        private void StopConsensus()
-        {
-            electionTimeout.Stop();
-            electionTimeout.Dispose();
+            electionTimeout.Interval = random.Next(maxElectionTimeout / 2, maxElectionTimeout);
         }
 
         #region Election and Leader specific methods
 
         public override void HandleReceiveHeartBeat(RaftHeartbeatResponse heartbeatResponse) // Leaders gets this
         {
-            if(currentTerm < heartbeatResponse.Term)
+            if (currentTerm < heartbeatResponse.Term)
             {
-                StepDownAsLeader(heartbeatResponse.Term);
+                TransitionToFollower(heartbeatResponse.Term);
+                return;
             }
-            if(state == RaftState.Leader && currentTerm == heartbeatResponse.Term)
+
+            if (state == RaftState.Leader)
             {
-                if(heartbeatResponse.Success)
+                var appendEntries = false;
+                var node = raftNodes.Single(x => x.NodeId == heartbeatResponse.NodeId);
+                if (heartbeatResponse.Success)
                 {
-                    
+                    AddNewTransaction(heartbeatResponse.Transaction!);
+                    node.NextIndex++;
+                    node.MatchIndex++;
+                    if (node.NextIndex >= lastApplied) appendEntries = true;
                 }
                 else
                 {
-
+                    node.NextIndex--;
+                    appendEntries = true;
+                }
+                if (appendEntries)
+                {
+                    var appendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex);
+                    var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
+                    SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, appendEntry, commitIndex))
                 }
             }
         }
 
-        public override void HandleReceiveVote(RaftVoteResponse voteResponse) // This method will be called FOREACH vote received
+        public override void AddNewTransaction(Transaction transaction)
+        {
+            base.AddNewTransaction(transaction);
+            var stopwatch = new Stopwatch();
+            if (ReceivedTransactionsSinceLastBlock.Count >= nodesInNetwork / 2)
+            {
+                GenerateNextTransaction(true);
+                stopwatch.Start();
+                RaftBlock newEntry = GenerateNextBlock(ref stopwatch);
+                AddNewBlockToChain(newEntry);
+                stopwatch.Stop();
+                GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
+                SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, newEntry, commitIndex));
+                lastApplied++;
+
+                Console.WriteLine($"Node {NodeID} is leader and has created a new block at {newEntry.BlockCreatedAt:T} in term: {newEntry.ElectionTerm}.");
+
+                if (ExecutionFlag == false)
+                {
+                    electionTimeout.Dispose();
+                }
+            }
+        }
+
+        public override RaftBlock GenerateNextBlock(ref Stopwatch Stopwatch)
+        {
+            var newEntry = new RaftBlock(NodeID, DateTime.UtcNow, ReceivedTransactionsSinceLastBlock.ToList());
+            ReceivedTransactionsSinceLastBlock.Clear();
+            return newEntry;
+        }
+
+        public override void HandleReceiveVote(RaftVoteResponse voteResponse)
         {
             if (currentTerm < voteResponse.Term)
             {
-                StepDownAsLeader(voteResponse.Term);
+                TransitionToFollower(voteResponse.Term);
             }
-            if (state == RaftState.Candidate && currentTerm == voteResponse.Term) 
+            totalVotesReceived++;
+            if (state == RaftState.Candidate && currentTerm == voteResponse.Term)
             {
-                totalVotesReceived++;
                 if (voteResponse.VoteGranted) { votesForLeaderReceived++; }
+                raftNodes.Single(x => x.NodeId == voteResponse.NodeId).VoteGranted = voteResponse.VoteGranted;
 
-                if (votesForLeaderReceived > Math.Floor((double)nodesInNetwork / 2))
+                if (votesForLeaderReceived > nodesInNetwork / 2)
                 {
                     ElectNodeAsLeader();
                 }
                 else
                 {
-                    RequestVotes(); // This will be called A LOT, we should maybe put up a guard? // Should this even be here?
+                    Thread.Sleep(1);
+                    if (eventQueue.Where(e => e is ConsensusEvent consensusEvent && consensusEvent.EventType == ConsensusEventType.ReceiveVote).ToList().Count <= 1)
+                    {
+                        foreach (RaftNode node in raftNodes)
+                        {
+                            if (node.VoteGranted == null)
+                            {
+                                Console.WriteLine($"Node {NodeID} Re-Requested votes from {node.NodeId}");
+                                RequestVotes(node.NodeId);
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        private void RequestVotes()
+        private void SendHeartBeat(RaftHeartbeatRequest heartbeat)
+        {
+            eventQueue.Enqueue(new CommunicationEvent(heartbeat, CommunicationEventType.RequestHeartbeat, null));
+        }
+
+        private void RequestVotes(int? nodeId = null)
         {
             GetLatestEntryInformation(out var latestBlockIndex, out var latestBlockTerm);
             var voteRequest = new RaftVoteRequest(latestBlockIndex, latestBlockTerm, currentTerm, NodeID);
-            eventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, null));
+            eventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId));
         }
 
         private void StartElection()
@@ -142,10 +212,10 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             state = RaftState.Candidate;
             votedFor = NodeID;
             currentTerm++;
-            nextIndex = 1;
-            matchIndex = 0;
             votesForLeaderReceived = 1;
             totalVotesReceived = 1;
+
+            InitializeRaftNodeList(1, 0);
         }
 
         private void ElectNodeAsLeader()
@@ -155,7 +225,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
             // Request heartbeat:
             var heartbeatRequest = new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, null, commitIndex);
-            eventQueue.Enqueue(new CommunicationEvent(heartbeatRequest, CommunicationEventType.RequestHeartbeat, null));
+            SendHeartBeat(heartbeatRequest);
 
             // We should maybe start a timer so that regular heartbeats can be sent out, so this node doesn't lose its leadership?.
         }
@@ -170,8 +240,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             totalVotesReceived = 0;
             votedFor = null;
 
-            nextIndex = BlocksInChain + 1;
-            matchIndex = BlocksInChain;
+            InitializeRaftNodeList(BlocksInChain, 0);
         }
 
         private void GetPreviousEntryInformation(out int previousLogIndex, out int previousElectionTerm)
@@ -182,6 +251,15 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             blocksSemaphore.Release();
         }
 
+        private void InitializeRaftNodeList(int nextIndex, int matchIndex)
+        {
+            raftNodes.Clear();
+            for (int index = 1; index <= nodesInNetwork; index++)
+            {
+                raftNodes.Add(new RaftNode(index, nextIndex, matchIndex, null));
+            }
+        }
+
         #endregion
 
         public override void HandleRequestVote(RaftVoteRequest voteRequest) // Followers gets this
@@ -189,7 +267,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             bool grantVote = false;
             if (currentTerm < voteRequest.ElectionTerm)
             {
-                StepDownAsLeader(voteRequest.ElectionTerm);
+                TransitionToFollower(voteRequest.ElectionTerm);
             }
             if (votedFor == null)
             {
@@ -205,30 +283,33 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     }
                 }
             }
-            eventQueue.Enqueue(new CommunicationEvent(new RaftVoteResponse(currentTerm, grantVote), CommunicationEventType.CastVote, voteRequest.NodeId));
+            eventQueue.Enqueue(new CommunicationEvent(new RaftVoteResponse(NodeID, currentTerm, grantVote), CommunicationEventType.CastVote, voteRequest.NodeId));
         }
 
         public override void HandleRequestHeartBeat(RaftHeartbeatRequest heartbeat) // Followers gets this
         {
             bool success = false;
-            if(currentTerm < heartbeat.Term)
+            Transaction? newTransaction = null;
+
+            if (currentTerm < heartbeat.Term)
             {
-                StepDownAsLeader(heartbeat.Term);
+                TransitionToFollower(heartbeat.Term);
             }
             if (heartbeat.Term >= currentTerm)
             {
                 ResetElectionTimer();
 
                 var previousEntry = Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) as RaftBlock;
-                if(previousEntry != null)
+                if (previousEntry != null)
                 {
                     if (previousEntry.ElectionTerm == heartbeat.PreviousLogTerm)
                     {
                         success = true;
+                        newTransaction = GenerateNextTransaction();
                     }
                     else
                     {
-                        Blocks.RemoveRange(heartbeat.PreviousLogIndex, Blocks.Count - heartbeat.PreviousLogIndex);
+                        Blocks.RemoveRange(heartbeat.PreviousLogIndex, BlocksInChain - heartbeat.PreviousLogIndex);
                     }
                 }
                 if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
@@ -241,36 +322,16 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     commitIndex = Math.Min(heartbeat.LeaderCommit, latestEntryIndex);
                 }
             }
-            eventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(currentTerm, success), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
-
-
-            // OLD:
-            //var previousEntry = Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) as RaftBlock;
-            //var success = previousEntry != null && previousEntry.ElectionTerm == heartbeat.PreviousLogTerm && currentTerm >= heartbeat.Term;
-            //var heartBeatResponse = new RaftHeartbeatResponse(currentTerm, success);
-            //eventQueue.Enqueue(new CommunicationEvent(heartBeatResponse, CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
-            //if (!success && previousEntry != null)
-            //{
-            //    Blocks.RemoveRange(heartbeat.PreviousLogIndex, Blocks.Count - heartbeat.PreviousLogIndex);
-            //}
-            //else if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
-            //{
-            //    AddNewBlockToChain(heartbeat.Entries);
-            //}
-            //if (heartbeat.LeaderCommit > commitIndex)
-            //{
-            //    GetLatestEntryInformation(out var latestEntryIndex, out _);
-            //    commitIndex = Math.Min(heartbeat.LeaderCommit, latestEntryIndex);
-            //}
+            eventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, success, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
         }
 
-        private void StepDownAsLeader(int term)
+        private void TransitionToFollower(int term)
         {
             ResetElectionTimer();
             state = RaftState.Follower;
             currentTerm = term;
             votedFor = null;
-            
+
             Console.WriteLine($"Node {NodeID} stepped down as leader.");
         }
 

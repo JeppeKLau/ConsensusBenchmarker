@@ -8,11 +8,14 @@ namespace ConsensusBenchmarker.Models.DTOs
 {
     public class RaftVoteResponse
     {
-        public RaftVoteResponse(int term, bool voteGranted)
+        public RaftVoteResponse(int nodeId, int term, bool voteGranted)
         {
+            NodeId = nodeId;
             Term = term;
             VoteGranted = voteGranted;
         }
+
+        public int NodeId { get; set; }
 
         public int Term { get; set; }
 

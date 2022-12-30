@@ -110,12 +110,17 @@ namespace ConsensusBenchmarker.Communication
                     await SendRequestBlockChain();
                     break;
                 case CommunicationEventType.RecieveBlockChain:
-                    var recipient = nextEvent.Recipient ?? throw new ArgumentException("string missing from event", nameof(nextEvent.Recipient));
-                    await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), GetAddressByNodeId(recipient));
+                    {
+                        var recipient = nextEvent.Recipient ?? throw new ArgumentException("string missing from event", nameof(nextEvent.Recipient));
+                        await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), GetAddressByNodeId(recipient));
+                    }
                     break;
                 case CommunicationEventType.RequestVote:
-                    var voteRequest = nextEvent.Data as RaftVoteRequest ?? throw new ArgumentException("VoteRequest missing from event", nameof(nextEvent.Data));
-                    await BroadcastMessageAndDontWaitForAnswer(Messages.CreateRQVMessage(voteRequest));
+                    {
+                        var voteRequest = nextEvent.Data as RaftVoteRequest ?? throw new ArgumentException("VoteRequest missing from event", nameof(nextEvent.Data));
+                        var recipient = nextEvent.Recipient;
+                        await SendMessageToRecipientOrBroadcast(Messages.CreateRQVMessage(voteRequest), recipient);
+                    }
                     break;
                 case CommunicationEventType.CastVote:
                     var voteRecipient = nextEvent.Recipient ?? throw new ArgumentException("Recipient missing from event", nameof(nextEvent.Recipient));
@@ -123,8 +128,11 @@ namespace ConsensusBenchmarker.Communication
                     await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(voteRecipient), Messages.CreateRCVMessage(voteResponse));
                     break;
                 case CommunicationEventType.RequestHeartbeat:
-                    var heartbeatRequest = nextEvent.Data as RaftHeartbeatRequest ?? throw new ArgumentException("HeartbeatRequest missing from event", nameof(nextEvent.Data));
-                    await BroadcastMessageAndDontWaitForAnswer(Messages.CreateRQHMessage(heartbeatRequest));
+                    {
+                        var heartbeatRequest = nextEvent.Data as RaftHeartbeatRequest ?? throw new ArgumentException("HeartbeatRequest missing from event", nameof(nextEvent.Data));
+                        var recipient = nextEvent.Recipient;
+                        await SendMessageToRecipientOrBroadcast(Messages.CreateRQHMessage(heartbeatRequest), recipient);
+                    }
                     break;
                 case CommunicationEventType.ReceiveHeartbeat:
                     var heartbeatResponse = nextEvent.Data as RaftHeartbeatResponse ?? throw new ArgumentException("HeartbeatResponse missing from event", nameof(nextEvent.Data));
@@ -213,6 +221,31 @@ namespace ConsensusBenchmarker.Communication
             var messageToSend = Messages.CreateRecBCMessage(blocks);
 
             await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
+        }
+
+        private async Task SendRequestVote(RaftVoteRequest voteRequest, int? nodeId)
+        {
+            string message = Messages.CreateRQVMessage(voteRequest);
+            if (nodeId == null)
+            {
+                await BroadcastMessageAndDontWaitForAnswer(message);
+            }
+            else
+            {
+                await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(nodeId.Value), message);
+            }
+        }
+
+        private async Task SendMessageToRecipientOrBroadcast(string message, int? nodeId)
+        {
+            if (nodeId == null)
+            {
+                await BroadcastMessageAndDontWaitForAnswer(message);
+            }
+            else
+            {
+                await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(nodeId.Value), message);
+            }
         }
 
         private async Task BroadcastMessageAndDontWaitForAnswer(string messageToSend)

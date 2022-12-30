@@ -89,14 +89,6 @@ namespace ConsensusBenchmarker.Consensus
             if (consensusCtor == null) throw new Exception("Consensus class does not have the required constructor");
 
             return consensusCtor.Invoke(new object[] { nodeID, totalBlocksToCreate }) as ConsensusDriver ?? throw new Exception("Construction invokation failed");
-
-            //var driverType = typeof(ConsensusDriver<>);
-
-            //Type[] typeArgs = { assemblyType };
-
-            //var constructed = driverType.MakeGenericType(typeArgs);
-
-            //return Activator.CreateInstance(constructed, new object[] { nodeID, totalBlocksToCreate }) ?? throw new ArgumentException(nameof(constructed), "Couldn't construct proper driver type");
         }
 
         private void HandleEventQueue()
@@ -129,7 +121,7 @@ namespace ConsensusBenchmarker.Consensus
                 case ConsensusEventType.CreateTransaction:
                     if (consensusMechanism.ExecutionFlag)
                     {
-                        eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.GenerateNextTransaction(), CommunicationEventType.SendTransaction, null));
+                        eventQueue.Enqueue(new CommunicationEvent(consensusMechanism.GenerateNextTransaction(true), CommunicationEventType.SendTransaction, null));
                     }
                     break;
                 case ConsensusEventType.RecieveTransaction:
