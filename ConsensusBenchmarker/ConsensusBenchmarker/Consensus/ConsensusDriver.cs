@@ -10,13 +10,14 @@ namespace ConsensusBenchmarker.Consensus
 {
     public abstract class ConsensusDriver
     {
-        protected readonly ConcurrentQueue<IEvent> eventQueue;
-        protected ConsensusDriver(int nodeID, int maxBlocksToCreate, ref ConcurrentQueue<IEvent> eventQueue)
+        protected ConsensusDriver(int nodeID, int maxBlocksToCreate, ConcurrentQueue<IEvent> eventQueue)
         {
             NodeID = nodeID;
             MaxBlocksToCreate = maxBlocksToCreate;
             this.eventQueue = eventQueue;
         }
+
+        protected readonly ConcurrentQueue<IEvent> eventQueue;
 
         public readonly int NodeID;
 

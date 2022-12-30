@@ -20,7 +20,7 @@ namespace ConsensusBenchmarkerTest.Tests
         {
             // Arrange
             ConcurrentQueue<IEvent> queue = new();
-            var consensus = new PoWConsensus(1, 10, ref queue);
+            var consensus = new PoWConsensus(1, 10, queue);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
             string previousBlockHash = "ABC";
             string transactions = "5;1;2022-01-01:00:00:00,6;1;2022-01-01:00:00:00"; // Two transactions
@@ -42,8 +42,8 @@ namespace ConsensusBenchmarkerTest.Tests
         {
             // Arrange
             ConcurrentQueue<IEvent> queue = new();
-            var consensus1 = new PoWConsensus(1, 10, ref queue);
-            var consensus2 = new PoWConsensus(2, 10, ref queue);
+            var consensus1 = new PoWConsensus(1, 10, queue);
+            var consensus2 = new PoWConsensus(2, 10, queue);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Static);
             string previousBlockHash = "ABC";
             string transactions = "5;1;2022-01-01:00:00:00,6;1;2022-01-01:00:00:00"; // Two transactions
@@ -74,7 +74,7 @@ namespace ConsensusBenchmarkerTest.Tests
         {
             // Arrange
             ConcurrentQueue<IEvent> queue = new();
-            var consensus = new PoWConsensus(1, 10, ref queue);
+            var consensus = new PoWConsensus(1, 10, queue);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashConformsToDifficulty", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             string hash = "00FBBF0E41BFA03384B2B3093E269E916DBDB5CC1168DF5ED148B88978609775";
             object[] parameters = { hash };
@@ -91,7 +91,7 @@ namespace ConsensusBenchmarkerTest.Tests
         {
             // Arrange
             ConcurrentQueue<IEvent> queue = new();
-            var consensus = new PoWConsensus(1, 10, ref queue);
+            var consensus = new PoWConsensus(1, 10, queue);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashConformsToDifficulty", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             string hash = "0000000001BFA03384B2B3093E269E916DBDB5CC1168DF5ED148B88978609775";
             object[] parameters = { hash };
@@ -108,7 +108,7 @@ namespace ConsensusBenchmarkerTest.Tests
         {
             // Arrange
             ConcurrentQueue<IEvent> queue = new();
-            var consensus = new PoWConsensus(1, 10, ref queue);
+            var consensus = new PoWConsensus(1, 10, queue);
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "HashConformsToDifficulty", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
             string hash = "0000000000000000000000093E269E916DBDB5CC1168DF5ED148B88978609775";
             object[] parameters = { hash };
@@ -130,7 +130,7 @@ namespace ConsensusBenchmarkerTest.Tests
             ref var stopWatchRef = ref stopWatch;
             object[] parameters = { stopWatchRef };
 
-            var consensus = new PoWConsensus(1, 10, ref queue);
+            var consensus = new PoWConsensus(1, 10, queue);
             consensus.BeginConsensus();
 
             MethodInfo? methodInfo = typeof(PoWConsensus).GetMethod(name: "MineNewBlock", bindingAttr: BindingFlags.NonPublic | BindingFlags.Instance);
@@ -156,7 +156,7 @@ namespace ConsensusBenchmarkerTest.Tests
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var consensus = new PoWConsensus(1, 1, ref queue);
+            var consensus = new PoWConsensus(1, 1, queue);
             consensus.BeginConsensus();
 
             var transactions1 = new List<Transaction>()
@@ -191,7 +191,7 @@ namespace ConsensusBenchmarkerTest.Tests
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var consensus = new PoWConsensus(1, 10, ref queue);
+            var consensus = new PoWConsensus(1, 10, queue);
             consensus.BeginConsensus();
 
             // Block 1:
@@ -231,7 +231,7 @@ namespace ConsensusBenchmarkerTest.Tests
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var consensus = new PoWConsensus(1, 10, ref queue);
+            var consensus = new PoWConsensus(1, 10, queue);
             consensus.BeginConsensus();
 
             // Block 1:
@@ -271,7 +271,7 @@ namespace ConsensusBenchmarkerTest.Tests
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var consensus = new PoWConsensus(1, 10, ref queue);
+            var consensus = new PoWConsensus(1, 10, queue);
             consensus.BeginConsensus();
 
             // Block 1:
@@ -311,7 +311,7 @@ namespace ConsensusBenchmarkerTest.Tests
             ConcurrentQueue<IEvent> queue = new();
             var stopWatch = new Stopwatch();
             stopWatch.Start();
-            var consensus = new PoWConsensus(1, 10, ref queue);
+            var consensus = new PoWConsensus(1, 10, queue);
             consensus.BeginConsensus();
 
             // Block 1:

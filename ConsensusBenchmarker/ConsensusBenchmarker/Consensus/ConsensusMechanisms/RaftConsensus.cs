@@ -67,7 +67,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         List<RaftNode> raftNodes = new();
 
 
-        public RaftConsensus(int nodeID, int maxBlocksToCreate, ref ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, ref eventQueue)
+        public RaftConsensus(int nodeID, int maxBlocksToCreate, ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, eventQueue)
         {
             nodesInNetwork = int.Parse(Environment.GetEnvironmentVariable("RAFT_NETWORKSIZE") ?? "0");
             maxElectionTimeout = int.Parse(Environment.GetEnvironmentVariable("RAFT_ELECTIONTIMEOUT") ?? "0.5") * 1000;
@@ -199,10 +199,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         {
             Console.WriteLine("Requesting votes");
             GetLatestEntryInformation(out var latestBlockIndex, out var latestBlockTerm);
-            Console.WriteLine("Got latest entry info");
             var voteRequest = new RaftVoteRequest(latestBlockIndex, latestBlockTerm, currentTerm, NodeID);
-            Console.WriteLine("Instantiated vote request");
-            eventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId));
+            eventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId)); // this shit broke
             Console.WriteLine("Vote requests sent");
         }
 

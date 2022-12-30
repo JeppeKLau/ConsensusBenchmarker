@@ -16,7 +16,7 @@ namespace ConsensusBenchmarker.Consensus.PoW
         private volatile bool restartMining;
         private readonly Random random;
 
-        public PoWConsensus(int nodeID, int maxBlocksToCreate, ref ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, ref eventQueue)
+        public PoWConsensus(int nodeID, int maxBlocksToCreate, ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, eventQueue)
         {
             random = new Random(NodeID * new Random().Next());
             allowMining = false;

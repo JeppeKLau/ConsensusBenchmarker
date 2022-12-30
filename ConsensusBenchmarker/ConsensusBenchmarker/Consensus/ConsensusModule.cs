@@ -85,12 +85,12 @@ namespace ConsensusBenchmarker.Consensus
 
             if (assemblyType == null) throw new Exception("Was not able to instantiate any Consensus class.");
 
-            var consensusCtor = assemblyType.GetConstructor(new[] { typeof(int), typeof(int), typeof(ConcurrentQueue<IEvent>).MakeByRefType() });
-            ref var queueRef = ref eventQueue;
+            var consensusCtor = assemblyType.GetConstructor(new[] { typeof(int), typeof(int), typeof(ConcurrentQueue<IEvent>) });
+            //ref var queueRef = ref eventQueue;
 
             if (consensusCtor == null) throw new Exception("Consensus class does not have the required constructor");
 
-            return consensusCtor.Invoke(new object[] { nodeID, totalBlocksToCreate, queueRef }) as ConsensusDriver ?? throw new Exception("Construction invokation failed");
+            return consensusCtor.Invoke(new object[] { nodeID, totalBlocksToCreate, eventQueue }) as ConsensusDriver ?? throw new Exception("Construction invokation failed");
         }
 
         private void HandleEventQueue()
