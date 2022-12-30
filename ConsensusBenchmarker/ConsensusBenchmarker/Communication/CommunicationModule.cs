@@ -93,6 +93,8 @@ namespace ConsensusBenchmarker.Communication
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not CommunicationEvent nextEvent) return;
 
+            Console.WriteLine("CM: Handling CommunicationEvent");
+
             switch (nextEvent.EventType)
             {
                 case CommunicationEventType.End:

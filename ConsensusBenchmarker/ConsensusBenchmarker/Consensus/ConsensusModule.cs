@@ -20,7 +20,6 @@ namespace ConsensusBenchmarker.Consensus
         {
             this.consensusType = consensusType;
             consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID, maxBlocksToCreate);
-            Console.WriteLine("1");
             this.eventQueue = eventQueue;
             NodeID = nodeID;
             requestBlockchainHasHappened = false;
@@ -28,6 +27,8 @@ namespace ConsensusBenchmarker.Consensus
 
         public void SpawnThreads(Dictionary<string, Thread> moduleThreads)
         {
+            Console.WriteLine("CM: SpawnThreads");
+
             moduleThreads.Add("Consensus_HandleEventLoop", new Thread(() =>
             {
                 while (consensusMechanism.ExecutionFlag || !eventQueue.IsEmpty)
@@ -98,6 +99,8 @@ namespace ConsensusBenchmarker.Consensus
         {
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not ConsensusEvent nextEvent) return;
+
+            Console.WriteLine("CM: Handling ConsensusEvent");
 
             switch (nextEvent.EventType)
             {
