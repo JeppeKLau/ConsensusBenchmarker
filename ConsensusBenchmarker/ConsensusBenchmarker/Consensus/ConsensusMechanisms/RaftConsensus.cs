@@ -116,7 +116,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 if (heartbeatResponse.Success)
                 {
                     Console.WriteLine($"Adding new transaction from node {node.NodeId}.");
-                    AddNewTransaction(heartbeatResponse.Transaction!);
+                    if (heartbeatResponse.Transaction is not null) AddNewTransaction(heartbeatResponse.Transaction);
                     node.NextIndex++;
                     node.MatchIndex++;
                     if (node.NextIndex < lastApplied)
