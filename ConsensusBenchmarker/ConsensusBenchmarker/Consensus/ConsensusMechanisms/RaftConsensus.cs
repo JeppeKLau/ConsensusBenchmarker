@@ -83,7 +83,14 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             electionTimeout.Elapsed += (sender, e) =>
             {
                 Console.WriteLine("Timout elapsed");
-                StartElection();
+                try
+                {
+                    StartElection();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Election start threw: {0}", ex);
+                }
             };
             electionTimeout.Start();
         }
@@ -120,8 +127,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 else
                 {
                     Console.WriteLine("Heartbeat response was false.");
-                    node.NextIndex--;
-                    var preAppendEntry = (RaftBlock)Blocks.ElementAt(Math.Max(0, node.NextIndex - 1));
+                    if (node.NextIndex > 0) node.NextIndex--;
+                    var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
                     SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
                 }
             }
@@ -141,13 +148,16 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 TransitionToFollower(voteResponse.Term);
             }
 
-            Console.WriteLine($"Node {NodeID} received a vote from node {voteResponse.NodeId}, the vote was: {voteResponse.VoteGranted}.");
-            Console.WriteLine($"The total votes received is: {totalVotesReceived}, the votes in favor of this node is: {votesForLeaderReceived}");
+            Console.WriteLine($"Received a vote. Node {NodeID} term is: {currentTerm} and node {voteResponse.NodeId}'s term is {voteResponse.Term}");
+
             totalVotesReceived++;
             if (state == RaftState.Candidate && currentTerm == voteResponse.Term)
             {
                 if (voteResponse.VoteGranted) { votesForLeaderReceived++; }
                 raftNodes.Single(x => x.NodeId == voteResponse.NodeId).VoteGranted = voteResponse.VoteGranted;
+
+                Console.WriteLine($"Node {NodeID} received a vote from node {voteResponse.NodeId}, the vote was: {voteResponse.VoteGranted}.");
+                Console.WriteLine($"The total votes received is: {totalVotesReceived}, the votes in favor of this node is: {votesForLeaderReceived}");
 
                 if (votesForLeaderReceived > nodesInNetwork / 2)
                 {
