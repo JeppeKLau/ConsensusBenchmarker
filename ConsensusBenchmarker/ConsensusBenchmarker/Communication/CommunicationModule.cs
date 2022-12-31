@@ -449,7 +449,6 @@ namespace ConsensusBenchmarker.Communication
 
         private void RequestHeartBeat(string message)
         {
-            Console.WriteLine($"Heartbeat message after clean: {message}");
             if (JsonConvert.DeserializeObject<RaftHeartbeatRequest>(message) is not RaftHeartbeatRequest recievedHeartbeat)
             {
                 throw new ArgumentException("Heartbeat could not be deserialized correctly", nameof(message));

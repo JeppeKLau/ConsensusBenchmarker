@@ -67,24 +67,25 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         List<RaftNode> raftNodes = new();
 
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public RaftConsensus(int nodeID, int maxBlocksToCreate, ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, eventQueue)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             nodesInNetwork = int.Parse(Environment.GetEnvironmentVariable("RAFT_NETWORKSIZE") ?? "0");
             maxElectionTimeout = (int)(double.Parse(Environment.GetEnvironmentVariable("RAFT_ELECTIONTIMEOUT") ?? "1") * 1000);
             random = new Random(NodeID * new Random().Next());
-            electionTimeout = new();
-            electionTimeout.AutoReset = false;
-            electionTimeout.Elapsed += (sender, e) =>
-            {
-                StartElection();
-            };
             ResetElectionTimer();
-            electionTimeout.Start();
         }
 
         private void ResetElectionTimer()
         {
-            electionTimeout.Interval = random.Next(maxElectionTimeout / 2, maxElectionTimeout);
+            electionTimeout.Dispose();
+            electionTimeout = new(random.Next(maxElectionTimeout / 2, maxElectionTimeout)) { AutoReset = false };
+            electionTimeout.Elapsed += (sender, e) =>
+            {
+                StartElection();
+            };
+            electionTimeout.Start();
         }
 
         #region Election and Leader specific methods
@@ -101,6 +102,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             {
                 Console.WriteLine($"Received heartbeat response from node {heartbeatResponse.NodeId}, it's request from the leader was {heartbeatResponse.Success}.");
                 var node = raftNodes.Single(x => x.NodeId == heartbeatResponse.NodeId);
+
                 if (heartbeatResponse.Success)
                 {
                     AddNewTransaction(heartbeatResponse.Transaction!);
@@ -110,14 +112,14 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     {
                         var appendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex);
                         var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
-                        SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, appendEntry, commitIndex));
+                        SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, appendEntry, commitIndex), node.NodeId);
                     }
                 }
                 else
                 {
                     node.NextIndex--;
                     var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
-                    SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex));
+                    SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
                 }
             }
         }
@@ -190,19 +192,17 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             }
         }
 
-        private void SendHeartBeat(RaftHeartbeatRequest heartbeat)
+        private void SendHeartBeat(RaftHeartbeatRequest heartbeat, int? recipient = null)
         {
-            EventQueue.Enqueue(new CommunicationEvent(heartbeat, CommunicationEventType.RequestHeartbeat, null));
+            EventQueue.Enqueue(new CommunicationEvent(heartbeat, CommunicationEventType.RequestHeartbeat, recipient));
+            Console.WriteLine($"Node {NodeID} is sending Heartbeat requests in term {currentTerm}.");
         }
 
         private void RequestVotes(int? nodeId = null)
         {
-            Console.WriteLine("Requesting votes");
             GetLatestEntryInformation(out var latestBlockIndex, out var latestBlockTerm);
             var voteRequest = new RaftVoteRequest(latestBlockIndex, latestBlockTerm, currentTerm, NodeID);
-            Console.WriteLine("Next is event queue:");
-            Console.WriteLine($"Event queue count {EventQueue.Count()}");
-            EventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId)); // this shit broke
+            EventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId));
             Console.WriteLine("Vote requests sent");
         }
 
@@ -231,18 +231,15 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             GetPreviousEntryInformation(out var previousLogIndex, out int previousElectionTerm);
             InitializeLeader();
 
-            // Request heartbeat:
             var heartbeatRequest = new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, null, commitIndex);
             SendHeartBeat(heartbeatRequest);
-
-            // We should maybe start a timer so that regular heartbeats can be sent out, so this node doesn't lose its leadership?.
         }
 
         private void InitializeLeader()
         {
             Console.WriteLine($"Node {NodeID} is now leader in term {currentTerm}.");
 
-            ResetElectionTimer();
+            electionTimeout.Stop();
             state = RaftState.Leader;
             votesForLeaderReceived = 0;
             totalVotesReceived = 0;
@@ -293,7 +290,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             EventQueue.Enqueue(new CommunicationEvent(new RaftVoteResponse(NodeID, currentTerm, grantVote), CommunicationEventType.CastVote, voteRequest.NodeId));
         }
 
-        public override void HandleRequestHeartBeat(RaftHeartbeatRequest heartbeat) // Followers gets this
+        public override void HandleRequestHeartBeat(RaftHeartbeatRequest heartbeat)
         {
             bool success = false;
             Transaction? newTransaction = null;
