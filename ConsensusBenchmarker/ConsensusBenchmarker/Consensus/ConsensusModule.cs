@@ -94,6 +94,8 @@ namespace ConsensusBenchmarker.Consensus
 
         private void HandleEventQueue()
         {
+            Console.WriteLine($"Event queue count is: {eventQueue.Count}");
+
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not ConsensusEvent nextEvent) return;
 

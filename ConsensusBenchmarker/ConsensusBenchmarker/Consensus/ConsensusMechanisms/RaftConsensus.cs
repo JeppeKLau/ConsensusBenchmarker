@@ -336,19 +336,19 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             {
                 ResetElectionTimer();
 
-                GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
-                if (previousElectionTerm == heartbeat.PreviousLogTerm)
+                GetPreviousEntryInformation(out var previousLogIndex, out var previousLogTerm);
+                if (previousLogTerm == heartbeat.PreviousLogTerm)
                 {
                     success = true;
                     newTransaction = GenerateNextTransaction();
                 }
                 else
                 {
-                    Blocks.RemoveRange(heartbeat.PreviousLogIndex, BlocksInChain - heartbeat.PreviousLogIndex);
+                    Blocks.RemoveRange(heartbeat.PreviousLogIndex, Math.Max(1, BlocksInChain - heartbeat.PreviousLogIndex));
                 }
                 if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
                 {
-                    AddNewBlockToChain(heartbeat.Entries); // heartbeat.Entries is currently always null fyi
+                    AddNewBlockToChain(heartbeat.Entries);
                 }
                 if (heartbeat.LeaderCommit > commitIndex)
                 {
@@ -368,6 +368,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             state = RaftState.Follower;
             currentTerm = term;
             votedFor = null;
+
             heartbeatTimeout?.Dispose();
         }
 
