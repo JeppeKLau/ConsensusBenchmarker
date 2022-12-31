@@ -80,10 +80,10 @@ namespace ConsensusBenchmarker.Communication
             return false;
         }
 
-        private string GetAddressByNodeId(int nodeId)
+        private string? GetAddressByNodeId(int nodeId)
         {
             knownNodesSemaphore.Wait();
-            var value = knownNodes.GetValueOrDefault(nodeId) ?? throw new ArgumentOutOfRangeException(nameof(nodeId), "Could not retrieve value by key.");
+            var value = knownNodes.GetValueOrDefault(nodeId);
             knownNodesSemaphore.Release();
             return value;
         }
@@ -112,7 +112,7 @@ namespace ConsensusBenchmarker.Communication
                 case CommunicationEventType.RecieveBlockChain:
                     {
                         var recipient = nextEvent.Recipient ?? throw new ArgumentException("string missing from event", nameof(nextEvent.Recipient));
-                        await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), GetAddressByNodeId(recipient));
+                        await SendRecieveBlockChain(nextEvent.Data as List<Block> ?? throw new ArgumentException("Blockchain missing from event"), recipient);
                     }
                     break;
                 case CommunicationEventType.RequestVote:
@@ -125,7 +125,7 @@ namespace ConsensusBenchmarker.Communication
                 case CommunicationEventType.CastVote:
                     var voteRecipient = nextEvent.Recipient ?? throw new ArgumentException("Recipient missing from event", nameof(nextEvent.Recipient));
                     var voteResponse = nextEvent.Data as RaftVoteResponse ?? throw new ArgumentException("VoteResponse missing from event", nameof(nextEvent.Data));
-                    await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(voteRecipient), Messages.CreateRCVMessage(voteResponse));
+                    await SendMessageAndDontWaitForAnswerIfRecipientExists(voteRecipient, Messages.CreateRCVMessage(voteResponse));
                     break;
                 case CommunicationEventType.RequestHeartbeat:
                     {
@@ -137,7 +137,7 @@ namespace ConsensusBenchmarker.Communication
                 case CommunicationEventType.ReceiveHeartbeat:
                     var heartbeatResponse = nextEvent.Data as RaftHeartbeatResponse ?? throw new ArgumentException("HeartbeatResponse missing from event", nameof(nextEvent.Data));
                     var heartbeatRecipient = nextEvent.Recipient ?? throw new ArgumentException("Recipient missing from event", nameof(nextEvent.Recipient));
-                    await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(heartbeatRecipient), Messages.CreateRCHMessage(heartbeatResponse));
+                    await SendMessageAndDontWaitForAnswerIfRecipientExists(heartbeatRecipient, Messages.CreateRCHMessage(heartbeatResponse));
                     break;
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
@@ -215,12 +215,12 @@ namespace ConsensusBenchmarker.Communication
             }
         }
 
-        private async Task SendRecieveBlockChain(List<Block> blocks, string recipient)
+        private async Task SendRecieveBlockChain(List<Block> blocks, int recipient)
         {
             Console.WriteLine($"I (node {nodeId}) is sending my blockchain of {blocks.Count} length to {recipient}.");
             var messageToSend = Messages.CreateRecBCMessage(blocks);
 
-            await SendMessageAndDontWaitForAnswer(recipient, messageToSend);
+            await SendMessageAndDontWaitForAnswerIfRecipientExists(recipient, messageToSend);
         }
 
         private async Task SendMessageToRecipientOrBroadcast(string message, int? nodeId)
@@ -231,7 +231,7 @@ namespace ConsensusBenchmarker.Communication
             }
             else
             {
-                await SendMessageAndDontWaitForAnswer(GetAddressByNodeId(nodeId.Value), message);
+                await SendMessageAndDontWaitForAnswerIfRecipientExists(nodeId.Value, message);
             }
         }
 
@@ -243,6 +243,15 @@ namespace ConsensusBenchmarker.Communication
                 await SendMessageAndDontWaitForAnswer(otherNode.Value, messageToSend);
             }
             knownNodesSemaphore.Release();
+        }
+
+        private async Task SendMessageAndDontWaitForAnswerIfRecipientExists(int nodeId, string message)
+        {
+            var receiver = GetAddressByNodeId(nodeId);
+            if (receiver is not null)
+            {
+                await SendMessageAndDontWaitForAnswer(receiver, message);
+            }
         }
 
         private async Task<string> SendMessageAndWaitForAnswer(string receiver, string message, CancellationToken cancellationToken = default)
