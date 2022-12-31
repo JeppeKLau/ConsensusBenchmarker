@@ -19,7 +19,7 @@ namespace ConsensusBenchmarker.Consensus
         public ConsensusModule(string consensusType, int maxBlocksToCreate, int nodeID, ref ConcurrentQueue<IEvent> eventQueue)
         {
             this.consensusType = consensusType;
-            consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID, maxBlocksToCreate);
+            consensusMechanism = InstantiateCorrespondingConsensusClass(nodeID, maxBlocksToCreate, eventQueue);
             this.eventQueue = eventQueue;
             NodeID = nodeID;
             requestBlockchainHasHappened = false;
@@ -77,7 +77,7 @@ namespace ConsensusBenchmarker.Consensus
             }
         }
 
-        private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID, int totalBlocksToCreate)
+        private ConsensusDriver InstantiateCorrespondingConsensusClass(int nodeID, int totalBlocksToCreate, ConcurrentQueue<IEvent> eventQueue)
         {
             var executingAssembly = Assembly.GetExecutingAssembly();
             var assemblyTypes = executingAssembly.GetTypes();
@@ -86,7 +86,6 @@ namespace ConsensusBenchmarker.Consensus
             if (assemblyType == null) throw new Exception("Was not able to instantiate any Consensus class.");
 
             var consensusCtor = assemblyType.GetConstructor(new[] { typeof(int), typeof(int), typeof(ConcurrentQueue<IEvent>) });
-            //ref var queueRef = ref eventQueue;
 
             if (consensusCtor == null) throw new Exception("Consensus class does not have the required constructor");
 
