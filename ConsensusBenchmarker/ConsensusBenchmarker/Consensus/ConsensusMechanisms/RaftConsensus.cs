@@ -341,6 +341,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             if (heartbeat.Term < currentTerm || Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) is null)
             {
                 Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {false}.");
+                Console.WriteLine("Failed due to {0}", heartbeat.Term < currentTerm ? "term mismatch" : "block missing");
                 EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, false, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
                 return;
             }
