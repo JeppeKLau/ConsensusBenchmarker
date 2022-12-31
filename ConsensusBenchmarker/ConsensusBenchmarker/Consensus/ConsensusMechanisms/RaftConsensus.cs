@@ -129,7 +129,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         public override RaftBlock GenerateNextBlock(ref Stopwatch Stopwatch)
         {
-            var newEntry = new RaftBlock(NodeID, DateTime.UtcNow, ReceivedTransactionsSinceLastBlock.ToList());
+            var newEntry = new RaftBlock(currentTerm, NodeID, DateTime.UtcNow, ReceivedTransactionsSinceLastBlock.ToList());
             ReceivedTransactionsSinceLastBlock.Clear();
             return newEntry;
         }
@@ -160,7 +160,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     {
                         foreach (RaftNode node in raftNodes)
                         {
-                            if (node.VoteGranted == null)
+                            if (node.VoteGranted != true)
                             {
                                 Console.WriteLine($"Node {NodeID} Re-Requested votes from {node.NodeId}");
                                 RequestVotes(node.NodeId);
@@ -197,6 +197,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             ResetElectionTimer();
             state = RaftState.Candidate;
             votedFor = NodeID;
+            raftNodes.Single(x => x.NodeId == NodeID).VoteGranted = true;
             currentTerm++;
             votesForLeaderReceived = 1;
             totalVotesReceived = 1;
