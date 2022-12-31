@@ -344,6 +344,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 }
                 else if (previousLogIndex == heartbeat.PreviousLogIndex)
                 {
+                    Console.WriteLine($"Removing index {heartbeat.PreviousLogIndex} with {BlocksInChain} blocks in chain");
                     Blocks.RemoveRange(heartbeat.PreviousLogIndex, Math.Max(1, BlocksInChain - heartbeat.PreviousLogIndex));
                 }
                 if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
