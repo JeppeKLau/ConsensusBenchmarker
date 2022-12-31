@@ -79,7 +79,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void ResetElectionTimer()
         {
-            electionTimeout.Dispose();
+            if (electionTimeout != null) electionTimeout.Dispose();
             electionTimeout = new(random.Next(maxElectionTimeout / 2, maxElectionTimeout)) { AutoReset = false };
             electionTimeout.Elapsed += (sender, e) =>
             {
