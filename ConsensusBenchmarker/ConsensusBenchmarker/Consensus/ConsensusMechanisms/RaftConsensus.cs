@@ -78,7 +78,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void ResetElectionTimer()
         {
-            electionTimeout?.Dispose();
+            electionTimeout?.Stop();
             electionTimeout = new(random.Next(maxElectionTimeout / 2, maxElectionTimeout)) { AutoReset = false };
             electionTimeout.Elapsed += (sender, e) =>
             {
@@ -105,7 +105,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
                 if (heartbeatResponse.Success)
                 {
-                    Console.WriteLine($"Adding new transaction from node {node.NodeId}, with value: {heartbeatResponse.Transaction}");
+                    Console.WriteLine($"Adding new transaction from node {node.NodeId}.");
                     AddNewTransaction(heartbeatResponse.Transaction!);
                     node.NextIndex++;
                     node.MatchIndex++;
@@ -224,11 +224,12 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             totalVotesReceived = 0;
             votedFor = null;
 
-            heartbeatTimeout = new System.Timers.Timer(maxElectionTimeout / 4);
+            heartbeatTimeout = new System.Timers.Timer(maxElectionTimeout / 4) { AutoReset = true };
             heartbeatTimeout.Elapsed += (sender, e) =>
             {
                 AppendNewBlock();
             };
+            heartbeatTimeout.Start();
 
             InitializeRaftNodeList(BlocksInChain, 0);
         }
