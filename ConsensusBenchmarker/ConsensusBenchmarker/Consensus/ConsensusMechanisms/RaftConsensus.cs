@@ -143,6 +143,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         public override void HandleReceiveVote(RaftVoteResponse voteResponse)
         {
+            ResetElectionTimer();
             if (currentTerm < voteResponse.Term)
             {
                 TransitionToFollower(voteResponse.Term);
@@ -300,6 +301,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         public override void HandleRequestVote(RaftVoteRequest voteRequest) // Followers gets this
         {
+            ResetElectionTimer();
+
             bool grantVote = false;
             if (currentTerm < voteRequest.ElectionTerm)
             {
@@ -307,13 +310,11 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             }
             if (votedFor == null)
             {
-                int latestBlockIndex;
-                GetLatestEntryInformation(out latestBlockIndex, out _);
+                GetLatestEntryInformation(out int latestBlockIndex, out _);
                 if (voteRequest.ElectionTerm >= currentTerm)
                 {
                     if (voteRequest.LatestBlockIndex >= latestBlockIndex)
                     {
-                        ResetElectionTimer();
                         grantVote = true;
                         votedFor = voteRequest.NodeId;
                     }
@@ -325,6 +326,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         public override void HandleRequestHeartBeat(RaftHeartbeatRequest heartbeat)
         {
+            ResetElectionTimer();
+
             bool success = false;
             Transaction? newTransaction = null;
 
@@ -334,8 +337,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             }
             if (heartbeat.Term >= currentTerm)
             {
-                ResetElectionTimer();
-
                 GetPreviousEntryInformation(out var previousLogIndex, out var previousLogTerm);
                 if (previousLogTerm == heartbeat.PreviousLogTerm)
                 {
@@ -345,6 +346,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 else if (previousLogIndex == heartbeat.PreviousLogIndex)
                 {
                     Console.WriteLine($"Removing index {heartbeat.PreviousLogIndex} with {BlocksInChain} blocks in chain");
+
                     Blocks.RemoveRange(heartbeat.PreviousLogIndex, Math.Max(1, BlocksInChain - heartbeat.PreviousLogIndex));
                 }
                 if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
@@ -363,9 +365,9 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void TransitionToFollower(int term)
         {
-            Console.WriteLine($"Node {NodeID} transistioned from {state} to {RaftState.Follower}.");
-
             ResetElectionTimer();
+
+            Console.WriteLine($"Node {NodeID} transistioned from {state} to {RaftState.Follower}.");
             state = RaftState.Follower;
             currentTerm = term;
             votedFor = null;
