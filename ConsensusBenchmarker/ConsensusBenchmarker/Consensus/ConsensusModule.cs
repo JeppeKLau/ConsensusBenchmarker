@@ -97,8 +97,6 @@ namespace ConsensusBenchmarker.Consensus
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not ConsensusEvent nextEvent) return;
 
-            Console.WriteLine($"CM: Handling ConsensusEvent: {nextEvent.EventType}");
-
             switch (nextEvent.EventType)
             {
                 case ConsensusEventType.End:

@@ -93,8 +93,6 @@ namespace ConsensusBenchmarker.Communication
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not CommunicationEvent nextEvent) return;
 
-            Console.WriteLine($"CM: Handling CommunicationEvent: {nextEvent.EventType}");
-
             switch (nextEvent.EventType)
             {
                 case CommunicationEventType.End:
@@ -242,7 +240,6 @@ namespace ConsensusBenchmarker.Communication
             knownNodesSemaphore.Wait();
             foreach (var otherNode in knownNodes)
             {
-                Console.WriteLine($"Node {nodeId} is sending a message to node: {otherNode.Key}");
                 await SendMessageAndDontWaitForAnswer(otherNode.Value, messageToSend);
             }
             knownNodesSemaphore.Release();
@@ -350,14 +347,12 @@ namespace ConsensusBenchmarker.Communication
                         ReceiveBlockChain(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RCB));
                         break;
                     case OperationType.RQV:
-                        Console.WriteLine("Received a request vote.");
                         RequestVote(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RQV));
                         break;
                     case OperationType.RCV:
                         ReceiveVote(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RCV));
                         break;
                     case OperationType.RQH:
-                        Console.WriteLine($"Heartbeat message pre clean: {message}");
                         RequestHeartBeat(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RQH));
                         break;
                     case OperationType.RCH:

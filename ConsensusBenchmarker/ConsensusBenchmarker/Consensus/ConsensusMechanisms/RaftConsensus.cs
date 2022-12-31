@@ -70,7 +70,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         public RaftConsensus(int nodeID, int maxBlocksToCreate, ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, eventQueue)
         {
             nodesInNetwork = int.Parse(Environment.GetEnvironmentVariable("RAFT_NETWORKSIZE") ?? "0");
-            maxElectionTimeout = int.Parse(Environment.GetEnvironmentVariable("RAFT_ELECTIONTIMEOUT") ?? "1") * 1000;
+            maxElectionTimeout = (int)(double.Parse(Environment.GetEnvironmentVariable("RAFT_ELECTIONTIMEOUT") ?? "1") * 1000);
             random = new Random(NodeID * new Random().Next());
             electionTimeout = new();
             electionTimeout.AutoReset = false;
@@ -254,7 +254,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         private void GetPreviousEntryInformation(out int previousLogIndex, out int previousElectionTerm)
         {
             previousLogIndex = Math.Max(0, BlocksInChain - 2);
-            previousElectionTerm = (Blocks.ElementAtOrDefault(previousLogIndex) as RaftBlock)?.ElectionTerm ?? currentTerm;
+            previousElectionTerm = (Blocks.ElementAtOrDefault(previousLogIndex) as RaftBlock)?.ElectionTerm ?? 0;
         }
 
         private void InitializeRaftNodeList(int nextIndex, int matchIndex)
@@ -306,18 +306,15 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             {
                 ResetElectionTimer();
 
-                var previousEntry = Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) as RaftBlock;
-                if (previousEntry != null)
+                GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
+                if (previousElectionTerm == heartbeat.PreviousLogTerm)
                 {
-                    if (previousEntry.ElectionTerm == heartbeat.PreviousLogTerm)
-                    {
-                        success = true;
-                        newTransaction = GenerateNextTransaction();
-                    }
-                    else
-                    {
-                        Blocks.RemoveRange(heartbeat.PreviousLogIndex, BlocksInChain - heartbeat.PreviousLogIndex);
-                    }
+                    success = true;
+                    newTransaction = GenerateNextTransaction();
+                }
+                else
+                {
+                    Blocks.RemoveRange(heartbeat.PreviousLogIndex, BlocksInChain - heartbeat.PreviousLogIndex);
                 }
                 if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
                 {
@@ -335,18 +332,18 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void TransitionToFollower(int term)
         {
+            Console.WriteLine($"Node {NodeID} transistioned from {state} to {RaftState.Follower}.");
+
             ResetElectionTimer();
             state = RaftState.Follower;
             currentTerm = term;
             votedFor = null;
-
-            Console.WriteLine($"Node {NodeID} stepped down as leader.");
         }
 
         private void GetLatestEntryInformation(out int latestBlockIndex, out int latestBlockTerm)
         {
             latestBlockIndex = Math.Max(0, BlocksInChain - 1);
-            latestBlockTerm = (Blocks.ElementAtOrDefault(latestBlockIndex) as RaftBlock)?.ElectionTerm ?? currentTerm;
+            latestBlockTerm = (Blocks.ElementAtOrDefault(latestBlockIndex) as RaftBlock)?.ElectionTerm ?? 0;
         }
     }
 }
