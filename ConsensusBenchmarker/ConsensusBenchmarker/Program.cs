@@ -4,6 +4,7 @@ using ConsensusBenchmarker.DataCollection;
 using ConsensusBenchmarker.Models.Events;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using System.Collections.Concurrent;
 
 namespace ConsensusBenchmarker;
@@ -15,6 +16,12 @@ class Program
         IServiceCollection serviceCollection = new ServiceCollection();
         var startup = new Startup(configuration);
         startup.ConfigureServices(serviceCollection);
+
+        JsonConvert.DefaultSettings = () => new JsonSerializerSettings
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            MissingMemberHandling = MissingMemberHandling.Ignore
+        };
 
         IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
