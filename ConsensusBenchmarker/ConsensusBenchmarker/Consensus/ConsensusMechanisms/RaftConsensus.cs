@@ -197,13 +197,13 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             ResetElectionTimer();
             state = RaftState.Candidate;
             votedFor = NodeID;
-            raftNodes.Single(x => x.NodeId == NodeID).VoteGranted = true;
             currentTerm++;
             votesForLeaderReceived = 1;
             totalVotesReceived = 1;
             heartbeatTimeout?.Dispose();
 
             InitializeRaftNodeList(1, 0);
+            raftNodes.Single(x => x.NodeId == NodeID).VoteGranted = true;
         }
 
         private void ElectNodeAsLeader()
