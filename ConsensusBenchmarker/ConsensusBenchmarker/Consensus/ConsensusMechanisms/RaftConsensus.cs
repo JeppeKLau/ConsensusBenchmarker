@@ -253,10 +253,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void GetPreviousEntryInformation(out int previousLogIndex, out int previousElectionTerm)
         {
-            blocksSemaphore.Wait();  // I don't think its necessary to acquire the semaphores. There will only be one thread accessing this class at a time
-            previousLogIndex = Blocks.FindLastIndex(0, Blocks.Count - 1, x => true);
-            previousElectionTerm = (Blocks.ElementAt(previousLogIndex) as RaftBlock)?.ElectionTerm ?? throw new ArgumentException("Previous log entry is wrong block type");
-            blocksSemaphore.Release();
+            previousLogIndex = Math.Max(0, BlocksInChain - 2);
+            previousElectionTerm = (Blocks.ElementAt(previousLogIndex) as RaftBlock)?.ElectionTerm ?? currentTerm;
         }
 
         private void InitializeRaftNodeList(int nextIndex, int matchIndex)
@@ -348,7 +346,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         private void GetLatestEntryInformation(out int latestBlockIndex, out int latestBlockTerm)
         {
             latestBlockIndex = Math.Max(0, BlocksInChain - 1);
-            latestBlockTerm = (Blocks.ElementAtOrDefault(latestBlockIndex) as RaftBlock)?.ElectionTerm ?? 0;
+            latestBlockTerm = (Blocks.ElementAtOrDefault(latestBlockIndex) as RaftBlock)?.ElectionTerm ?? currentTerm;
         }
     }
 }
