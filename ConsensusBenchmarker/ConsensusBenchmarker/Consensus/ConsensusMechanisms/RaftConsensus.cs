@@ -254,7 +254,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         private void GetPreviousEntryInformation(out int previousLogIndex, out int previousElectionTerm)
         {
             previousLogIndex = Math.Max(0, BlocksInChain - 2);
-            previousElectionTerm = (Blocks.ElementAt(previousLogIndex) as RaftBlock)?.ElectionTerm ?? currentTerm;
+            previousElectionTerm = (Blocks.ElementAtOrDefault(previousLogIndex) as RaftBlock)?.ElectionTerm ?? currentTerm;
         }
 
         private void InitializeRaftNodeList(int nextIndex, int matchIndex)
