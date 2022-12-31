@@ -1,5 +1,4 @@
-﻿using ConsensusBenchmarker.Models;
-using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
+﻿using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
 using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
 using System.Collections.Concurrent;
@@ -331,7 +330,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         {
             ResetElectionTimer();
 
-            Transaction? newTransaction = null;
 
             if (state == RaftState.Candidate)
             {
@@ -342,7 +340,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             {
                 Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {false}.");
                 Console.WriteLine("Failed due to {0}", heartbeat.Term < currentTerm ? "term mismatch" : "block missing");
-                EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, false, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+                EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, false, null), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
                 return;
             }
 
@@ -356,7 +354,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 if (!Blocks.Contains(newEntry))
                 {
                     AddNewBlockToChain(newEntry);
-                    newTransaction = GenerateNextTransaction();
                 }
 
                 if (heartbeat.LeaderCommit > commitIndex)
@@ -366,7 +363,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             }
 
             Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {true}.");
-            EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, true, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+            EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, true, GenerateNextTransaction()), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
 
 
 
