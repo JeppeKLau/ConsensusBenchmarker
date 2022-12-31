@@ -41,10 +41,8 @@ namespace ConsensusBenchmarker.Consensus
         {
             get
             {
-                int count = 0;
-
                 receivedTransactionsSemaphore.Wait();
-                count = ReceivedTransactionsSinceLastBlock.Count;
+                int count = ReceivedTransactionsSinceLastBlock.Count;
                 receivedTransactionsSemaphore.Release();
 
                 return count;
@@ -167,7 +165,7 @@ namespace ConsensusBenchmarker.Consensus
         /// Adds a new transaction thread safe.
         /// </summary>
         /// <param name="transaction"></param>
-        public void AddNewTransaction(Transaction transaction)
+        public virtual void AddNewTransaction(Transaction transaction)
         {
             receivedTransactionsSemaphore.Wait();
 
@@ -183,10 +181,8 @@ namespace ConsensusBenchmarker.Consensus
         /// <returns></returns>
         protected List<Transaction> GetTransactionsThreadSafe()
         {
-            List<Transaction> transactions = new();
-
             receivedTransactionsSemaphore.Wait();
-            transactions = ReceivedTransactionsSinceLastBlock.ToList();
+            List<Transaction> transactions = ReceivedTransactionsSinceLastBlock.ToList();
             receivedTransactionsSemaphore.Release();
 
             return transactions;

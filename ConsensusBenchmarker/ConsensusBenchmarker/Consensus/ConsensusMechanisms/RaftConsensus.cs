@@ -47,7 +47,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         // Persistent state of nodes:
         private RaftState state = RaftState.Follower;
-        private int nodesInNetwork = 0; // Can be decremented if a node is un-responsive??
+        private readonly int nodesInNetwork; // Can be decremented if a node is un-responsive??
         private int votesForLeaderReceived = 0;
         private int totalVotesReceived = 0;
         private int currentTerm = 0; // Each time a leader is elected, increment it
@@ -64,7 +64,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
 
         // Volatile state of leader nodes: (Reinitialized after election)
-        List<RaftNode> raftNodes = new();
+        readonly List<RaftNode> raftNodes = new();
 
 
         public RaftConsensus(int nodeID, int maxBlocksToCreate, ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, eventQueue)
@@ -77,7 +77,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void ResetElectionTimer()
         {
-            if (electionTimeout != null) electionTimeout.Dispose();
+            electionTimeout?.Dispose();
             electionTimeout = new(random.Next(maxElectionTimeout / 2, maxElectionTimeout)) { AutoReset = false };
             electionTimeout.Elapsed += (sender, e) =>
             {
@@ -105,7 +105,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 if (heartbeatResponse.Success)
                 {
                     Console.WriteLine($"Adding new transaction from node {node.NodeId}, with value: {heartbeatResponse.Transaction}");
-                    AddTransactionToLog(heartbeatResponse.Transaction!);
+                    AddNewTransaction(heartbeatResponse.Transaction!);
                     node.NextIndex++;
                     node.MatchIndex++;
                     if (node.NextIndex < lastApplied)
@@ -126,13 +126,21 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             }
         }
 
-        private void AddTransactionToLog(Transaction transaction)
+        public override void AddNewTransaction(Transaction transaction)
         {
-            AddNewTransaction(transaction);
+            base.AddNewTransaction(transaction);
             Console.WriteLine($"Added transaction from node: {transaction.NodeID}.");
-            var stopwatch = new Stopwatch();
-            if (ReceivedTransactionsSinceLastBlock.Count >= nodesInNetwork / 2)
+            if (ReceivedTransactionsSinceLastBlock.Count > nodesInNetwork / 2)
             {
+                AppendNewBlock();
+            }
+        }
+
+        private void AppendNewBlock()
+        {
+            if(ExecutionFlag)
+            {
+                var stopwatch = new Stopwatch();
                 Console.WriteLine("Leader is allowed to create new block.");
                 GenerateNextTransaction(true);
                 stopwatch.Start();
