@@ -338,7 +338,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 TransitionToFollower(heartbeat.Term);
             }
 
-            if (heartbeat.Term < currentTerm || Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) is null)
+            if (heartbeat.Term < currentTerm || (BlocksInChain > 0 && Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) is null))
             {
                 Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {false}.");
                 Console.WriteLine("Failed due to {0}", heartbeat.Term < currentTerm ? "term mismatch" : "block missing");
