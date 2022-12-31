@@ -59,7 +59,7 @@ namespace ConsensusBenchmarker.Consensus
 
         private readonly SemaphoreSlim receivedTransactionsSemaphore = new(1, 1);
         protected readonly SemaphoreSlim blocksSemaphore = new(1, 1);
-        private readonly int maxBlocksInChainAtOnce = 50;
+        private readonly int maxBlocksInChainAtOnce = int.MaxValue;
 
         /// <summary>
         /// Tells the consensus to start.
