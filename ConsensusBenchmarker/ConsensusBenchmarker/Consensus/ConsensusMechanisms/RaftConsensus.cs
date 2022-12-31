@@ -342,7 +342,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     success = true;
                     newTransaction = GenerateNextTransaction();
                 }
-                else
+                else if (previousLogIndex == heartbeat.PreviousLogIndex)
                 {
                     Blocks.RemoveRange(heartbeat.PreviousLogIndex, Math.Max(1, BlocksInChain - heartbeat.PreviousLogIndex));
                 }
