@@ -128,7 +128,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 {
                     Console.WriteLine("Heartbeat response was false.");
                     if (node.NextIndex > 0) node.NextIndex--;
-                    var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
+                    var preAppendEntry = (RaftBlock)Blocks.ElementAt(Math.Max(0, node.NextIndex - 1));
                     SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
                 }
             }
