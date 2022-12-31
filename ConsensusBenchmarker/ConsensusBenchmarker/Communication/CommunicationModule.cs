@@ -357,6 +357,7 @@ namespace ConsensusBenchmarker.Communication
                         ReceiveVote(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RCV));
                         break;
                     case OperationType.RQH:
+                        Console.WriteLine($"Heartbeat message pre clean: {message}");
                         RequestHeartBeat(Messages.RemoveOperationTypeTag(cleanMessageWithoutEOM, OperationType.RQH));
                         break;
                     case OperationType.RCH:
@@ -453,6 +454,7 @@ namespace ConsensusBenchmarker.Communication
 
         private void RequestHeartBeat(string message)
         {
+            Console.WriteLine($"Heartbeat message after clean: {message}");
             if (JsonConvert.DeserializeObject<RaftHeartbeatRequest>(message) is not RaftHeartbeatRequest recievedHeartbeat)
             {
                 throw new ArgumentException("Heartbeat could not be deserialized correctly", nameof(message));
