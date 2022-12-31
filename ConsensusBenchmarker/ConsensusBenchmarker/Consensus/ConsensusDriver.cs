@@ -165,7 +165,7 @@ namespace ConsensusBenchmarker.Consensus
         /// Adds a new transaction thread safe.
         /// </summary>
         /// <param name="transaction"></param>
-        public virtual void AddNewTransaction(Transaction transaction)
+        public void AddNewTransaction(Transaction transaction)
         {
             receivedTransactionsSemaphore.Wait();
 

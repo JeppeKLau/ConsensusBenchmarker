@@ -55,6 +55,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         // ConsensusDriver's Blocks // Holds RaftBlocks a.k.a. the log entries.
         private readonly int maxElectionTimeout;
         private System.Timers.Timer? electionTimeout;
+        private System.Timers.Timer? heartbeatTimeout;
         private readonly Random random;
 
 
@@ -122,40 +123,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     node.NextIndex--;
                     var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
                     SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
-                }
-            }
-        }
-
-        public override void AddNewTransaction(Transaction transaction)
-        {
-            base.AddNewTransaction(transaction);
-            Console.WriteLine($"Added transaction from node: {transaction.NodeID}.");
-            if (ReceivedTransactionsSinceLastBlock.Count > nodesInNetwork / 2)
-            {
-                AppendNewBlock();
-            }
-        }
-
-        private void AppendNewBlock()
-        {
-            if(ExecutionFlag)
-            {
-                var stopwatch = new Stopwatch();
-                Console.WriteLine("Leader is allowed to create new block.");
-                GenerateNextTransaction(true);
-                stopwatch.Start();
-                RaftBlock newEntry = GenerateNextBlock(ref stopwatch);
-                AddNewBlockToChain(newEntry);
-                stopwatch.Stop();
-                GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
-                SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, newEntry, commitIndex));
-                lastApplied++;
-
-                Console.WriteLine($"Node {NodeID} is leader and has created a new block at {newEntry.BlockCreatedAt:T} in term: {newEntry.ElectionTerm}.");
-
-                if (ExecutionFlag == false)
-                {
-                    electionTimeout!.Dispose();
                 }
             }
         }
@@ -233,6 +200,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             currentTerm++;
             votesForLeaderReceived = 1;
             totalVotesReceived = 1;
+            heartbeatTimeout?.Dispose();
 
             InitializeRaftNodeList(1, 0);
         }
@@ -256,6 +224,12 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             totalVotesReceived = 0;
             votedFor = null;
 
+            heartbeatTimeout = new System.Timers.Timer(maxElectionTimeout / 4);
+            heartbeatTimeout.Elapsed += (sender, e) =>
+            {
+                AppendNewBlock();
+            };
+
             InitializeRaftNodeList(BlocksInChain, 0);
         }
 
@@ -271,6 +245,42 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             for (int index = 1; index <= nodesInNetwork; index++)
             {
                 raftNodes.Add(new RaftNode(index, nextIndex, matchIndex, null));
+            }
+        }
+
+        private void AppendNewBlock()
+        {
+            if (ExecutionFlag)
+            {
+                if (ReceivedTransactionsSinceLastBlock.Count > nodesInNetwork / 2)
+                {
+                    Console.WriteLine($"Leader: {NodeID} had an heartbeat timeout, and a new block will be created.");
+
+                    var stopwatch = new Stopwatch();
+                    GenerateNextTransaction(true);
+                    stopwatch.Start();
+                    RaftBlock newEntry = GenerateNextBlock(ref stopwatch);
+                    AddNewBlockToChain(newEntry);
+                    stopwatch.Stop();
+                    GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
+
+                    SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, newEntry, commitIndex));
+                    lastApplied++;
+
+                    Console.WriteLine($"Node {NodeID} is leader and has created a new block at {newEntry.BlockCreatedAt:T} in term: {newEntry.ElectionTerm}.");
+                }
+                else
+                {
+                    Console.WriteLine($"Leader: {NodeID} had an heartbeat timeout, but a new block could not be created.");
+                    GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
+                    SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, null, commitIndex));
+                }
+
+                if (ExecutionFlag == false)
+                {
+                    electionTimeout!.Dispose();
+                    heartbeatTimeout?.Dispose();
+                }
             }
         }
 
@@ -346,6 +356,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             state = RaftState.Follower;
             currentTerm = term;
             votedFor = null;
+            heartbeatTimeout?.Dispose();
         }
 
         private void GetLatestEntryInformation(out int latestBlockIndex, out int latestBlockTerm)
