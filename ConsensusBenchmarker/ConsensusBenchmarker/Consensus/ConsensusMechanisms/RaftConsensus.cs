@@ -108,7 +108,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     AddTransactionToLog(heartbeatResponse.Transaction!);
                     node.NextIndex++;
                     node.MatchIndex++;
-                    if (node.NextIndex >= lastApplied)
+                    if (node.NextIndex < lastApplied)
                     {
                         Console.WriteLine($"Sending new entry to node {node.NodeId}");
                         var appendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex);
