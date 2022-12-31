@@ -331,41 +331,77 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         {
             ResetElectionTimer();
 
-            bool success = false;
             Transaction? newTransaction = null;
 
-            if (currentTerm < heartbeat.Term)
+            if (state == RaftState.Candidate)
             {
                 TransitionToFollower(heartbeat.Term);
             }
-            if (heartbeat.Term >= currentTerm)
+
+            if (heartbeat.Term < currentTerm || Blocks.ElementAtOrDefault(heartbeat.PreviousLogIndex) is null)
             {
-                GetPreviousEntryInformation(out var previousLogIndex, out var previousLogTerm);
-                if (previousLogTerm == heartbeat.PreviousLogTerm)
+                Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {false}.");
+                EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, false, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+                return;
+            }
+
+            if (heartbeat.Entries is RaftBlock newEntry)
+            {
+                if (((RaftBlock)Blocks.ElementAt(heartbeat.PreviousLogTerm + 1)).ElectionTerm != newEntry.ElectionTerm)
                 {
-                    success = true;
+                    Blocks.RemoveRange(heartbeat.PreviousLogIndex + 1, 1);
+                }
+
+                if (!Blocks.Contains(newEntry))
+                {
+                    AddNewBlockToChain(newEntry);
                     newTransaction = GenerateNextTransaction();
                 }
-                else if (previousLogIndex == heartbeat.PreviousLogIndex)
-                {
-                    if (BlocksInChain > 0)
-                    {
-                        Console.WriteLine($"Removing index {heartbeat.PreviousLogIndex} with {BlocksInChain} blocks in chain");
-                        Blocks.RemoveRange(heartbeat.PreviousLogIndex, Math.Max(1, BlocksInChain - heartbeat.PreviousLogIndex));
-                    }
-                }
-                if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
-                {
-                    AddNewBlockToChain(heartbeat.Entries);
-                }
+
                 if (heartbeat.LeaderCommit > commitIndex)
                 {
-                    GetLatestEntryInformation(out var latestEntryIndex, out _);
-                    commitIndex = Math.Min(heartbeat.LeaderCommit, latestEntryIndex);
+                    commitIndex = Math.Min(heartbeat.LeaderCommit, BlocksInChain - 1);
                 }
             }
-            Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {success}.");
-            EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, success, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+
+            Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {true}.");
+            EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, true, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+
+
+
+
+            //if (currentTerm < heartbeat.Term)
+            //{
+            //    TransitionToFollower(heartbeat.Term);
+            //}
+            //if (heartbeat.Term >= currentTerm)
+            //{
+            //    GetPreviousEntryInformation(out var previousLogIndex, out var previousLogTerm);
+            //    if (previousLogTerm == heartbeat.PreviousLogTerm)
+            //    {
+            //        success = true;
+            //        newTransaction = GenerateNextTransaction();
+            //    }
+            //    else if (previousLogIndex == heartbeat.PreviousLogIndex)
+            //    {
+            //        if (BlocksInChain > 0)
+            //        {
+            //            Console.WriteLine($"Removing index {heartbeat.PreviousLogIndex} with {BlocksInChain} blocks in chain");
+            //            Blocks.RemoveRange(heartbeat.PreviousLogIndex, Math.Max(1, BlocksInChain - heartbeat.PreviousLogIndex));
+            //        }
+            //    }
+            //    if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
+            //    {
+            //        AddNewBlockToChain(heartbeat.Entries);
+            //    }
+            //    if (heartbeat.LeaderCommit > commitIndex)
+            //    {
+            //        GetLatestEntryInformation(out var latestEntryIndex, out _);
+            //        commitIndex = Math.Min(heartbeat.LeaderCommit, latestEntryIndex);
+            //    }
+            //}
+            //Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {success}.");
+            //EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, success, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
         }
 
         private void TransitionToFollower(int term)
