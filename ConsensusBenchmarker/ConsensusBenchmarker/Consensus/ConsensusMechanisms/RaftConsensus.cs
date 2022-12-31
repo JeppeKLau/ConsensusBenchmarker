@@ -54,7 +54,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         private int? votedFor = null; // Holds which candidate this node voted for in each term (null if none)
         // ConsensusDriver's Blocks // Holds RaftBlocks a.k.a. the log entries.
         private readonly int maxElectionTimeout;
-        private System.Timers.Timer electionTimeout;
+        private System.Timers.Timer? electionTimeout;
         private readonly Random random;
 
 
@@ -67,9 +67,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         List<RaftNode> raftNodes = new();
 
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public RaftConsensus(int nodeID, int maxBlocksToCreate, ConcurrentQueue<IEvent> eventQueue) : base(nodeID, maxBlocksToCreate, eventQueue)
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             nodesInNetwork = int.Parse(Environment.GetEnvironmentVariable("RAFT_NETWORKSIZE") ?? "0");
             maxElectionTimeout = (int)(double.Parse(Environment.GetEnvironmentVariable("RAFT_ELECTIONTIMEOUT") ?? "1") * 1000);
@@ -107,7 +105,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 if (heartbeatResponse.Success)
                 {
                     Console.WriteLine($"Adding new transaction from node {node.NodeId}, with value: {heartbeatResponse.Transaction}");
-                    AddNewTransaction(heartbeatResponse.Transaction!);
+                    AddTransactionToLog(heartbeatResponse.Transaction!);
                     node.NextIndex++;
                     node.MatchIndex++;
                     if (node.NextIndex >= lastApplied)
@@ -128,9 +126,9 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             }
         }
 
-        public override void AddNewTransaction(Transaction transaction)
+        private void AddTransactionToLog(Transaction transaction)
         {
-            base.AddNewTransaction(transaction);
+            AddNewTransaction(transaction);
             Console.WriteLine($"Added transaction from node: {transaction.NodeID}.");
             var stopwatch = new Stopwatch();
             if (ReceivedTransactionsSinceLastBlock.Count >= nodesInNetwork / 2)
@@ -149,7 +147,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
                 if (ExecutionFlag == false)
                 {
-                    electionTimeout.Dispose();
+                    electionTimeout!.Dispose();
                 }
             }
         }
@@ -244,7 +242,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         {
             Console.WriteLine($"Node {NodeID} is now leader in term {currentTerm}.");
 
-            electionTimeout.Stop();
+            electionTimeout!.Stop();
             state = RaftState.Leader;
             votesForLeaderReceived = 0;
             totalVotesReceived = 0;
