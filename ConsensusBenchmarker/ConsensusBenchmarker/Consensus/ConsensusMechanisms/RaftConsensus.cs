@@ -85,7 +85,10 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 Console.WriteLine("Timout elapsed");
                 try
                 {
-                    StartElection();
+                    if (state != RaftState.Leader)
+                    {
+                        StartElection();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -345,9 +348,11 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 }
                 else if (previousLogIndex == heartbeat.PreviousLogIndex)
                 {
-                    Console.WriteLine($"Removing index {heartbeat.PreviousLogIndex} with {BlocksInChain} blocks in chain");
-
-                    Blocks.RemoveRange(heartbeat.PreviousLogIndex, Math.Max(1, BlocksInChain - heartbeat.PreviousLogIndex));
+                    if (BlocksInChain > 0)
+                    {
+                        Console.WriteLine($"Removing index {heartbeat.PreviousLogIndex} with {BlocksInChain} blocks in chain");
+                        Blocks.RemoveRange(heartbeat.PreviousLogIndex, Math.Max(1, BlocksInChain - heartbeat.PreviousLogIndex));
+                    }
                 }
                 if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
                 {

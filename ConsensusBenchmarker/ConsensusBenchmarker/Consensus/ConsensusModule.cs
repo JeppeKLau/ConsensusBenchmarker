@@ -96,6 +96,7 @@ namespace ConsensusBenchmarker.Consensus
         {
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not ConsensusEvent nextEvent) return;
+            eventQueue.TryDequeue(out _);
 
             switch (nextEvent.EventType)
             {
@@ -157,7 +158,6 @@ namespace ConsensusBenchmarker.Consensus
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
             }
-            eventQueue.TryDequeue(out _);
         }
 
         private void RecieveBlockChain(List<Block> blockChain)

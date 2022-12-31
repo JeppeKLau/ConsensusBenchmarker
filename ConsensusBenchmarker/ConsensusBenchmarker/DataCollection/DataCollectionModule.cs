@@ -103,6 +103,7 @@ namespace ConsensusBenchmarker.DataCollection
         {
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not DataCollectionEvent nextEvent) return;
+            eventQueue.TryDequeue(out _);
 
             counterSemaphore.Wait();
 
@@ -132,7 +133,6 @@ namespace ConsensusBenchmarker.DataCollection
                 default:
                     throw new ArgumentException($"Unkown type of {nameof(DataCollectionEvent)}", nameof(nextEvent.EventType));
             }
-            eventQueue.TryDequeue(out _);
             counterSemaphore.Release();
         }
 

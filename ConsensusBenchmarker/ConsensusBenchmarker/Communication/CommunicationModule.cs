@@ -92,6 +92,7 @@ namespace ConsensusBenchmarker.Communication
         {
             if (!eventQueue.TryPeek(out var @event)) return;
             if (@event is not CommunicationEvent nextEvent) return;
+            eventQueue.TryDequeue(out _);
 
             switch (nextEvent.EventType)
             {
@@ -142,7 +143,6 @@ namespace ConsensusBenchmarker.Communication
                 default:
                     throw new ArgumentException("Unknown event type", nameof(nextEvent.EventType));
             }
-            eventQueue.TryDequeue(out _);
         }
 
         #region HandleOutputMessages
