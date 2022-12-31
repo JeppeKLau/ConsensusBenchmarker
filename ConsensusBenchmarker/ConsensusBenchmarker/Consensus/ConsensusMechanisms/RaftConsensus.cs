@@ -83,6 +83,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             electionTimeout = new(random.Next(maxElectionTimeout / 2, maxElectionTimeout)) { AutoReset = false };
             electionTimeout.Elapsed += (sender, e) =>
             {
+                Console.WriteLine("Timout elapsed");
                 StartElection();
             };
             electionTimeout.Start();
@@ -105,11 +106,13 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
                 if (heartbeatResponse.Success)
                 {
+                    Console.WriteLine($"Adding new transaction from node {node.NodeId}, with value: {heartbeatResponse.Transaction}");
                     AddNewTransaction(heartbeatResponse.Transaction!);
                     node.NextIndex++;
                     node.MatchIndex++;
                     if (node.NextIndex >= lastApplied)
                     {
+                        Console.WriteLine($"Sending new entry to node {node.NodeId}");
                         var appendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex);
                         var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
                         SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, appendEntry, commitIndex), node.NodeId);
@@ -117,6 +120,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 }
                 else
                 {
+                    Console.WriteLine("Heartbeat response was false.");
                     node.NextIndex--;
                     var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
                     SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
@@ -127,9 +131,11 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         public override void AddNewTransaction(Transaction transaction)
         {
             base.AddNewTransaction(transaction);
+            Console.WriteLine($"Added transaction from node: {transaction.NodeID}.");
             var stopwatch = new Stopwatch();
             if (ReceivedTransactionsSinceLastBlock.Count >= nodesInNetwork / 2)
             {
+                Console.WriteLine("Leader is allowed to create new block.");
                 GenerateNextTransaction(true);
                 stopwatch.Start();
                 RaftBlock newEntry = GenerateNextBlock(ref stopwatch);
@@ -203,7 +209,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             GetLatestEntryInformation(out var latestBlockIndex, out var latestBlockTerm);
             var voteRequest = new RaftVoteRequest(latestBlockIndex, latestBlockTerm, currentTerm, NodeID);
             EventQueue.Enqueue(new CommunicationEvent(voteRequest, CommunicationEventType.RequestVote, nodeId));
-            Console.WriteLine("Vote requests sent");
         }
 
         private void StartElection()
