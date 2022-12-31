@@ -247,8 +247,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void GetPreviousEntryInformation(out int previousLogIndex, out int previousElectionTerm)
         {
-            previousLogIndex = Math.Max(0, BlocksInChain - 2);
-            previousElectionTerm = (Blocks.ElementAtOrDefault(previousLogIndex) as RaftBlock)?.ElectionTerm ?? 0;
+            previousLogIndex = Math.Max(-1, BlocksInChain - 2);
+            previousElectionTerm = (Blocks.ElementAtOrDefault(previousLogIndex) as RaftBlock)?.ElectionTerm ?? -1;
         }
 
         private void InitializeRaftNodeList(int nextIndex, int matchIndex)
@@ -375,8 +375,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void GetLatestEntryInformation(out int latestBlockIndex, out int latestBlockTerm)
         {
-            latestBlockIndex = Math.Max(0, BlocksInChain - 1);
-            latestBlockTerm = (Blocks.ElementAtOrDefault(latestBlockIndex) as RaftBlock)?.ElectionTerm ?? 0;
+            latestBlockIndex = Math.Max(-1, BlocksInChain - 1);
+            latestBlockTerm = (Blocks.ElementAtOrDefault(latestBlockIndex) as RaftBlock)?.ElectionTerm ?? -1;
         }
     }
 }
