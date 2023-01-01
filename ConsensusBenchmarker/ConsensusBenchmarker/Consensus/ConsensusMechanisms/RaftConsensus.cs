@@ -364,9 +364,9 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     newTransaction = GenerateNextTransaction();
                     EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncTransaction, null));
                 }
-                if (newTransaction != null && addedEntry != null)
+                if (newTransaction is not null)
                 {
-                    Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. AddedEntry?: {addedEntry}. Success?: {true}.");
+                    Console.WriteLine($"Node {NodeID} responds to a heartbeat from node {heartbeat.LeaderId}. AddedEntry?: {addedEntry}. Success?: {true}.");
                     EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, addedEntry, true, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
                 }
                 else { Console.WriteLine($"Node {NodeID} received a heartbeat request, but did not, intentionally, respond."); }
