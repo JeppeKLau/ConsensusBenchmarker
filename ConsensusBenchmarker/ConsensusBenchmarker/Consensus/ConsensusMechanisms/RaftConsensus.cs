@@ -104,7 +104,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     if (heartbeatResponse.Transaction is not null)
                     {
                         Console.WriteLine($"Adding new transaction from node {node.NodeId}.");
-                        AddNewTransaction(heartbeatResponse.Transaction)
+                        AddNewTransaction(heartbeatResponse.Transaction);
                     }
 
                     if (heartbeatResponse.AddedEntry is not null)
@@ -165,21 +165,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 {
                     ElectNodeAsLeader();
                 }
-                //else
-                //{
-                //    Thread.Sleep(1);
-                //    if (EventQueue.Where(e => e is ConsensusEvent consensusEvent && consensusEvent.EventType == ConsensusEventType.ReceiveVote).ToList().Count <= 1)
-                //    {
-                //        foreach (RaftNode node in raftNodes)
-                //        {
-                //            if (node.VoteGranted != true)
-                //            {
-                //                Console.WriteLine($"Node {NodeID} Re-Requested votes from {node.NodeId}");
-                //                RequestVotes(node.NodeId);
-                //            }
-                //        }
-                //    }
-                //}
             }
         }
 
@@ -343,7 +328,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             bool? addedEntry = null;
             if (heartbeat.Entries is RaftBlock newEntry)
             {
-                Console.WriteLine($"Blocks: {Blocks.Count}, hb.prevLogIndex: {heartbeat.PreviousLogIndex}");
                 if (BlocksInChain > 0 && ((RaftBlock)Blocks.ElementAt(heartbeat.PreviousLogIndex)).ElectionTerm != newEntry.ElectionTerm)
                 {
                     Blocks.RemoveRange(heartbeat.PreviousLogIndex + 1, 1);
@@ -364,47 +348,10 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
             Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. AddedEntry?: {addedEntry}. Success?: {true}.");
             EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, addedEntry, true, GenerateNextTransaction()), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
-
-
-
-            //if (currentTerm < heartbeat.Term)
-            //{
-            //    TransitionToFollower(heartbeat.Term);
-            //}
-            //if (heartbeat.Term >= currentTerm)
-            //{
-            //    GetPreviousEntryInformation(out var previousLogIndex, out var previousLogTerm);
-            //    if (previousLogTerm == heartbeat.PreviousLogTerm)
-            //    {
-            //        success = true;
-            //        newTransaction = GenerateNextTransaction();
-            //    }
-            //    else if (previousLogIndex == heartbeat.PreviousLogIndex)
-            //    {
-            //        if (BlocksInChain > 0)
-            //        {
-            //            Console.WriteLine($"Removing index {heartbeat.PreviousLogIndex} with {BlocksInChain} blocks in chain");
-            //            Blocks.RemoveRange(heartbeat.PreviousLogIndex, Math.Max(1, BlocksInChain - heartbeat.PreviousLogIndex));
-            //        }
-            //    }
-            //    if (heartbeat.Entries != null && !Blocks.Any(x => x.Equals(heartbeat.Entries)))
-            //    {
-            //        AddNewBlockToChain(heartbeat.Entries);
-            //    }
-            //    if (heartbeat.LeaderCommit > commitIndex)
-            //    {
-            //        GetLatestEntryInformation(out var latestEntryIndex, out _);
-            //        commitIndex = Math.Min(heartbeat.LeaderCommit, latestEntryIndex);
-            //    }
-            //}
-            //Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. Success?: {success}.");
-            //EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, success, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
         }
 
         private void TransitionToFollower(int term)
         {
-            //ResetElectionTimer();
-
             Console.WriteLine($"Node {NodeID} was reset. Transistioned from {state} to {RaftState.Follower}.");
             state = RaftState.Follower;
             currentTerm = term;
