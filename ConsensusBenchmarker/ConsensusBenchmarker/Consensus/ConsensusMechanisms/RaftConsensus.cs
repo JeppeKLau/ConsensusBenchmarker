@@ -356,8 +356,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             {
                 Transaction? newTransaction = null;
                 Block? lastBlock = Blocks.LastOrDefault() ?? null;
-                Console.WriteLine($"CreatedTransactionsByThisNode: {CreatedTransactionsByThisNode}, BlocksInChain: {BlocksInChain}, lastBlock.OwnerNodeID: {lastBlock!.OwnerNodeID}, heartbeat.LeaderId: {heartbeat.LeaderId}.");
-                if (CreatedTransactionsByThisNode == 0 || CreatedTransactionsByThisNode < BlocksInChain || lastBlock!.OwnerNodeID != heartbeat.LeaderId)
+                Console.WriteLine($"CreatedTransactionsByThisNode: {CreatedTransactionsByThisNode}, BlocksInChain: {BlocksInChain}, lastBlock.OwnerNodeID: {lastBlock?.OwnerNodeID}, heartbeat.LeaderId: {heartbeat.LeaderId}.");
+                if (CreatedTransactionsByThisNode == 0 || CreatedTransactionsByThisNode < BlocksInChain || lastBlock?.OwnerNodeID != heartbeat.LeaderId)
                 {
                     Console.WriteLine("Created new transaction for heartbeat response.");
                     newTransaction = GenerateNextTransaction();
