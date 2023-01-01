@@ -69,6 +69,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     if (AllowTimeout())
                     {
                         Console.WriteLine("Timout elapsed");
+                        Console.WriteLine("Current elements in EventQueue: " + EventQueue.Count);
                         StartElection();
                     }
                     else
@@ -78,7 +79,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Election start threw: {0}", ex);
+                    Console.WriteLine("StartElection threw: {0}", ex);
                 }
             };
             electionTimeout.Start();
@@ -288,22 +289,25 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         public override void HandleRequestVote(RaftVoteRequest voteRequest)
         {
-            ResetElectionTimer();
-
             bool grantVote = false;
-            if (currentTerm < voteRequest.ElectionTerm)
+            if (state != RaftState.Leader)
             {
-                TransitionToFollower(voteRequest.ElectionTerm);
-            }
-            if (votedFor == null && state != RaftState.Leader)
-            {
-                GetLatestEntryInformation(out int latestBlockIndex, out _);
-                if (voteRequest.ElectionTerm >= currentTerm)
+                ResetElectionTimer();
+
+                if (currentTerm < voteRequest.ElectionTerm)
                 {
-                    if (voteRequest.LatestBlockIndex >= latestBlockIndex)
+                    TransitionToFollower(voteRequest.ElectionTerm);
+                }
+                if (votedFor == null)
+                {
+                    GetLatestEntryInformation(out int latestBlockIndex, out _);
+                    if (voteRequest.ElectionTerm >= currentTerm)
                     {
-                        grantVote = true;
-                        votedFor = voteRequest.NodeId;
+                        if (voteRequest.LatestBlockIndex >= latestBlockIndex)
+                        {
+                            grantVote = true;
+                            votedFor = voteRequest.NodeId;
+                        }
                     }
                 }
             }
