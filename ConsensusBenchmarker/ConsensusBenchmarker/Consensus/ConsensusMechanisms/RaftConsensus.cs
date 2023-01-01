@@ -1,4 +1,5 @@
-﻿using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
+﻿using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
 using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
 using System.Collections.Concurrent;
@@ -208,9 +209,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         {
             GetPreviousEntryInformation(out var previousLogIndex, out int previousLogTerm);
             InitializeLeader();
-
-            var heartbeatRequest = new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousLogTerm, null, commitIndex);
-            SendHeartBeat(heartbeatRequest);
+            SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousLogTerm, null, commitIndex));
         }
 
         private void InitializeLeader()
@@ -357,7 +356,12 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. AddedEntry?: {addedEntry}. Success?: {true}.");
             if(ExecutionFlag)
             {
-                EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, addedEntry, true, GenerateNextTransaction()), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+                Transaction? newTransaction = null;
+                if (CreatedTransactionsByThisNode < BlocksInChain || BlocksInChain == 0)
+                {
+                    newTransaction = GenerateNextTransaction();
+                }
+                EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, addedEntry, true, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
                 EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncTransaction, null));
             }
         }
