@@ -96,13 +96,16 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
             if (state == RaftState.Leader)
             {
-                Console.WriteLine($"Received heartbeat response from node {heartbeatResponse.NodeId}, it's request from the leader was {heartbeatResponse.Success}.");
+                Console.WriteLine($"Received heartbeat response from node {heartbeatResponse.NodeId}, success?: {heartbeatResponse.Success}.");
                 var node = raftNodes.Single(x => x.NodeId == heartbeatResponse.NodeId);
 
                 if (heartbeatResponse.Success)
                 {
-                    Console.WriteLine($"Adding new transaction from node {node.NodeId}.");
-                    if (heartbeatResponse.Transaction is not null) AddNewTransaction(heartbeatResponse.Transaction);
+                    if (heartbeatResponse.Transaction is not null)
+                    {
+                        Console.WriteLine($"Adding new transaction from node {node.NodeId}.");
+                        AddNewTransaction(heartbeatResponse.Transaction)
+                    }
 
                     if (heartbeatResponse.AddedEntry is not null)
                     {
@@ -277,8 +280,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
                     SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, newEntry, commitIndex));
                     lastApplied++;
-
-                    Console.WriteLine($"Node {NodeID} is leader and has created a new block at {newEntry.BlockCreatedAt:T} in term: {newEntry.ElectionTerm}.");
                 }
                 else
                 {
@@ -306,7 +307,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             {
                 TransitionToFollower(voteRequest.ElectionTerm);
             }
-            if (votedFor == null)
+            if (votedFor == null && state != RaftState.Leader)
             {
                 GetLatestEntryInformation(out int latestBlockIndex, out _);
                 if (voteRequest.ElectionTerm >= currentTerm)
@@ -318,7 +319,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     }
                 }
             }
-            Console.WriteLine($"Node {NodeID} received a vote request from node {voteRequest.NodeId}. Grant vote?: {grantVote}.");
+            Console.WriteLine($"Node {NodeID}, state: {state}, received a vote request from node {voteRequest.NodeId}. Grant vote?: {grantVote}.");
             EventQueue.Enqueue(new CommunicationEvent(new RaftVoteResponse(NodeID, currentTerm, grantVote), CommunicationEventType.CastVote, voteRequest.NodeId));
         }
 
