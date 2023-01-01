@@ -273,8 +273,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     RaftBlock newEntry = GenerateNextBlock(ref stopwatch);
                     AddNewBlockToChain(newEntry);
                     stopwatch.Stop();
-                    GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
 
+                    GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
                     SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, newEntry, commitIndex));
                     lastApplied++;
 
@@ -342,7 +342,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             bool? addedEntry = null;
             if (heartbeat.Entries is RaftBlock newEntry)
             {
-                if (((RaftBlock)Blocks.ElementAt(heartbeat.PreviousLogTerm + 1)).ElectionTerm != newEntry.ElectionTerm)
+                Console.WriteLine($"Blocks: {Blocks.Count}, hb.prevLogTerm: {heartbeat.PreviousLogTerm + 1}");
+                if (BlocksInChain > 0 && ((RaftBlock)Blocks.ElementAt(heartbeat.PreviousLogTerm + 1)).ElectionTerm != newEntry.ElectionTerm)
                 {
                     Blocks.RemoveRange(heartbeat.PreviousLogIndex + 1, 1);
                     addedEntry = false;
