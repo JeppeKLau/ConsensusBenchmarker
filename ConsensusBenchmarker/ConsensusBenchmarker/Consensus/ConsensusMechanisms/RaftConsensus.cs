@@ -351,8 +351,11 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             }
 
             Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. AddedEntry?: {addedEntry}. Success?: {true}.");
-            EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, addedEntry, true, GenerateNextTransaction()), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
-            EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncTransaction, null));
+            if(ExecutionFlag)
+            {
+                EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, addedEntry, true, GenerateNextTransaction()), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+                EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncTransaction, null));
+            }
         }
 
         private void TransitionToFollower(int term)
