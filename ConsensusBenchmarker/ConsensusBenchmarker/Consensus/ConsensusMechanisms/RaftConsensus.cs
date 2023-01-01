@@ -331,11 +331,10 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 return;
             }
 
-            electionTimeout!.Stop();
             bool? addedEntry = null;
             if (heartbeat.Entries is RaftBlock newEntry)
             {
-                if (BlocksInChain > 0 && ((RaftBlock)Blocks.ElementAt(heartbeat.PreviousLogIndex)).ElectionTerm != newEntry.ElectionTerm)
+                if (Blocks.Count > 0 && ((RaftBlock)Blocks.ElementAt(heartbeat.PreviousLogIndex)).ElectionTerm != newEntry.ElectionTerm)
                 {
                     Blocks.RemoveRange(heartbeat.PreviousLogIndex + 1, 1);
                     addedEntry = false;
@@ -350,7 +349,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
                 if (heartbeat.LeaderCommit > commitIndex)
                 {
-                    commitIndex = Math.Min(heartbeat.LeaderCommit, BlocksInChain - 1);
+                    commitIndex = Math.Min(heartbeat.LeaderCommit, Blocks.Count - 1);
                 }
             }
 
@@ -358,19 +357,19 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             {
                 Transaction? newTransaction = null;
                 Block? lastBlock = Blocks.LastOrDefault() ?? null;
-                if (CreatedTransactionsByThisNode <= BlocksInChain || (lastBlock is not null && lastBlock.OwnerNodeID != heartbeat.LeaderId))
+                if (CreatedTransactionsByThisNode <= Blocks.Count || (addedEntry is not null && addedEntry == true) || (lastBlock is not null && lastBlock.OwnerNodeID != heartbeat.LeaderId))
                 {
                     Console.WriteLine("Created new transaction for heartbeat response.");
                     newTransaction = GenerateNextTransaction();
                     EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncTransaction, null));
                 }
-                if (newTransaction is not null)
+                if (newTransaction is not null || addedEntry is not null)
                 {
                     Console.WriteLine($"Node {NodeID} responds to a heartbeat from node {heartbeat.LeaderId}. AddedEntry?: {addedEntry}. Success?: {true}.");
                     EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, addedEntry, true, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
                 }
                 else { Console.WriteLine($"Node {NodeID} received a heartbeat request, but did not, intentionally, respond."); }
-                electionTimeout!.Start();
+                ResetElectionTimer();
             }
         }
 
