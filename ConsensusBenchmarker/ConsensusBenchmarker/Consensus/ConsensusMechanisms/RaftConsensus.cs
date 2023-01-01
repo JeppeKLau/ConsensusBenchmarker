@@ -342,8 +342,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             bool? addedEntry = null;
             if (heartbeat.Entries is RaftBlock newEntry)
             {
-                Console.WriteLine($"Blocks: {Blocks.Count}, hb.prevLogTerm: {heartbeat.PreviousLogIndex + 1}");
-                if (BlocksInChain > 0 && ((RaftBlock)Blocks.ElementAt(heartbeat.PreviousLogIndex + 1)).ElectionTerm != newEntry.ElectionTerm)
+                Console.WriteLine($"Blocks: {Blocks.Count}, hb.prevLogIndex: {heartbeat.PreviousLogIndex}");
+                if (BlocksInChain > 0 && ((RaftBlock)Blocks.ElementAt(heartbeat.PreviousLogIndex)).ElectionTerm != newEntry.ElectionTerm)
                 {
                     Blocks.RemoveRange(heartbeat.PreviousLogIndex + 1, 1);
                     addedEntry = false;
