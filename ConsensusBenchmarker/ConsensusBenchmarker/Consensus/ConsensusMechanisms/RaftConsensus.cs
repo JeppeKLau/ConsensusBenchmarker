@@ -252,7 +252,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         {
             if (ExecutionFlag)
             {
-                if (ReceivedTransactionsSinceLastBlock.Count > nodesInNetwork / 2)
+                if (ReceivedTransactionsSinceLastBlock.Count == nodesInNetwork - 1)
                 {
                     Console.WriteLine($"Leader: {NodeID} had an heartbeat timeout, and a new block will be created.");
 
