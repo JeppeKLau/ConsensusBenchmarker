@@ -120,18 +120,18 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                                 Console.WriteLine($"Sending new entry to node {node.NodeId}");
                                 var appendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex);
                                 var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
-                                SendHeartBeat(new RaftHeartbeatRequest(false, currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, appendEntry, commitIndex), node.NodeId);
+                                SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, appendEntry, commitIndex), node.NodeId);
                             }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Heartbeat AddedEntry was false.");
+                            if (node.NextIndex > 0) node.NextIndex--;
+                            var preAppendEntry = (RaftBlock)Blocks.ElementAt(Math.Max(0, node.NextIndex - 1));
+                            SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
                         }
                     }
                     else { Console.WriteLine("Heartbeat AddedEntry was null."); }
-                }
-                else if(heartbeatResponse.AddedEntry is null)
-                {
-                    Console.WriteLine("Heartbeat success was false.");
-                    if (node.NextIndex > 0) node.NextIndex--;
-                    var preAppendEntry = (RaftBlock)Blocks.ElementAt(Math.Max(0, node.NextIndex - 1));
-                    SendHeartBeat(new RaftHeartbeatRequest(false, currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
                 }
             }
         }
@@ -208,7 +208,9 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         {
             GetPreviousEntryInformation(out var previousLogIndex, out int previousLogTerm);
             InitializeLeader();
-            SendHeartBeat(new RaftHeartbeatRequest(false, currentTerm, NodeID, previousLogIndex, previousLogTerm, null, commitIndex));
+
+            var heartbeatRequest = new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousLogTerm, null, commitIndex);
+            SendHeartBeat(heartbeatRequest);
         }
 
         private void InitializeLeader()
@@ -265,14 +267,14 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, stopwatch));
 
                     GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
-                    SendHeartBeat(new RaftHeartbeatRequest(false, currentTerm, NodeID, previousLogIndex, previousElectionTerm, newEntry, commitIndex));
+                    SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, newEntry, commitIndex));
                     lastApplied++;
                 }
                 else
                 {
                     Console.WriteLine($"Leader: {NodeID} had an heartbeat timeout, but a new block could not be created.");
                     GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
-                    SendHeartBeat(new RaftHeartbeatRequest(true, currentTerm, NodeID, previousLogIndex, previousElectionTerm, null, commitIndex));
+                    SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, null, commitIndex));
                 }
 
                 if (ExecutionFlag == false)
@@ -316,8 +318,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
         public override void HandleRequestHeartBeat(RaftHeartbeatRequest heartbeat)
         {
             ResetElectionTimer();
-
-            if (heartbeat.Heartbeat) return;
 
             if (state != RaftState.Follower || currentTerm < heartbeat.Term)
             {

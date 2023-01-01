@@ -7,9 +7,8 @@ namespace ConsensusBenchmarker.Models.DTOs
     /// </summary>
     public class RaftHeartbeatRequest
     {
-        public RaftHeartbeatRequest(bool heartbeat, int term, int leaderId, int previousLogIndex, int previousLogTerm, Block? entries, int leaderCommit)
+        public RaftHeartbeatRequest(int term, int leaderId, int previousLogIndex, int previousLogTerm, Block? entries, int leaderCommit)
         {
-            Heartbeat = heartbeat;
             Term = term;
             LeaderId = leaderId;
             PreviousLogIndex = previousLogIndex;
@@ -17,11 +16,6 @@ namespace ConsensusBenchmarker.Models.DTOs
             Entries = entries;
             LeaderCommit = leaderCommit;
         }
-
-        /// <summary>
-        /// Describes if the only purpose of the request to keep the node alive
-        /// </summary>
-        public bool Heartbeat { get; set; }
 
         /// <summary>
         /// Leader's term.
