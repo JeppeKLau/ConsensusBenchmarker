@@ -98,7 +98,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
             if (state == RaftState.Leader)
             {
-                Console.WriteLine($"Received heartbeat response from node {heartbeatResponse.NodeId}, success?: {heartbeatResponse.Success}.");
+                Console.WriteLine($"Received heartbeat response from node {heartbeatResponse.NodeId}, AddedEntry?: {heartbeatResponse.AddedEntry} success?: {heartbeatResponse.Success}.");
                 var node = raftNodes.Single(x => x.NodeId == heartbeatResponse.NodeId);
 
                 if (heartbeatResponse.Success)
@@ -113,7 +113,6 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                     {
                         if (heartbeatResponse.AddedEntry == true)
                         {
-                            Console.WriteLine("Heartbeat AddedEntry was true.");
                             node.NextIndex++;
                             node.MatchIndex++;
                             if (node.NextIndex < lastApplied)
@@ -126,13 +125,11 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                         }
                         else
                         {
-                            Console.WriteLine("Heartbeat AddedEntry was false.");
                             if (node.NextIndex > 0) node.NextIndex--;
                             var preAppendEntry = (RaftBlock)Blocks.ElementAt(Math.Max(0, node.NextIndex - 1));
                             SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
                         }
                     }
-                    else { Console.WriteLine("Heartbeat AddedEntry was null."); }
                 }
             }
         }
@@ -353,14 +350,15 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 }
             }
 
-            Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. AddedEntry?: {addedEntry}. Success?: {true}.");
             if(ExecutionFlag)
             {
                 Transaction? newTransaction = null;
-                if (CreatedTransactionsByThisNode < BlocksInChain || BlocksInChain == 0)
+                if (CreatedTransactionsByThisNode < BlocksInChain || BlocksInChain == 0 || Blocks.Last().OwnerNodeID != heartbeat.LeaderId)
                 {
+                    Console.WriteLine("Created new transaction for heartbeat response.");
                     newTransaction = GenerateNextTransaction();
                 }
+                Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. AddedEntry?: {addedEntry}. Success?: {true}.");
                 EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, addedEntry, true, newTransaction), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
                 EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncTransaction, null));
             }
