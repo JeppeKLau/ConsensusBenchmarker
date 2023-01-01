@@ -1,4 +1,5 @@
 ﻿using ConsensusBenchmarker.Models;
+using ConsensusBenchmarker.Models.Blocks;
 using ConsensusBenchmarker.Models.Blocks.ConsensusBlocks;
 using ConsensusBenchmarker.Models.DTOs;
 using ConsensusBenchmarker.Models.Events;
@@ -353,7 +354,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
             if(ExecutionFlag)
             {
                 Transaction? newTransaction = null;
-                if (CreatedTransactionsByThisNode < BlocksInChain || BlocksInChain == 0 || Blocks.Last().OwnerNodeID != heartbeat.LeaderId)
+                Block? lastBlock = Blocks.LastOrDefault() ?? null;
+                if (CreatedTransactionsByThisNode == 0 || CreatedTransactionsByThisNode < BlocksInChain || lastBlock!.OwnerNodeID != heartbeat.LeaderId)
                 {
                     Console.WriteLine("Created new transaction for heartbeat response.");
                     newTransaction = GenerateNextTransaction();
