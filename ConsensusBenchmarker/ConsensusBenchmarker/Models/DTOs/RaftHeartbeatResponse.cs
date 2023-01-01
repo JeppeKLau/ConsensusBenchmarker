@@ -2,7 +2,7 @@
 {
     public class RaftHeartbeatResponse
     {
-        public RaftHeartbeatResponse(int nodeId, int term, bool addedEntry, bool success, Transaction? transaction)
+        public RaftHeartbeatResponse(int nodeId, int term, bool? addedEntry, bool success, Transaction? transaction)
         {
             NodeId = nodeId;
             Term = term;
@@ -15,7 +15,7 @@
 
         public int Term { get; set; }
 
-        public bool AddedEntry { get; set; } = false;
+        public bool? AddedEntry { get; set; } = false;
 
         public bool Success { get; set; }
 

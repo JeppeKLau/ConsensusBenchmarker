@@ -99,31 +99,35 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 Console.WriteLine($"Received heartbeat response from node {heartbeatResponse.NodeId}, it's request from the leader was {heartbeatResponse.Success}.");
                 var node = raftNodes.Single(x => x.NodeId == heartbeatResponse.NodeId);
 
-                if(heartbeatResponse.Success)
+                if (heartbeatResponse.Success)
                 {
                     Console.WriteLine($"Adding new transaction from node {node.NodeId}.");
                     if (heartbeatResponse.Transaction is not null) AddNewTransaction(heartbeatResponse.Transaction);
 
-                    if (heartbeatResponse.AddedEntry)
+                    if (heartbeatResponse.AddedEntry is not null)
                     {
-                        Console.WriteLine("Heartbeat AddedEntry was true.");
-                        node.NextIndex++;
-                        node.MatchIndex++;
-                        if (node.NextIndex < lastApplied)
+                        if (heartbeatResponse.AddedEntry == true)
                         {
-                            Console.WriteLine($"Sending new entry to node {node.NodeId}");
-                            var appendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex);
-                            var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
-                            SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, appendEntry, commitIndex), node.NodeId);
+                            Console.WriteLine("Heartbeat AddedEntry was true.");
+                            node.NextIndex++;
+                            node.MatchIndex++;
+                            if (node.NextIndex < lastApplied)
+                            {
+                                Console.WriteLine($"Sending new entry to node {node.NodeId}");
+                                var appendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex);
+                                var preAppendEntry = (RaftBlock)Blocks.ElementAt(node.NextIndex - 1);
+                                SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, appendEntry, commitIndex), node.NodeId);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Heartbeat AddedEntry was false.");
+                            if (node.NextIndex > 0) node.NextIndex--;
+                            var preAppendEntry = (RaftBlock)Blocks.ElementAt(Math.Max(0, node.NextIndex - 1));
+                            SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
                         }
                     }
-                    else
-                    {
-                        Console.WriteLine("Heartbeat AddedEntry was false.");
-                        if (node.NextIndex > 0) node.NextIndex--;
-                        var preAppendEntry = (RaftBlock)Blocks.ElementAt(Math.Max(0, node.NextIndex - 1));
-                        SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, node.NextIndex - 1, preAppendEntry.ElectionTerm, null, commitIndex), node.NodeId);
-                    }
+                    else { Console.WriteLine("Heartbeat AddedEntry was null."); }
                 }
             }
         }
@@ -335,12 +339,13 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 return;
             }
 
-            bool addedEntry = false;
+            bool? addedEntry = null;
             if (heartbeat.Entries is RaftBlock newEntry)
             {
                 if (((RaftBlock)Blocks.ElementAt(heartbeat.PreviousLogTerm + 1)).ElectionTerm != newEntry.ElectionTerm)
                 {
                     Blocks.RemoveRange(heartbeat.PreviousLogIndex + 1, 1);
+                    addedEntry = false;
                 }
 
                 if (!Blocks.Any(x => x.Equals(heartbeat.Entries)))
