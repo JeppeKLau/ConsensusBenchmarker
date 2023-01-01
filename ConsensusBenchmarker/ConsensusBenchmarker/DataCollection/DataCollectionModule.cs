@@ -78,6 +78,7 @@ namespace ConsensusBenchmarker.DataCollection
             WriteInformationToDB(new RunTimeMeasurement(nodeId, DateTime.UtcNow, endTime.Subtract(startTime)));
             WriteInformationToDB(new TransactionMeasurement(nodeId, DateTime.UtcNow, transactionCount));
             WriteInformationToDB(new InMessageMeasurement(nodeId, DateTime.UtcNow, inMessageCount));
+            WriteInformationToDB(new OutMessageMeasurement(nodeId, DateTime.UtcNow, outMessageCount));
             memThread?.Join();
         }
 

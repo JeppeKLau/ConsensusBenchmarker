@@ -170,8 +170,8 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
         private void SendHeartBeat(RaftHeartbeatRequest heartbeat, int? recipient = null)
         {
-            EventQueue.Enqueue(new CommunicationEvent(heartbeat, CommunicationEventType.RequestHeartbeat, recipient));
             Console.WriteLine($"Node {NodeID} is sending Heartbeat requests in term {currentTerm}.");
+            EventQueue.Enqueue(new CommunicationEvent(heartbeat, CommunicationEventType.RequestHeartbeat, recipient));
         }
 
         private void RequestVotes(int? nodeId = null)
@@ -257,10 +257,13 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
                     var stopwatch = new Stopwatch();
                     GenerateNextTransaction(true);
+                    EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncTransaction, null));
+
                     stopwatch.Start();
                     RaftBlock newEntry = GenerateNextBlock(ref stopwatch);
                     AddNewBlockToChain(newEntry);
                     stopwatch.Stop();
+                    EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, stopwatch));
 
                     GetPreviousEntryInformation(out var previousLogIndex, out var previousElectionTerm);
                     SendHeartBeat(new RaftHeartbeatRequest(currentTerm, NodeID, previousLogIndex, previousElectionTerm, newEntry, commitIndex));
@@ -337,6 +340,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
                 if (!Blocks.Any(x => x.Equals(heartbeat.Entries)))
                 {
                     AddNewBlockToChain(newEntry);
+                    EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncBlock, null));
                     addedEntry = true;
                 }
 
@@ -348,6 +352,7 @@ namespace ConsensusBenchmarker.Consensus.ConsensusMechanisms
 
             Console.WriteLine($"Node {NodeID} received a heartbeat from node {heartbeat.LeaderId}. AddedEntry?: {addedEntry}. Success?: {true}.");
             EventQueue.Enqueue(new CommunicationEvent(new RaftHeartbeatResponse(NodeID, currentTerm, addedEntry, true, GenerateNextTransaction()), CommunicationEventType.ReceiveHeartbeat, heartbeat.LeaderId));
+            EventQueue.Enqueue(new DataCollectionEvent(NodeID, DataCollectionEventType.IncTransaction, null));
         }
 
         private void TransitionToFollower(int term)
