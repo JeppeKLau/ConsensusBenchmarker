@@ -7,9 +7,9 @@ namespace ConsensusBenchmarker.Models.Measurements
     {
         public RunTimeMeasurement(int nodeId, DateTime timestamp, TimeSpan timeSpan) : base(nodeId, timestamp)
         {
-            TimeSpan = timeSpan;
+            Seconds = timeSpan.Seconds;
         }
 
-        [Column("TimeSpan")] public TimeSpan TimeSpan { get; set; }
+        [Column("Seconds")] public int Seconds { get; set; }
     }
 }
